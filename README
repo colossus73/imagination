@@ -1,2 +1,2 @@
-Imagination is a lightweight and easy to use slide show maker for Linux and FreeBSD written in C language and built with the GTK+3 toolkit in development since 2009.
+Imagination is a lightweight and easy to use slide show maker for Linux and FreeBSD written in C language and built with the GTK+3 toolkit in development since 2009. It uses cairo 2D library to achieve the transactions.
 I need help to make it modern and updated. Would you help with the timeline? You can find it here: https://github.com/colossus73/gtk_timeline
