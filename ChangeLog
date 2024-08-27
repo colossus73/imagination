@@ -1,0 +1,131 @@
+Imagination changelog
+
+23/02/20 - 3.5.1	- Fixed imagination svg file.
+			- Fixed gdk_pixbuf_format_get_name: assertion 'format != NULL' failed.
+			- Fixed regression causing not to render gradient slides when exporting.
+
+10/01/20 - 3.5		- Port to GTK+3
+			- Added spin & grow text animation.
+			- Added ability to flip the slide horizontally.
+			- Subtitle can now have different styles.
+			- The slide next to the one deleted is now selected, 
+			- Added H265 codec.
+			- Fixed seg-fault when quitting.
+			- Updated Russian translations.
+			- Fixed the "Import slideshow" button overwriting existing slides.
+			- Made the zoom in the image area to react to mouse wheel. 
+			- Add end to end tests (run them with make installcheck).
+			- Support most EXIF orientation tags.
+			- Added a way to control the length of the final audio fadeout.
+			- Fixed a few crashes when opening a project whose files do not exist anymore
+			- More reliable detection of unsaved changes to ask confirmation before quitting.
+
+
+18/12/18 - 3.4		- Subtitle info are no more saved in the project file if the slide hasn't any text.
+			- Starting the preview from the middle plays music accordingly to its timing in the slideshow.
+			- Project can be ported to other media as filenames can be saved without their path.
+			- Subtitle can be now rotated.
+			- Subtitle can now be freely positioned on the slide.
+			- Added a nice fading gradient animation in the Add/Edit slide dialog.
+			- Fixed seg-fault when trying to delete a slide when preview is running.
+			- Current slideshow is no more closed if user cancels when opening a new one.
+			- Enjoy FULLSCREEN preview with background music and continuos mode. WOOOOOOOOOOW !!!
+			- The CTRL+A shortcut doesn't select all the slides anymore when pressed from the subtitle widget entry.
+			- Subtitles can now have a pattern.
+			- Empty slide background can now be edited.
+			- Subtitle can have a background.
+			- Got rid of Update button in the Slide Motion as it's now automatic.
+			- Got rid of subtitle placing option.
+			- Moved Add and Remove buttons in the Slide Motion on the right.
+14/10/18 - 3.1:
+			- Export is now much faster than 3.0!
+			- Ending the slideshow with a blank slide with the same transition applied to the first one is now optional.
+			- Added an elapsed time information in the Export dialog.
+			- Made the slides to be selected during the preview/export and their number shown on the menu bar.
+			- Fixed seg-fault when trying to rotate gradient/text slides.
+			- Current slideshow is not closed anymore when clicking ok/cancel in the properties/new slideshow dialog.
+			- Slide duration can be finally set to less than a second. That was a long requested feature!
+			- Added patch from Giovanni Mariani to fix ffmpeg cmd line error when producing VOB.
+			- Added two more text transitions and moved -r encoder option before the input filename thanks to Bruce Guenter. 
+			- Fixed bugs #82 and #83 thanks to Davide Capodaglio. 
+            		- Fixed compilation error on Fedora 13 (check for libm)
+            		- Fix loading of slides without image, bug #3306969
+            		- Fix: Propose a project name (unknown.img) when saving a new project from the "save" button.
+            		- The video formats code was rewritten, including saving/loading the project settings. Fixes bug #3306974.
+            		- Added H.264/MPEG-4 AVC support, thanks to David Gnedt
+
+06/03/11 - 3.0:
+			- Added Chinese simplified and Chinese traditional translations.
+			- Icons in the transition menu are animated.
+			- Fixed bug 2900684 in the VOB exported aspect ratio.
+			- Added French translation of the documentation thanks to Yann Ubuntu.
+			- Added Catalan translation thanks to Manuel Tortosa.
+			- Added border to fonts thanks to Robert Cheramy.
+		        - Added HD support
+			- Fixed ffmpeg support
+			- Improved handling of Image not found
+			- Fixed export video extension
+			- Imagination projects should now have .img as an extention
+			- Changed behaviour of "new" and "open" (now work as expected)
+			- Fixed #2905255 (Copy/Paste bug)
+14/10/09 - 2.1:
+			- Added a new transition family named Rochade.
+			- Added 3GP export for mobile phones.
+			- Fixed seg-fault when using Imagination with GTK 2.18
+			- Fixed crash when playing with Ken Burns and slide text after closing the project.
+			- Added a slides transitions report dialog.
+			- Added Japanese translation.
+			- Fixed display of music duration after loading the slideshow.
+			- Fixed seg-fault when exporting with more audio files.
+			- Image rotation is now stored inside project file.
+
+27/09/09 - 2.0:
+			- Fixed loading of text position icons.
+			- Made the audio files to be concatenated and have fade-out effect at the end.
+			- Fixed save warning dialog to appear when it shouldn't.
+			- Fixed rescale images regression.
+			- FLV export supports several video sizes.
+
+22/08/09 - 2.0b1:
+			- Fixed bug that caused exported slideshows being 20% longer than reported by Imagination.
+			- Added ability to insert an empty slide with the option to choose a background color gradient in three different ways: solid, linear and radial.
+			- Added Widescreen option to FLV exported video.
+			- Added Cut/Copy/Paste ability on the slides.
+			- Added Dissolve transition effect.
+			- Added an overview mode to the GUI which displays slides in a matrix.
+			- Added icons on the slides for indicating the transition type and if text is set on the slide.
+			- Added ability to add text on the slides with some text animations.
+			- Added HTML documentation.
+			- Added Ken Burns effects.
+			- Made GUI work better on smaller screens.
+			- Added russian translation.	
+			- Changed suffix for exported OGG Theora/Vorbis slideshow to ".ogv".
+			- A progress bar is now displayed when loading a project with many slides.
+			- Fixed missed update of the total time slideshow when deleting slides.
+			- Added "Insert" family transitions thanks to Jean-Pierre Redonnet.
+			- Added slide total number on the toolbar thanks to David Prieto for the idea.
+			- Slides can be rotated inside Imagination but the original image won't be affected since the EXIF info would be lost.
+			- Added ability to import audio with drag and drop.
+			- Added first, prev, next and last buttons to move the selection on the slides; thanks to David Prieto for the suggestions.
+			- Added ability to import pictures with drag and drop.
+			- Centered the Heart transition effect of the Misc Shape Wipe family.
+			- Removed ffmpeg's dependancy in the configure script.
+			- Use icons from the current Gtk theme for import image and import sound menu/toolbar entries thanks to David Prieto for the idea.
+			- Changed accelerator of menu Slide->Delete to DEL key.
+
+24/06/09 - 1.5:
+			- Added ability to add audio to the slideshow.
+			- Added OGG Theora/Vorbis slideshow export.
+			- Last slide closes the slideshow with the same transition applied to the first one.
+			- Imagination can open project specified on cmd-line, thanks to Jean-Pierre Redonnet for the code.
+			- Imagination can produce OGG and FLV with different video quality, thanks to
+		  	  Jean-Pierre Redonnet for the idea.
+			- Added ability to randomly choose the transitions.
+			- Grouped the transitions in families and added icons for describing the effect.
+			- Added new transitions effects: Barn Door Wipe, Box Tie Wipe, Four Box Wipe, Ellipse Wipe, Diagonal Wipe,
+		  	  Clock Wipe, Wave, Misc Diagonal Wipe and Misc Shape Wipe families thanks to Tadej Borovšak.
+			- Added man page thanks to Alessio Treglia.
+			- Added French, Czech, Brazilian Portuguese, German and Spanish translations.
+
+26/02/09 - 1.0:
+			- First release.

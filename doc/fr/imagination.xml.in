@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+    "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY date "Octobre 2009"> 
+  <!ENTITY version "3.0">
+  <!ENTITY application "Imagination"> 
+]>
+<article id="index" lang="fr">
+	<articleinfo>
+		<title>Imagination Créateur de Diaporama Vidéo</title>
+		<pubdate>&date;</pubdate>
+		<copyright>
+			<year>2009</year>
+			<holder>Giuseppe Torelli</holder>
+		</copyright>
+		<legalnotice id="legalnotice">
+			<para>
+				Vous avez la permission de copier, distribuer et / ou modifier ce document selon les termes de la licence GNU Free Documentation License, Version 1.1 ou toute version ultérieure publiée par la Free Software Foundation sans section invariante, sans texte de première de couverture, et sans texte de couverture. Le texte de la licence complète est disponible auprès de la
+				<ulink type="http" url="http://www.gnu.org/">Free Software Foundation</ulink>.
+			</para>
+		</legalnotice>
+		<authorgroup>
+			<author>
+				<firstname>Giuseppe</firstname>
+				<surname>Torelli</surname>
+			</author>
+			<author>
+				<firstname>Tadej</firstname>
+				<surname>Borovšak</surname>
+			</author>
+            <author>
+                <firstname>Robert</firstname>
+                <surname>Chéramy</surname>
+            </author>
+		</authorgroup>
+		<releaseinfo>
+			Ce manuel décrit la version &version; de &application;.
+		</releaseinfo>
+	</articleinfo>
+
+	<sect1 id="intro">
+		<title>Introduction à &application;</title>
+			<para>
+				Imagination est un créateur de diaporama vidéo développé en C avec le toolkit GTK 2 et Cairo. Imagination est conçu pour être rapide et facile à utiliser. Son interface utilisateur est claire et intuitive et ne comprend pas d'options par défaut inutiles ou confuses. Elle a besoin de l'encodeur ffmpeg pour produire le fichier vidéo et libsox pour importer les fichiers audio. Vous n'avez pas besoin d'autre logiciel tiers!
+			</para>
+	</sect1>
+	<sect1 id="new_format">
+		<title>Nouveau format de projet diaporama</title>
+			<para>
+				A partir de cette version 2.0, le format de projet diaporama a changé. Les anciens formats seront reconnus et les diaporamas enregistrés avec ce format seront correctement chargés, mais à partir de la prochaine version, la possibilité d'import des fichiers d'anciens projets (enregistrés avec une version d'Imagination antérieure à 2.0) sera ABANDONNÉE. N'oubliez donc pas de charger TOUS vos vieux projets de diaporama réalisés avec Imagination 2.0 et de les enregistrer à nouveau.
+			</para>
+	</sect1>
+	<sect1 id="window">
+		<title>La fenêtre d'Imagination</title>
+		<para>
+			Cette section décrit la zone de la fenêtre d'Imagination : la barre d'outils, la zone de l'image, la zone de travail, la zone des miniatures et la barre d'état.
+		</para>
+		<para>
+			<figure id="Imagination's window">
+				<title>Fenêtre d'Imagination</title>
+				<graphic fileref="images/imagination_window.png"></graphic>
+			</figure>
+		</para>
+		<sect2 id="toolbar">
+			<title>Barre d'outils</title>
+			<itemizedlist>
+				<listitem><para>Nouveau</para></listitem>
+				<listitem><para>Ouvrir</para></listitem>
+				<listitem><para>Enregistrer</para></listitem>
+				<listitem><para>Importer des images </para></listitem>
+				<listitem><para>Import de la musique</para></listitem>
+				<listitem><para>Supprimer</para></listitem>
+				<listitem><para>Rotation dans le sens des aiguilles</para></listitem>
+				<listitem><para>Rotation dans le sens inverse des aiguilles</para></listitem>
+				<listitem><para>Zoom avant</para></listitem>
+				<listitem><para>Zoom arrière</para></listitem>
+				<listitem><para>Zoom taille Normale</para></listitem>
+				<listitem><para>Prévisualisation</para></listitem>
+				<listitem><para>Retourner à la première diapositive</para></listitem>
+				<listitem><para>Retourner à la diapositive précédente</para></listitem>
+				<listitem><para>Entrée de diapositive</para></listitem>
+				<listitem><para>Aller à la prochaine diapositive</para></listitem>
+				<listitem><para>Aller à la dernière diapositive</para></listitem>
+				<listitem><para>Quitter</para></listitem>
+			</itemizedlist>
+			<para>Pour une explication détaillée veuillez consulter <xref linkend="diaporama"/> et <xref linkend="diapositive"/> puisque ces options sont les mêmes.</para>
+		</sect2>
+		<sect2>
+			<title>Zone de travail</title>
+			<para>Depuis la version 2,0 les parties vidéo et audio ont été scindées en deux onglets séparés nommés "Vidéo" et "Audio". La partie vidéo contient les paramètres suivants :</para>
+			<itemizedlist>
+				<listitem><para>Paramètres de la diapositive</para></listitem>
+				<listitem><para>Mouvement de la diapositive</para></listitem>
+				<listitem><para>Texte de la diapositive</para></listitem>
+			</itemizedlist>
+			<figure id="Video Tab">
+				<title>Onglet Vidéo</title>
+				<graphic fileref="images/side_panel_video.png"></graphic>
+			</figure>
+			<sect3 id="slide_settings">
+				<title>Paramètres de la diapositive</title>
+				<para>
+					Cette section vous permet de choisir une transition au hasard ou d'en choisir un dans le menu déroulant. Vous pouvez régler la vitesse de transition en choisissant parmi Rapide, Normal et Lent et le temps en secondes pendant lequel la diapositive doit rester immobile. Enfin, vous pouvez voir la longueur de la durée totale du diaporama. Notez qu'au moins une diapositive doit être sélectionnée pour que cette section fonctionne..
+				</para>
+				<para>
+					REMARQUE: Quand un mouvement est appliqué à une diapositive, le champ durée du déplacement est désactivé et ne peut pas être modifié, puisque la durée de cette partie est maintenant calculée comme la somme des durées de tous les points d'arrêt et  sera automatiquement mise à jour.
+				</para>
+			</sect3>
+			<sect3 id="slide_motion">
+				<title>Mouvement de la diapositive</title>
+				<para>
+					Cette section vous permet d'appliquer les fameux effets Ken Burns sur une diapositive. Il suffit de commencer par faire un zoom avant / arrière et de faire glisser l'image avec le bouton gauche de la souris  pour centrer un détail sur la photo. Maintenant, cliquez sur le bouton Ajouter et Imagination va ajouter un nouveau point d'arrêt avec le niveau de zoom et la position de l'image actuellement sélectionnés. Vous pouvez ajouter autant de points que vous voulez.
+				</para>
+				<para>
+					Vous pouvez voir à quoi ressemble chaque point d'arrêt en le sélectionnant avec les flèches gauche et droite ou en entrant directement le numéro du point dans le champ approprié. Imagination mettra à jour sa zone de prévisualisation pour vous montrer votre point d'arrêt sélectionné.
+				</para>
+				<para>
+					Si vous commettez une erreur ou que vous souhaitez modifier un point, il suffit de sélectionner le point qui pose problème, de ré-ajuster votre diapositive, puis de cliquer sur le bouton Mettre à jour. Maintenant, le point choisi a son niveau de zoom et sa position mis à leurs nouvelles valeurs.
+				</para>
+				<para>
+					Le bouton Supprimer supprime un point d'arrêt. Il suffit de sélectionner le point qui doit être supprimé et de cliquer sur le bouton Supprimer.
+				</para>
+				<para>
+					Cliquez sur le bouton Prévisualisation dans la barre d'outils ou sélectionnez
+					<menuchoice><guimenu>Diaporama</guimenu><guimenuitem>Prévisualisation</guimenuitem></menuchoice>
+					pour avoir un aperçu de l'effet.
+				</para>
+				<para>
+					Remarque : Cette section est uniquement disponible quand une seule diapositive est sélectionnée.
+				</para>
+			</sect3>
+			<sect3 id="slide_text">
+				<title>Texte de la diapositive</title>
+				<para>
+					Imagination peut ajouter du texte à vos diapositives. Commencez à taper dans le champ approprié et le texte s'affichera dans la zone de l'image. Si vous souhaitez avoir plusieurs lignes de texte, cliquez sur le signe + sur le côté droit du champ de texte pour l'élargir.
+				</para>
+				<para>
+					Vous pouvez modifier la taille, le style et la famille de la police de texte en utilisant le bouton de police situé au-dessous du champ texte. Les couleurs (police et contour) sont contrôlées par les boutons sélecteurs de couleur à droite du bouton de police (la couleur de la police peut aussi être en partie transparente).
+				</para>
+				<para>
+					Le texte peut être placé sur la diapositive dans neuf endroits qui peuvent être sélectionnés avec le bouton sélecteur de position. Ces positions peuvent être définies par rapport à la vidéo exportée ou à l'image originale. Qu'est ce que cela signifie? Pour les images, sans l'effet Ken Burns, les deux options produisent le même résultat. Mais si vous appliquez un zoom, le texte qui est positionnée par rapport à l'image d'origine sera agrandi, tandis que le texte positionné par rapport à la vidéo exportée restera à la la même taille.
+				</para>
+				<para>
+					L'entrée du texte peut également être animée. Il suffit de sélectionner l'animation dans le menu déroulant, de définir la durée de l'effet et d'en apprécier le résultat.
+				</para>
+				<para>
+					REMARQUE: si la durée de la fonction d'animation de texte excède la durée de la diapositive, la durée de la diapositive est synchronisée avec elle. Ceci est fait de deux manières : si la diapositive n'a pas de mouvement appliquée, la partie concernant la diapositive est tout simplement augmentée, si la diapositive a une animation appliquée, le dernier point d'arrêt est augmenté pour s'adapter.
+				</para>
+				<para>
+					Comment faire pour avoir un texte immobile pendant une période de temps? Assurez-vous juste que la durée de la diapositive est plus longue que la durée d'animation du texte. Par exemple : si vous voulez avoir 6 secondes de mouvement de texte et 4 secondes de texte immobile, vous devez définir la durée d'animation du texte à 6 secondes et la durée des diapositives à 10 secondes (6 secondes d'animation de texte + 4 secondes de temps immobile).
+				</para>
+			</sect3>
+			<sect3 id="audio_tab">
+				<title>Onglet Audio</title>
+				<para>
+					En cliquant sur l'onglet "Audio", la liste de musique de fond est affichée. Ici vous pouvez voir la longueur de chacun des fichiers audio importés ainsi que la longueur du temps total de tous les fichiers audio compatibles (voir ci-dessous pour plus d'informations concernant la compatibilité des fichiers audio). Le bouton jouer vous permet de prévisualiser le fichier audio sélectionné. Les touches flèches vous permettent de réorganiser les fichiers audio et le dernier supprime les fichiers audio sélectionnés.
+				</para>
+				<para>
+					Tous les fichiers ne peuvent être concaténées. Imagination vous informera sur d'éventuelles incompatibilités lorsque vous importez vos fichiers audio. Des informations plus détaillées peuvent être obtenues à partir de la liste des fichiers audio. Les fichiers colorés en rouge ont un taux d'échantillonnage incompatible, tandis que celles de couleur bleue ont un nombre de canaux incompatible et ceux de couleur orange ont un taux d'échantillonnage et un nombre de canaux incompatibles. Si vous placez la souris sur une entrée de fichier audio, vous pourrez également y découvrir quelques informations à ce sujet. Au moment de l'exportation, Imagination vous informera encore sur tous les fichiers incompatibles dans liste de musique et vous demandera si vous êtes d'accord pour les enlever du diaporama.
+				</para>
+				<para>
+					L'état actuel du support audio dans Imagination est assez limité. Tous les fichiers audio compatibles listés sont concaténées (pas de fondu enchaîné) et tronqués pour s'adapter à la longueur totale du diaporama (la troncature est progressive avec 5 secondes de fondu). Si vous souhaitez avoir une bande audio plus agréable dans les diaporamas, vous devriez probablement créer votre diaporama en trois étapes :  1.1. Créer un diaporama sans audio (cela vous donnera la durée totale); 2. Préparer le fichier audio qui correspond exactement à la durée; 3. 1. Ajouter le fichier audio préparé au diaporama et exporter.
+					Veuillez noter qu'Imagination N'UTILISERA PAS les fichiers incompatibles pour calculer la durée totale de la musique.
+				</para>
+				<figure id="audio_tab_pic">
+					<title>Onglet Audio</title>
+					<graphic fileref="images/side_panel_audio.png"></graphic>
+				</figure>
+			</sect3>
+            <sect3 id="message_tab">
+                <title>Onglet Messages</title>
+                <para>
+                    Dans cet onglet, Imagination écrira des messages qui pourraient intéresser l'utilisateur. Si le message est important (par exemple un fichier image manquant), le titre de l'onglet devriendra gras.                
+                </para>
+            </sect3>
+		</sect2>
+		<sect2 id="image_area">
+			<title>Zone de l'image</title>
+			<para>Cette partie de la fenêtre d'Imagination donne une prévisualisation tout au long du diaporama avec les points d'arrêt et le texte. Utilisez les commandes de zoom pour agrandir ou rétrécir la zone.</para>
+		</sect2>
+		<sect2 id="thumbnails_area">
+			<title>Zone des miniatures</title>
+			<para>Située dans la partie inférieure de la fenêtre d'Imagination, la zone des miniatures affiche les diapositives importées. Un clic gauche sur l'une d'elles affiche la diapositive dans la zone de l'image avec les paramètres du diaporama dans la zone de travail. Le glisser-déposer est supporté, ainsi vous pouvez importer vos photos préférées en les faisant glisser ici. Le tracé asservi à un point fixe  est aussi supporté ainsi vous pouvez sélectionner un groupe de diapositives par un clic gauche sur un espace blanc, puis en déplaçant la souris. Vous pouvez également réorganiser les diapositives en maintenant enfoncé le bouton gauche de la souris et en les déplaçant.</para>
+		</sect2>	
+		<sect2 id="status_bar">
+			<title>Barre d'état</title>
+			<para>Comme son nom l'indique, cette zone, située au-dessous des miniatures, affiche des informations sur le nombre de transitions chargées au démarrage, le nombre de diapositives importées et quelques informations sur la diapositive elle-même quand une seule diapositive est sélectionnée (sinon le nombre total de diapositives sélectionnées est affiché).</para>
+		</sect2>		
+	</sect1>			
+	<sect1 id="menu">
+		<title>Les Menus d'Imagination</title>
+		<para>
+			Cette section décrit en détail les menus d'Imagination.
+		</para>
+		<sect2 id="diaporama">
+			<title>Menu Présentation</title>
+			<itemizedlist>
+				<listitem><para>Nouveau</para></listitem>
+				<listitem><para>Ouvrir</para></listitem>
+                <listitem><para>Importer diaporama</para></listitem>
+				<listitem><para>Enregistrer</para></listitem>
+				<listitem><para>Enregistrer sous</para></listitem>
+				<listitem><para>Fermer</para></listitem>
+				<listitem><para>Importer des photos</para></listitem>
+				<listitem><para>Importer de la musique</para></listitem>
+				<listitem><para>Propriétés</para></listitem>
+				<listitem><para>Prévisualisation</para></listitem>
+				<listitem><para>Exporter</para></listitem>
+				<listitem><para>Quitter</para></listitem>
+			</itemizedlist>
+			<sect3 id="new">
+				<title>Nouveau</title>
+				<figure id="new_dialog">
+					<title>Boite de dialogue Nouveau</title>
+					<graphic fileref="images/new_dialog.png"></graphic>
+				</figure>
+				<para>
+					Ce menu vous permet de créer un nouveau diaporama. La boîte de dialogue diaporama est affichée. Vous pouvez choisir le format vidéo, le redimensionnement de l'image de sorte qu'elle couvre tout l'écran en évitant les rayures noires, ainsi que la couleur de fond à afficher lorsque l'image est trop petite et que le redimensionnement ne réussit pas à couvrir tout l'écran. Vous pouvez également modifier ces options plus tard.
+				</para>
+			</sect3>
+			<sect3 id="open">
+				<title>Ouvrir</title>
+				<para>
+					Ce menu vous permet d'ouvrir un diaporama précédemment enregistré.
+				</para>
+			</sect3>
+            <sect3 id="import_slideshow">
+                <title>Importer diaporame</title>
+                <para>
+                    Ce menu permet d'ajouter nu diaporama sauvé précédement à la fin du diaporama en cours.
+                </para>
+            </sect3>
+			<sect3 id="save">
+				<title>Enregistrer</title>
+				<para>
+					Ce menu vous permet d'enregistrer un diaporama précédemment enregistré. Le nom de fichier ne sera pas demandé sauf si vous n'avez pas encore enregistré votre projet.
+				</para>
+			</sect3>
+			<sect3 id="saveas">
+				<title>Enregistrer sous</title>
+				<para>
+					Ce menu vous permet d'enregistrer un diaporama avec un nom de fichier différent.
+				</para>
+			</sect3>
+			<sect3 id="close">
+				<title>Fermer</title>
+				<para>
+					Ce menu ferme le diaporama. Si le diaporama n'est pas encore enregistré ou si vous avez changé quelque chose, Imagination va vous demander de l'enregistrer d'abord.
+				</para>
+			</sect3>
+			<sect3 id="import_pictures">
+			<title>Importer des photos</title>
+				<para>
+					Ce menu ouvre une boite de dialogue vous permettant de choisir les photos à importer dans Imagination. Pour sélectionner plus d'une image, appuyez et maintenez enfoncée la touche MAJUSCULE tout en cliquant sur les fichiers. Une barre de progression est affichée dans la barre d'état vous informant de la progression en pourcentage de l'importation des photos. Les miniatures ne seront pas montrées tant que le chargement n'est pas terminé.
+				</para>
+			</sect3>
+			<sect3 id="import_music">
+				<title>Importer de la musique</title>
+				<para>
+					C'est la même démarche que précédemment mais avec les fichiers audio. Veuillez vous assurer que votre libsox est capable de gérer vos formats audio sélectionnés (sur les distributions dérivées de Debian, vous aurez très probablement besoin d'installer le paquet 
+					<citetitle>libsox-fmt-all</citetitle>).
+				</para>
+			</sect3>
+			<sect3 id="properties">
+				<title>Propriétés</title>
+				<para>
+					Ce menu affiche une boite de dialogue avec les propriétés du diaporama.  Veuillez consulter <xref linkend="new" /> pour une explication concernant les paramètres disponibles.
+				</para>
+			</sect3>
+			<sect3 id="preview_slideshow">
+				<title>Prévisualisation</title>
+				<para>
+					Ce menu commence la prévisualisation du diaporama dans la zone d'image. Si vous voulez lancer la prévisualisation par une diapositive en particulier, il suffit de la sélectionner par un clic gauche. La qualité de prévisualisation dépend des paramètres retenus dans le menu <menuchoice><guimenu>Diapositive</guimenu><guimenuitem>qualité de prévisualisation.</guimenuitem></menuchoice>.
+				</para>
+			</sect3>
+			<sect3 id="export">
+				<title>Exporter</title>
+				<para>
+					Ce sous-menu vous permet d'exporter le diaporama dans le format spécifié dans les propriétés : VOB (DVD vidéo) OGV (Ogg Theora / Vorbis), FLV (vidéo Flash) et 3GP (téléphones portables). Chaque format a ses propres paramètres que vous aurez à fixer dans une boite de dialogue quand vous sélectionnez l'un d'entre eux. Veuillez vous assurer que toutes les bibliothèques ont d'abord été installées, sinon vous aurez des erreurs concernant ffmpeg, l'encodeur qu'Imagination utilise pour produire la video.
+				</para>
+			</sect3>
+			<sect3 id="quit">
+				<title>Quitter</title>
+				<para>
+					Ce menu ferme Imagination. Si le diaporama n'est pas encore enregistré, Imagination vous invitera à l'enregistrer d'abord.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="diapositive">
+			<title>Menu diapositive</title>
+			<itemizedlist>
+				<listitem><para>Couper</para></listitem>
+				<listitem><para>Copier</para></listitem>
+				<listitem><para>Coller</para></listitem>
+				<listitem><para>Qualité de prévisualisation</para></listitem>
+				<listitem><para>Zoom</para></listitem>
+				<listitem><para>Ajouter une diapositive vide</para></listitem>
+				<listitem><para>Supprimer</para></listitem>
+				<listitem><para>Informations sur les transitions</para></listitem>
+				<listitem><para>Rotation dans le sens des aiguilles </para></listitem>
+				<listitem><para>Rotation dans le sens inverse des aiguille</para></listitem>
+				<listitem><para>Selectionner tout</para></listitem>
+				<listitem><para>Désélectionner tout</para></listitem>
+			</itemizedlist>
+			<sect3 id="cut">
+				<title>Couper</title>
+				<para>
+					Cette entrée de menu vous permet de couper un certain nombre de diapositives sélectionnées. 
+				</para>
+			</sect3>
+			<sect3 id="copy">
+				<title>Copier</title>
+				<para>
+					Cette entrée de menu vous permet de copier un certain nombre de diapositives sélectionnées. 
+				</para>
+			</sect3>
+			<sect3 id="paste">
+				<title>Coller</title>
+				<para>
+					Avant de choisir Coller il faut faire un clic gauche sur une diapositive après laquelle vous souhaitez que les diapositives précédemment sélectionnées soient déplacées (si vous avez choisi Couper) ou copiées (si vous choisissez Copier).
+				</para>
+			</sect3>
+			<sect3 id="preview">
+				<title>Qualité de prévisualisation</title>
+				<para>
+					Ce sous-menu vous permet de définir des qualités différentes pour la prévisualisation et la qualité d'image dans la zone d'image. Cette option n'affecte en aucune façon la vidéo exportée. Son but principal est d'accélérer le processus de création, puisque le chargement de grandes images à partir du disque au format original peut prendre un certain temps (le chargement d'une image 4032x3024 depuis le disque prend 2 secondes sur un système moderne). Retenez bien que la prévisualisation pourrait ne pas fonctionner correctement sur des machines plus lentes lorsque la qualité élevée est sélectionnée.
+				</para>
+			</sect3>
+			<sect3 id="zoom">
+				<title>Zoom</title>
+				<para>
+					Ce sous-menu vous permet d'agrandir ou réduire la zone d'image. Il a été ajouté afin qu'Imagination puisse être utilisé sur les ordinateurs portables qui ont une résolution d'écran limitée. Il modifie également la taille des miniatures quand Imagination est en mode Présentation (veuillez consulter le menu Affichage pour une explication de la zone Présentation).
+				</para>
+			</sect3>
+			<sect3 id="Add_empty_slide">
+				<title>Ajouter diapositive vide</title>
+				<figure id="empty_slide">
+					<title>Boite de dialogue Créer une nouvelle diapositive</title>
+					<graphic fileref="images/empty_slide_dialog.png"></graphic>
+				</figure>
+				<para>
+					Cette entrée de menu affiche la fenêtre ci-dessus où vous pouvez choisir la couleur de fond de la diapositive vide de trois manières différentes : 1) avec une couleur unie, 2) avec un dégradé linéaire, 3) avec un dégradé radial. Cette fonctionnalité est particulièrement utile lorsque vous souhaitez séparer vos images dans des groupes distincts en ajoutant des diapositives de texte simple entre eux. Si une diapositive est sélectionnée, la diapositive vide sera ajoutée à côté de la diapositive sélectionnée sinon elle sera ajoutée après la dernière diapositive.
+				</para>
+				<para>
+					Les diapositives créées de cette manière ne sont en rien différentes de n'importe quelle autre diapositive. Vous pouvez toujours y ajouter du texte et les améliorer en appliquant une animation.
+				</para>
+				<para>
+					Les dégradés peuvent être contrôlés sur deux niveaux. Le premier niveau consiste à sélectionner le début et la fin de la couleur. Le deuxième niveau consiste à définir la position des points d'arrêt qui sont représentés par deux carrés blancs peuvant être glissés autour de la zone de prévisualisation.
+				</para>
+			</sect3>
+			<sect3 id="delete">
+				<title>Supprimer</title>
+				<para>
+					Cette entrée de menu supprime les diapositives sélectionnées. Maintenez la touche MAJUSCULE enfoncée pour sélectionner plusieurs diapositives à la fois ou CTRL pour sélectionner de manière sélective. Retenez bien que cette action ne peut pas être annulée !
+				</para>
+			</sect3>
+			<sect3 id="report">
+				<title>Rapport</title>
+				<figure id="slide_report">
+					<title>Boite de dialogue Informations sur les transitions</title>
+					<graphic fileref="images/slide_report_dialog.png"></graphic>
+				</figure>
+				<para>
+					Cette entrée de menu vous montre la boite de dialogue des informations sur les transitions où vous pouvez voir le nombre de diapositives qui ont la même transition.
+					Cliquez sur la diapositive pour qu'Imagination la sélectionne automatiquement. Les diapositives dont la transition n'est appliquée qu'une seule fois ne sont pas montréees ici. Vous seriez aimable de donner votre avis sur cette question car nous ne sommes pas sûrs qu'il s'agisse d'une fonction utile. Merci.
+				</para>
+			</sect3>
+			<sect3 id="rotate_clockwise">
+				<title>Rotation dans le sens des aiguilles</title>
+				<para>
+					Cette entrée vous permet de faire pivoter la diapositive sélectionnée dans le sens horaire. L'image sur le disque N'EST PAS affectée par la rotation donc si vous enregistrez le diaporama et que vous le chargez à nouveau, la diapositive est affichée à son état d'origine avant la rotation.
+				</para>
+			</sect3>
+			<sect3 id="rotate_counterclockwise">
+				<title>Rotation dans le sens inverse des aiguilles</title>
+				<para>
+					Cette entrée permet de faire pivoter la diapositive sélectionnée dans le sens inverse des aiguilles d'une montre. L'image sur le disque N'EST pas affectée par la rotation donc si vous enregistrez le diaporama et que vous le chargez à nouveau, la diapositive est affichée à son état d'origine avant la rotation.
+				</para>
+			</sect3>
+			<sect3 id="select">
+				<title>Selectionner tout</title>
+				<para>
+					Cette entrée a-t-elle besoin d'être expliquée? 
+				</para>
+			</sect3>
+			<sect3 id="unselect">
+				<title>Désélectionner tout</title>
+				<para>
+					Même remarque que précédemment.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="view">
+			<title>Menu Affichage</title>
+			<itemizedlist>
+				<listitem><para>Mode Prévisualisation</para></listitem>
+				<listitem><para>Mode Vue d'ensemble</para></listitem>
+			</itemizedlist>
+			<sect3 id="preview_mode">
+				<title>Mode Prévisualisation</title>
+				<para>
+					Cette entrée vous permet de basculer en mode Prévisualisation , la zone de l'image ainsi que la zone des miniatures sont affichées. La taille de la zone de l'image peut être agrandie ou rétrécie avec les commandes de zoom pour qu'il soit possible d'utiliser Imagination sur les ordinateurs portables.
+				</para>
+			</sect3>
+			<sect3 id="overview_mode">
+				<title>Mode Vue d'ensemble</title>
+				<para>
+					Cette entrée vous permet de basculer en mode Vue d'ensemble, la zone de l'image ainsi que la zone des miniatures sont cachées. Ce mode vous permet d'organiser les diapositives dans une matrice. La taille des miniatures peut être augmentée ou diminuée avec les commandes de zoom. Les entrées de menus Couper / Copier / Coller sont supportés. Les diapositives peuvent aussi être organisées en maintenant appuyé le bouton gauche de la souris et en les déplaçant.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="help">
+			<title>Menu Aide</title>
+			<itemizedlist>
+				<listitem><para>Sommaire</para></listitem>
+				<listitem><para>À propos</para></listitem>
+			</itemizedlist>
+			<sect3 id="content">
+				<title>Sommaire</title>
+				<para>
+					Cette entrée vous permet d'afficher cette documentation HTML dans le navigateur installé.
+				</para>
+			</sect3>
+			<sect3 id="about">
+				<title>À propos</title>
+				<para>
+					Cette entrée affiche la boite de dialogue À propos avec les crédits.
+				</para>
+			</sect3>
+		</sect2>
+	</sect1>
+	<sect1 id="license">
+		<title>License</title>
+		<para>
+			&application; est sous licence GPL2.
+		</para>
+	</sect1>
+</article>

@@ -1,0 +1,1 @@
+XGETTEXT_KEYWORDS = -k_ -kN_ -kU_ -kgettext_noop

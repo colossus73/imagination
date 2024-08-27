@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+    "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY date "December 2018"> 
+  <!ENTITY version "3.4">
+  <!ENTITY application "Imagination"> 
+]>
+<article id="index" lang="en">
+	<articleinfo>
+		<title>Imagination Slide Show Creator</title>
+		<pubdate>&date;</pubdate>
+		<copyright>
+			<year>2009-2018</year>
+			<holder>Giuseppe Torelli</holder>
+		</copyright>
+		<legalnotice id="legalnotice">
+			<para>
+				Permission is granted to copy, distribute and/or modify this document
+				under the terms of the GNU Free Documentation License, Version 1.1 or
+				any later version published by the Free Software Foundation; with no
+				Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+				Texts. The complete license text is available from the
+				<ulink type="http" url="http://www.gnu.org/">Free Software Foundation</ulink>.
+			</para>
+		</legalnotice>
+		<authorgroup>
+			<author>
+				<firstname>Giuseppe</firstname>
+				<surname>Torelli</surname>
+			</author>
+			<author>
+				<firstname>Tadej</firstname>
+				<surname>Borovšak</surname>
+			</author>
+		</authorgroup>
+		<releaseinfo>
+			This manual describes version &version; of &application;.
+		</releaseinfo>
+	</articleinfo>
+
+	<sect1 id="intro">
+		<title>Introduction to &application;</title>
+			<para>
+				Imagination is a lightweight slide show creator developed in C with the GTK+2 toolkit and Cairo. Imagination is designed to be
+				be fast and easy-to-use. Its user interface is clean and intuitive, and does not include any confusing or useless options by default.
+				It requires the ffmpeg encoder to produce the movie file and libsox to import the audio files. Yes you don't need any other third-party software!
+			</para>
+	</sect1>
+	<sect1 id="window">
+		<title>Imagination's window</title>
+		<para>
+			This section describes the area of Imagination's window: the toolbar, the image area, the working area, the thumbnail area and the status bar.
+		</para>
+		<para>
+			<figure id="imagination_window">
+				<title>Imagination Window</title>
+				<graphic fileref="images/imagination_window.png"></graphic>
+			</figure>
+		</para>
+		<sect2 id="toolbar">
+			<title>Toolbar</title>
+			<itemizedlist>
+				<listitem><para>New</para></listitem>
+				<listitem><para>Open</para></listitem>
+				<listitem><para>Save</para></listitem>
+				<listitem><para>Import Pictures As</para></listitem>
+				<listitem><para>Import Music</para></listitem>
+				<listitem><para>Delete</para></listitem>
+				<listitem><para>Rotate Clockwise</para></listitem>
+				<listitem><para>Rotate Counter-Clockwise</para></listitem>
+				<listitem><para>Zoom In</para></listitem>
+				<listitem><para>Zoom Out</para></listitem>
+				<listitem><para>Zoom Normal Size</para></listitem>
+				<listitem><para>Preview</para></listitem>
+				<listitem><para>Goto First Slide</para></listitem>
+				<listitem><para>Goto Previously Selected Slide</para></listitem>
+				<listitem><para>Slide Entry</para></listitem>
+				<listitem><para>Goto Next Selected Slide</para></listitem>
+				<listitem><para>Goto Last Slide</para></listitem>
+				<listitem><para>Quit</para></listitem>
+			</itemizedlist>
+			<para>For a detailed explanation please look at <xref linkend="slideshow"/> and <xref linkend="slide"/> since these options are the same.</para>
+		</sect2>
+		<sect2>
+			<title>Working Area</title>
+			<itemizedlist>
+				<listitem><para>Slide Settings</para></listitem>
+				<listitem><para>Slide Motion</para></listitem>
+				<listitem><para>Slide Text</para></listitem>
+				<listitem><para>Slide Text Position</para></listitem>
+			</itemizedlist>
+			<figure id="video_tab">
+				<title>Video Tab</title>
+				<graphic fileref="images/side_panel_video.png"></graphic>
+			</figure>
+			<sect3 id="slide_settings">
+				<title>Slide Settings</title>
+				<para>
+					This section allows you to choose a random transition or to
+					pick one from the drop-down menu. You can set the transition
+					speed choosing among Fast, Normal and Slow and the time in
+					seconds that the slide must remain still. Finally you can
+					see the total time length of the slideshow. Note: at least
+					one slide must be selected for this section to work.
+				</para>
+				<para>
+					NOTE: When slide has motion applied to it, slide duration
+					field is disabled and cannot be modified, since duration of
+					still part is now calculated as a sum of all stop points'
+					durations and will be automatically updated.
+				</para>
+			</sect3>
+			<sect3 id="slide_motion">
+				<title>Slide Motion</title>
+				<para>
+					This section allows you to apply the famous Ken Burns
+					effects on a slide. Just begin by zooming in/out and
+					dragging image around with left mouse button to center a
+					detail on the picture. Now click Add button and Imagination
+					will add a new stop point with currently selected zoom level
+					and image position. You can add as many points as you want.
+				</para>
+				<para>
+					You can see how each stop point looks like by selecting it
+					using left and right arrows or by directly entering point
+					number in proper field. Imagination will update it's preview
+					area to show you your selected stop point.
+				</para>
+				<para>
+					If you commit a mistake or want to change some point, simply
+					select problematic point and re-adjust your slide.
+					Imagination will automatically update the values for you.
+				</para>
+				<para>
+					The Remove button deletes a stop point. Simply select
+					point that should be removed and click Remove button.
+				</para>
+				<para>
+					Click the Preview button on the toolbar or choose
+					<menuchoice><guimenu>Slideshow</guimenu><guimenuitem>Preview</guimenuitem></menuchoice>
+					to have a preview of the effect.
+				</para>
+				<para>
+					NOTE: This section is available only when exactly one slide
+					is selected.
+				</para>
+			</sect3>
+			<sect3 id="slide_text">
+				<title>Slide Text</title>
+				<para>
+					Imagination can add some text to your slides. Just start
+					typing in proper field and text will show up in image
+					area.
+				</para>
+				<para>
+					You can modify text's font size, variant and family using
+					font button below the text field. Color is controlled by two
+					color selector buttons (font color and text outline color)
+                    right of the font button (font color can be partially transparent too).
+				</para>
+			</sect3>
+			<sect3 id="slide_text_position">
+				<title>Slide Text Position</title>
+				<para>
+					Starting from 3.4 version text can be positioned
+					anywhere on the slide. The position dropdown menu
+					was removed. The slide subtitle can be rotated too.
+				</para>
+				<para>
+					Text entrance can also be animated. Simply select animation
+					from combo box, set the duration of the effect and enjoy.
+				</para>
+				<para>
+					NOTE: If duration of the text animation function exceedes
+					duration of the slide, slide duration is synchronized with
+					it. This is done on two ways: if slide has no motion
+					applied, still part of the slide is simply expanded; if
+					slide has motion applied, last stop point is expanded to
+					fit.
+				</para>
+				<para>
+					How to have text stand still for a period of time? Just make
+					sure that slide duration is longer than text animation
+					duration. For example, if you want to have 6 seconds of text
+					movement and 4 seconds of still text, you should set text
+					animation duration to 6 seconds and slide duration to 10
+					seconds (6 seconds of text animation + 4 seconds of still
+					time).
+				</para>
+			</sect3>
+			<sect3 id="audio_tab">
+				<title>Audio Tab</title>
+				<para>
+					By clicking on the "Audio" tab the background music list is
+					displayed. Here you can see the length of each of the
+					imported audio files along with the total time length of all
+					the compatible audio files (see below for more information
+					about audio file compatibility). Play button allows you to
+					preview selected audio file. The arrow buttons allow you to
+					reorder the audio files and the last one deletes the selected audio files.
+				</para>
+				<para>
+					Not all files can be concatenated. Imagination will inform
+					you about any incompatibilities when you import your audio
+					files. More detailed information can be obtained from audio
+					files list. Red colored files have incompatible sample
+					rate, while blue colored ones have incompatible number of channels and
+					those orange colored have incompatible sample rate and number of
+					channels. If you hover the mouse over an audio file entry, you'll also
+					get some information about it. At export time, Imagination
+					will again inform you about any incompatible files in music
+					list and ask you if's OK to remove them from the slideshow.
+				</para>
+				<para>
+					Current state of audio support in Imagination is quite
+					limited. All compatible audio files listed are concatenated
+					together (no cross fading) and truncated to fit slideshow
+					total length (truncation is gradual with 5 second fade-out).
+					If you wish to have nicer audio in slideshows, you should
+					probably create your slideshow in three steps: 1. Create
+					slideshow without audio (this will give you the total
+					duration); 2. Prepare audio file that exactly fits the
+					duration; 3. Add prepared audio to slideshow and export.
+					Please note that Imagination WILL NOT use incompatible audio
+					files to calculate the total Music Duration length.
+				</para>
+				<figure id="audio_tab_pic">
+					<title>Audio Tab</title>
+					<graphic fileref="images/side_panel_audio.png"></graphic>
+				</figure>
+			</sect3>
+            <sect3 id="message_tab">
+                <title>Message Tab</title>
+                <para>
+                    In this tab, imagination will write messages that might be of interest for the user. When a message is important (for example: missing image file), the title of the tab will switch to bold.
+                </para>
+            </sect3>
+		</sect2>
+		<sect2 id="image_area">
+			<title>Image Area</title>
+			<para>This part of Imagination's window previews the slideshow along with stop points and text. Use zoom controls to enlarge or shrink the area.</para>
+		</sect2>
+		<sect2 id="thumbnails_area">
+			<title>Thumbnails Area</title>
+			<para>Located in the bottom part of Imagination's window the thumbnail area displays the imported slides. Left clicking on one of it displays the slide in the image area along with the slide settings in the working area. Drag and drop is supported so you can import your favorite pictures by dragging them here. Rubber banding is supported too so you can select a group of slides by left clicking on some white space and then by moving the mouse. You can also reorder the slides by holding down left mouse button and by moving them around.</para>
+		</sect2>	
+		<sect2 id="status_bar">
+			<title>Status Bar</title>
+			<para>As the name suggests this area, located under the thumbnails one, displays info about the number of transitions loaded at startup, the number of imported slides, and some info on the slide itself when only one slide is selected (otherwise the total number of selected slides is displayed).</para>
+		</sect2>		
+	</sect1>			
+	<sect1 id="menu">
+		<title>Imagination's Menus</title>
+		<para>
+			This section describes in detail Imagination's menus.
+		</para>
+		<sect2 id="slideshow">
+			<title>Slideshow Menu</title>
+			<itemizedlist>
+				<listitem><para>New</para></listitem>
+				<listitem><para>Open</para></listitem>
+                <listitem><para>Import slideshow</para></listitem>
+				<listitem><para>Save</para></listitem>
+				<listitem><para>Save As</para></listitem>
+				<listitem><para>Close</para></listitem>
+				<listitem><para>Import pictures</para></listitem>
+				<listitem><para>Import music</para></listitem>
+				<listitem><para>Properties</para></listitem>
+				<listitem><para>Preview</para></listitem>
+				<listitem><para>Export</para></listitem>
+				<listitem><para>Quit</para></listitem>
+			</itemizedlist>
+			<sect3 id="new">
+				<title>New</title>
+				<figure id="new_dialog">
+					<title>New Dialog</title>
+					<graphic fileref="images/new_dialog.png"></graphic>
+				</figure>
+				<para>
+					This menu allows you to create a new slideshow. The slideshow dialog is displayed. You can choose the video format and size, if to scale the picture so that it covers the whole screen avoiding the black stripes and the background color to be displayed when the picture is too small and the rescaling doesn't succed to cover the whole screen. You can choose if ending the slideshow with a blank slide with the same transition effect applied to the first one. You can also change these options later.
+				</para>
+			</sect3>
+			<sect3 id="open">
+				<title>Open</title>
+				<para>
+					This menu allows you to open a previously saved slideshow.
+				</para>
+			</sect3>
+            <sect3 id="import_slideshow">
+                <title>Import slideshow</title>
+                <para>
+                    This menu allows you to insert a previously saved slideshow at the end of your slideshow.
+                </para>
+            </sect3>
+			<sect3 id="save">
+				<title>Save</title>
+				<para>
+					This menu allows you to save a previously saved slideshow.
+					The filename won't be asked unless you haven't saved your
+					project yet.
+				</para>
+			</sect3>
+			<sect3 id="saveas">
+				<title>Save as</title>
+				<para>
+					This menu allows you save a slideshow with a different filename. Starting from 3.4 you can now choose in the "Save As" dialog
+					if to save the project with filenames without their folder name. This will make the project portable to other media. Please
+					be sure to put all the files (music tracks, pictures and pattern images for the subtitle) in the same folder othwerwise when
+					you attempt to load the slideshow Imagination couldn't load the project files.
+				</para>
+			</sect3>
+			<sect3 id="close">
+				<title>Close</title>
+				<para>
+					This menu closes the slideshow. If the slideshow is not saved yet or you changed something Imagination will ask you to save it first.
+				</para>
+			</sect3>
+			<sect3 id="import_pictures">
+			<title>Import pictures</title>
+				<para>
+					This menu opens up a file dialog allowing you to choose the
+					pictures to import into Imagination. To select more than one
+					picture, press and hold SHIFT key while clicking on the
+					files. A progress bar is displayed in the status bar
+					notifying you the percentage progress of the pictures'
+					import. Thumbnails won't be shown util the loading
+					completes.
+				</para>
+			</sect3>
+			<sect3 id="import_music">
+				<title>Import music</title>
+				<para>
+					This is the same as the previous only but works for audio
+					files. Please make sure your libsox is able to handle your
+					selected audio formats (on Debian derived distros, you'll
+					most probably want to install
+					<citetitle>libsox-fmt-all</citetitle> package).
+				</para>
+			</sect3>
+			<sect3 id="properties">
+				<title>Properties</title>
+				<para>
+					This menu displays a dialog with the slideshow properties. Please see the <xref linkend="new" /> for an explanation of the available settings.
+				</para>
+			</sect3>
+			<sect3 id="preview_slideshow">
+				<title>Preview</title>
+				<para>
+					This sub menu allows you to start the preview of the slideshow in the image area in 3 different ways. Starting from 3.4 Imagination
+					will play also the music even though it's not faded at the end when exporting the video.
+					If you want to start the preview by a specific slide just select it by left clicking on it. If you added an audio
+					track the music will start at the minute specified by the sum of the total duration of all slides before the one you selected. The other two preview ways are self-explanatory.
+				</para>
+			</sect3>
+			<sect3 id="export">
+				<title>Export</title>
+				<para>
+					This submenu allows you to export the slideshow in the format defined in the New / Properties dialog: VOB (DVD Video) OGV (Ogg Theora/Vorbis)
+					FLV (Flash Video), 3GP (Mobile Phones) and H264. Each format has its own set of
+					preferences that you'll be asked about when you select any
+					of them. Please be sure to have all the necessary libraries
+					installed first, otherwise you'll get errors from ffmpeg, the
+					command-line encoder Imagination uses to produce the video.
+				</para>
+			</sect3>
+			<sect3 id="quit">
+				<title>Quit</title>
+				<para>
+					This menu quits Imagination. If the slideshow wasn't saved yet Imagination will prompt you to save it first.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="slide">
+			<title>Slide Menu</title>
+			<itemizedlist>
+				<listitem><para>Cut</para></listitem>
+				<listitem><para>Copy</para></listitem>
+				<listitem><para>Paste</para></listitem>
+				<listitem><para>Zoom</para></listitem>
+				<listitem><para>Add empty slide</para></listitem>
+				<listitem><para>Edit empty slide</para></listitem>
+				<listitem><para>Delete</para></listitem>
+				<listitem><para>Report</para></listitem>
+				<listitem><para>Rotate clockwise</para></listitem>
+				<listitem><para>Rotate counter-clockwise</para></listitem>
+				<listitem><para>Select all</para></listitem>
+				<listitem><para>Unselect all</para></listitem>
+			</itemizedlist>
+			<sect3 id="cut">
+				<title>Cut</title>
+				<para>
+					This menu entry allows you to cut a number of selected slides. 
+				</para>
+			</sect3>
+			<sect3 id="copy">
+				<title>Copy</title>
+				<para>
+					This menu entry allows you to copy a number of selected slides. 
+				</para>
+			</sect3>
+			<sect3 id="paste">
+				<title>Paste</title>
+				<para>
+					Before choosing Paste you have to left click on a slide after which you want the previously selected slides to be moved (if you chose Cut) or copied if you chose Copy).
+				</para>
+			</sect3>
+			<sect3 id="zoom">
+				<title>Zoom</title>
+				<para>
+					This submenu allows you to zoom in or out the image area. It was added so that Imagination can be used on notebooks that have limited screen resolution. It does affect also the size of thumbnails when Imagination is in Overview mode (please see the View menu for an explanation of the Overview area).
+				</para>
+			</sect3>
+			<sect3 id="Add_empty_slide">
+				<title>Add empty slide</title>
+				<figure id="empty_slide">
+					<title>Create new slide dialog</title>
+					<graphic fileref="images/empty_slide_dialog.png"></graphic>
+				</figure>
+				<para>
+					This menu entry displays the above dialog where you can
+					choose the background color of the empty slide in a four
+					different ways: 1) with a solid color, 2) with a linear
+					gradient, 3) with a radial gradient, 4) with a fading
+					gradient. This functionality is most useful when you want
+					to separate your images in distinct groups by adding simple
+					text slide in between them. If a slide is selected the empty
+					slide will be added next to the selected slide otherwise it
+					will be added after the last slide.
+				</para>
+				<para>
+					Slides created this way are in no way different from any
+					other slide. You can still add text to them and enhance them
+					by applying slide motion.
+				</para>
+				<para>
+					Gradients can be controlled on two levels. One level is
+					selection of start and end color. Second level is position
+					of the endpoints, which are represented by two white
+					squares that can be dragged around the preview area.
+				</para>
+			</sect3>
+			<sect3 id="Edit_empty_slide">
+				<title>Edit empty slide</title>
+				<figure id="emptyy_slide">
+					<title>Edit a new slide dialog</title>
+					<graphic fileref="images/empty_slide_dialog2.png"></graphic>
+				</figure>
+				<para>
+					This menu entry displays the above dialog where you can
+					edit the background color or the gradient you previously
+					chose when you added a new slide.
+				</para>
+			</sect3>
+			<sect3 id="delete">
+				<title>Delete</title>
+				<para>
+					This menu entry deletes the selected slides. Hold down the SHIFT key to select more than one slide at once or CTRL to select selectively. Please be aware this action cannot be undone!
+				</para>
+			</sect3>
+			<sect3 id="report">
+				<title>Report</title>
+				<figure id="slide_report">
+					<title>Slide Transitions Report dialog</title>
+					<graphic fileref="images/slide_report_dialog.png"></graphic>
+				</figure>
+				<para>
+					This menu entry shows the Slide Transitions Report dialog where you can see the number of the slides which have the same transition.
+					Click on the slide to have Imagination automatically select it. Slides whose transition is applied only once are not shown
+					here. Please give your feedback on this since we are not sure whether it's an useful feature. Thank you.
+				</para>
+			</sect3>
+			<sect3 id="rotate_clockwise">
+				<title>Rotate Clockwise</title>
+				<para>
+					This entry allows you to rotate the selected slide in the clockwise sense. The picture on the disk is NOT affected by the rotation so if you save the slideshow and you load it back the slide is displayed to its original state before the rotation.
+				</para>
+			</sect3>
+			<sect3 id="rotate_counterclockwise">
+				<title>Rotate Counter-Clockwise</title>
+				<para>
+					This entry allows you to rotate the selected slide in the counter-clockwise sense. The picture on the disk is NOT affected by the rotation so if you save the slideshow and you load it back the slide is displayed to its original state before the rotation.
+				</para>
+			</sect3>
+			<sect3 id="select">
+				<title>Select All</title>
+				<para>
+					Should this entry be explained?
+				</para>
+			</sect3>
+			<sect3 id="unselect">
+				<title>Unselect All</title>
+				<para>
+					And this?
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="view">
+			<title>View Menu</title>
+			<itemizedlist>
+				<listitem><para>Preview Mode</para></listitem>
+				<listitem><para>Overview Mode</para></listitem>
+				<listitem><para>Preview Frame Rate</para></listitem>
+				<listitem><para>Fullscreen</para></listitem>
+			</itemizedlist>
+			<sect3 id="preview_mode">
+				<title>Preview mode</title>
+				<para>
+					This entry allows you to switch to Preview mode; the image area along with the thumbnails area are displayed. The size of the image area can be enlarged or shrinked with the Zoom controls so to allow Imagination to be used on notebooks.
+				</para>
+			</sect3>
+			<sect3 id="overview_mode">
+				<title>Overview mode</title>
+				<para>
+					This entry allows you to switch to Overview mode; the image area along with the thumbnails area are hidden. This mode allows you to organize the slides in a matrix. The size of the thumbnails can be increased or decreased with the Zoom controls. Cut/Copy/Paste menu entries are supported. The slides can also be arranged by holding left mouse button and by moving them around.
+				</para>
+			</sect3>
+			<sect3 id="preview_frame_rate">
+				<title>Preview frame rate</title>
+				<para>
+					This entry allows you to choose the desidered frame rate when previewing the slideshow. I'm not sure if in 2018 with fast computer available this entry is still useful...
+				</para>
+			</sect3>
+			<sect3 id="fullscreen">
+				<title>Fullscreen</title>
+				<para>
+					Starting from version 3.4, Imagination allows preview to be rendered in fullscreen. Press F11 or ESC to exit fullscreen.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="help">
+			<title>Help Menu</title>
+			<itemizedlist>
+				<listitem><para>Contents</para></listitem>
+				<listitem><para>About</para></listitem>
+			</itemizedlist>
+			<sect3 id="content">
+				<title>Content</title>
+				<para>
+					This entry allows you to display this HTML documentation in the system installed browser.
+				</para>
+			</sect3>
+			<sect3 id="about">
+				<title>About</title>
+				<para>
+					This entry displays the About dialog with the credits.
+				</para>
+			</sect3>
+		</sect2>
+	</sect1>
+	<sect1 id="license">
+		<title>License</title>
+		<para>
+			&application; is licensed under the GPL2 license.
+		</para>
+	</sect1>
+</article>

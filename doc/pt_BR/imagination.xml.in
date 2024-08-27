@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+    "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY date "October 2009"> 
+  <!ENTITY version "3.0">
+  <!ENTITY application "Imagination"> 
+]>
+<article id="index" lang="pt">
+	<articleinfo>
+		<title>Criador de Apresentações de Slides para DVD Imagination</title>
+		<pubdate>&date;</pubdate>
+		<copyright>
+			<year>2009</year>
+			<holder>Giuseppe Torelli</holder>
+		</copyright>
+		<legalnotice id="legalnotice">
+			<para>
+				É dada permissão para copiar, distribuir e/ou modificar este documento
+				nos termos da GNU Free Documentation License, Versão 1.1 ou qualquer
+				versão posterior publicada pela Free Software Foundation; sem Seções
+				Invariantes e sem Textos de Capa ou Contra-Capa. O texto completo da
+				licença está disponível na
+				<ulink type="http" url="http://www.gnu.org/">Free Software Foundation</ulink>.
+			</para>
+		</legalnotice>
+		<authorgroup>
+			<author>
+				<firstname>Giuseppe</firstname>
+				<surname>Torelli</surname>
+			</author>
+			<author>
+				<firstname>Tadej</firstname>
+				<surname>Borovšak</surname>
+			</author>
+		</authorgroup>
+		<releaseinfo>
+			Este manual descreve a versão &version; do &application;.
+		</releaseinfo>
+	</articleinfo>
+
+	<sect1 id="intro">
+		<title>Introdução ao &application;</title>
+			<para>
+				O Imagination é um criador de apresentações de slides para DVD leve desenvolvido em C com o GTK+2 toolkit e o Cairo. O Imagination
+				é pensado para ser rápido e fácil de usar. A sua interface do usuário é limpa e intuitiva e não inclui nenhuma opção confusa ou
+				desnecessária por padrão. Ele requer o codificador ffmpeg para produzir o arquivo de vídeo e libsox para importar os arquivos de áudio.
+				Sim, você não necessita de nenhum outro software extra!
+			</para>
+	</sect1>
+	<sect1 id="new_format">
+		<title>Novo formato de projeto de apresentação de slides</title>
+			<para>
+				A partir da versão 2.0 o formato de projeto de apresentação de slides do Imagination mudou. O formato antigo será reconhecido e as apresentações
+				salvas nesse formato serão carregadas corretamente, mas na próxima versão o suporte para os arquivos de projeto de apresentações antigos
+				(salvos com versões do Imagination anteriores à 2.0) será <emphasis>ENCERRADO</emphasis>. Por favor, certifique-se de carregar TODOS
+				os seus projetos de apresentações de slides antigos no Imagination &version; e salvá-los novamente.
+			</para>
+	</sect1>
+	<sect1 id="window">
+		<title>A janela do Imagination</title>
+		<para>
+			Esta seção descreve as áreas da janela do Imagination: a barra de tarefas, a área de imagem, a área de trabalho, a área das miniaturas e a barra de estado.
+		</para>
+		<para>
+			<figure id="imagination_window">
+				<title>A janela do Imagination</title>
+				<graphic fileref="images/imagination_window.png"></graphic>
+			</figure>
+		</para>
+		<sect2 id="toolbar">
+			<title>Barra de Tarefas</title>
+			<itemizedlist>
+				<listitem><para>Criar uma nova apresentação de slides</para></listitem>
+				<listitem><para>Abrir uma apresentação de slides</para></listitem>
+				<listitem><para>Salvar a apresentação de slides</para></listitem>
+				<listitem><para>Importar imagens</para></listitem>
+				<listitem><para>Importar música</para></listitem>
+				<listitem><para>Excluir os slides selecionados</para></listitem>
+				<listitem><para>Rotacionar o slide no sentido anti-horário</para></listitem>
+				<listitem><para>Rotacionar o slide no sentido horário</para></listitem>
+				<listitem><para>Ampliar</para></listitem>
+				<listitem><para>Reduzir</para></listitem>
+				<listitem><para>Tamanho normal</para></listitem>
+				<listitem><para>Iniciar a visualização</para></listitem>
+				<listitem><para>Ir para o primeiro slide</para></listitem>
+				<listitem><para>Ir para o slide anterior</para></listitem>
+				<listitem><para>Janela do slide</para></listitem>
+				<listitem><para>Ir para o próximo slide</para></listitem>
+				<listitem><para>Ir para o último slide</para></listitem>
+			</itemizedlist>
+			<para>Para uma explicação detalhada, por favor veja a seção <xref linkend="slideshow"/> e a seção <xref linkend="slide"/> visto que as opções são as mesmas.</para>
+		</sect2>
+		<sect2>
+			<title>Área de Trabalho</title>
+			<para>A partir da versão 2.0, vídeo e áudio estão em duas abas separadas, Vídeo e Áudio. A aba Vídeo contém as seguintes opções de configuração:</para>
+			<itemizedlist>
+				<listitem><para>Configurações do slide</para></listitem>
+				<listitem><para>Movimento do slide</para></listitem>
+				<listitem><para>Texto do slide</para></listitem>
+			</itemizedlist>
+			<figure id="video_tab">
+				<title>Aba Vídeo</title>
+				<graphic fileref="images/side_panel_video.png"></graphic>
+			</figure>
+			<sect3 id="slide_settings">
+				<title>Configurações do slide</title>
+				<para>
+					Essa seção permite que se escolha uma transição pelo menu
+					expansível ou uma aleatória entre as disponíveis. Pode-se
+					definir a velocidade da transição entre as opções Rápida,
+					Normal e Lenta e o tempo em segundos em que o slide deve
+					permanecer parado. Por fim, pode-se visualizar o tempo total
+					de duração da apresentação. Nota: pelo menos um slide
+					precisa estar selecionado para que essa seção funcione.
+				</para>
+				<para>
+					NOTA: quando um slide tem movimento aplicado a si, o
+					campo de duração do slide é desabilitado e não pode
+					ser modificado, visto que o tempo em que ele fica parado
+					passa a ser calculado pela soma da duração de todos
+					os pontos de parada e será automaticamente atualizado.
+				</para>
+			</sect3>
+			<sect3 id="slide_motion">
+				<title>Movimento do slide</title>
+				<para>
+					Essa seção permite que se aplique os famosos efeitos
+					Ken Burns num slide. Comece por aumentar ou diminuir
+					o zoom e arrastar a imagem com o botão esquerdo do mouse
+					até centralizar em algum detalhe. Então clique no botão
+					Adicionar e o Imagination adicionará um novo ponto de
+					parada com os níveis correntes de zoom e de posicionamento
+					da imagem. Você pode adicionar tantos pontos de parada
+					quantos quiser.
+				</para>
+				<para>
+					Você pode visualizar cada ponto de parada selecionando-o
+					com as setas da direita e da esquerda ou informando
+					o seu número no campo apropriado. O Imagination atualizará
+					a área de visualização exibindo o ponto de parada selecionado.
+				</para>
+				<para>
+					Se você cometer um erro ou quiser modificar um ponto
+					de parada, simplesmente selecione o ponto problemático,
+					reajuste o seu slide e clique no botão Atualizar. Então
+					o ponto selecionado tem os seus níveis de zoom e de
+					posicionamento atualizados.
+				</para>
+				<para>
+					O botão Remover exclui um ponto de parada. Simplesmente
+					selecione o ponto a ser removido e clique no botão Remover.
+				</para>
+				<para>
+					Clique no botão de visualização na barra de tarefas ou selecione
+					<menuchoice><guimenu>Apresentação de slides</guimenu><guimenuitem>Visualização</guimenuitem></menuchoice>
+					para visualizar o efeito escolhido.
+				</para>
+				<para>
+					NOTA: essa seção está disponível quando somente um slide
+					está selecionado.
+				</para>
+			</sect3>
+			<sect3 id="slide_text">
+				<title>Texto do slide</title>
+				<para>
+					O Imagination pode adicionar texto aos seus slides.
+					Apenas comece a escrever no campo apropriado e o texto
+					aparecerá na área de imagem. Se você quiser um texto
+					com mais de uma linha, clique no sinal + à direita da
+					caixa de texto e ela será expandida.
+				</para>
+				<para>
+					Você pode modificar o tamanho, a variante e a família
+					da fonte do texto com o botão de fontes abaixo da caixa
+					de texto. A cor é controlada pelo botão seletor de cor
+					à direita do botão seletor de fontes (a cor da fonte
+					também pode ser parcialmente transparente).
+				</para>
+				<para>
+					O texto pode ser posicionado no slide em nove locais
+					distintos selecionáveis pelo botão de posicionamento
+					do texto. Essas posições podem ser relativas ao vídeo
+					exportado ou à imagem original. O quê significa isso?
+					Para as imagens sem o efeito Ken Burns, ambas as opções
+					geram o mesmo resultado. Mas se você aplicar zoom, o
+					texto que for posicionado relativo à imagem original
+					será ampliado também, enquanto que o texto posicionado
+					relativo ao vídeo exportado permanecerá no mesmo tamanho.
+				</para>
+				<para>
+					A aparição do texto também pode ser animada. Simplesmente
+					selecione a animação na caixa de seleção, defina a duração
+					do efeito e admire.
+				</para>
+				<para>
+					NOTA: se a duração da função de animação do texto exceder
+					a duração do slide, a duração do slide é sincronizada
+					com ela. Isso se faz de duas maneiras: se ao slide não
+					houver movimento aplicado, a parte em que ele está parado
+					é expandida; se houver movimento aplicado ao slide,
+					o último ponto de parada é expandido para o ajuste.
+				</para>
+				<para>
+					Como fazer com que um texto apareça parado por um certo
+					período de tempo? Apenas certifique-se de que a duração
+					do slide é maior que a duração da animação do texto.
+					Por exemplo, se você quiser ter 6 segundos de texto
+					em movimento e 4 segundos de texto parado, você deve
+					definir a duração da animação do texto para 6 segundos
+					e a duração do slide para 10 segundos (6 segundos de
+					animação do texto + 4 segundos de texto parado).
+				</para>
+			</sect3>
+			<sect3 id="audio_tab">
+				<title>Aba Áudio</title>
+				<para>
+					Ao clicar na aba Áudio a música de fundo é exibida.
+					Aqui pode-se ver a duração de cada arquivo de música
+					importado assim como o tempo total de todos os arquivos
+					de áudio compatíveis (veja abaixo para mais informações
+					sobre a compatibilidade de arquivos de áudio). O botão
+					de reprodução permite-lhe ouvir os arquivos selecionados.
+					Os botões de setas servem para reordenar os arquivos
+					e o último botão remove todos os arquivos.
+				</para>
+				<para>
+					Nem todos os arquivos podem ser concatenados. O Imagination
+					lhe informará quaisquer incompatibilidades quando você
+					importar os arquivos de áudio. Informação mais detalhada
+					pode ser obtida pela lista de arquivos de áudio. Os
+					arquivos em vermelho têm uma taxa de amostragem incompatível,
+					os em azul têm um número incompatível de canais e os
+					em laranja têm tanto a taxa de amostragem quanto o número
+					de canais incompatíveis. Ao passar o cursor do mouse
+					sobre uma entrada de um arquivo de áudio, você também
+					obterá alguma informação sobre ele. No momento da exportação,
+					o Imagination novamente lhe informará sobre quaisquer
+					arquivos incompatíveis na lista de músicas e perguntará
+					se está bem removê-los da apresentação de slides.
+				</para>
+				<para>
+					O estado atual de suporte a áudio no Imagination é um
+					tanto limitado. Todos os arquivos de áudio compatíveis
+					listados são concatenados (sem cross fading) e truncados
+					no ajuste à duração total da apresentação de slides
+					(o truncamento é gradual com 5 segundos de abaixamento).
+					Se você deseja ter um áudio mais elaborado na apresentação
+					de slides, você poderia criar a apresentação em três
+					passos: 1. criar a apresentação sem áudio (isso lhe
+					dará a duração total); 2. preparar um arquivo de áudio
+					que se ajuste com exatidão à essa duração; 3. adicionar
+					o áudio preparado à apresentação e exportar. Por favor,
+					note que o Imagination NÃO usará arquivos de áudio
+					incompatíveis para calcular a duração total da música.
+				</para>
+				<figure id="audio_tab_pic">
+					<title>Aba Áudio</title>
+					<graphic fileref="images/side_panel_audio.png"></graphic>
+				</figure>
+			</sect3>
+		</sect2>
+		<sect2 id="image_area">
+			<title>Área de Imagem</title>
+			<para>Essa parte da janela do Imagination exibe uma previsão da apresentação de slides com os pontos de parada e o texto. Use os controles de zoom para ampliar ou reduzir a visualização.</para>
+		</sect2>
+		<sect2 id="thumbnails_area">
+			<title>Área das Miniaturas</title>
+			<para>Localizada na parte inferior da janela do Imagination, a área das miniaturas exibe os slides importados. Clicar com o botão esquerdo do mouse sobre um deles exibe-o na área de imagem assim como as suas configurações na área de trabalho. Arrastar e soltar é suportado então você pode importar suas imagens favoritas arrastando-as até aqui. Amarração é suportada também então é possível selecionar um grupo de slides clicando-se com o botão esquerdo em um espaço em branco e movimentando o mouse. Você pode ainda reordenar os slides movimentando-os mantendo o botão esquerdo do mouse pressionado.</para>
+		</sect2>	
+		<sect2 id="status_bar">
+			<title>Barra de Estado</title>
+			<para>Como sugerido pelo seu nome, essa área, localizada sob a área das miniaturas, exibe informação sobre o número de transições carregadas ao iniciar, o número de slides importados e alguma informação sobre o próprio slide quando apenas um slide estiver selecionado (de outro modo, o número total de slides selecionados é exibido).</para>
+		</sect2>		
+	</sect1>			
+	<sect1 id="menu">
+		<title>Menus do Imagination</title>
+		<para>
+			Esta seção descreve em detalhes os menus do Imagination.
+		</para>
+		<sect2 id="slideshow">
+			<title>Menu Apresentação de Slides</title>
+			<itemizedlist>
+				<listitem><para>Novo</para></listitem>
+				<listitem><para>Abrir</para></listitem>
+				<listitem><para>Salvar</para></listitem>
+				<listitem><para>Salvar como</para></listitem>
+				<listitem><para>Fechar</para></listitem>
+				<listitem><para>Importar imagens</para></listitem>
+				<listitem><para>Importar música</para></listitem>
+				<listitem><para>Propriedades</para></listitem>
+				<listitem><para>Visualização</para></listitem>
+				<listitem><para>Exportar</para></listitem>
+				<listitem><para>Sair</para></listitem>
+			</itemizedlist>
+			<sect3 id="new">
+				<title>Novo</title>
+				<figure id="new_dialog">
+					<title>Diálogo Novo</title>
+					<graphic fileref="images/new_dialog.png"></graphic>
+				</figure>
+				<para>
+					Essa entrada permite que você crie uma nova apresentação de slides. O diálogo da apresentação de slides é exibido. Você pode escolher o formato de vídeo (PAL/NTSC), se se escala as imagens de modo que cubram toda a tela evitando-se as faixas pretas e a cor de fundo a ser exibida se a imagem for pequena demais e o re-escalamento não for suficiente para fazê-la cobrir toda a tela. Você pode ainda modificar essas opções mais tarde.
+				</para>
+			</sect3>
+			<sect3 id="open">
+				<title>Abrir</title>
+				<para>
+					Essa entrada permite que você abra uma apresentação de slides previamente salva.
+				</para>
+			</sect3>
+			<sect3 id="save">
+				<title>Salvar</title>
+				<para>
+					Essa entrada permite a você salvar uma apresentação
+					de slides já salva anteriormente. O nome do arquivo
+					não será perguntado a menos que você ainda não tenha
+					salvo o projeto.
+				</para>
+			</sect3>
+			<sect3 id="saveas">
+				<title>Salvar como</title>
+				<para>
+					Essa entrada permite a você salvar uma apresentação de slides com um novo nome de arquivo.
+				</para>
+			</sect3>
+			<sect3 id="close">
+				<title>Fechar</title>
+				<para>
+					Essa entrada fecha a apresentação de slides. Se ela ainda não foi salva ou foi modificada, o Imagination pedirá confirmação antes de fechá-la.
+				</para>
+			</sect3>
+			<sect3 id="import_pictures">
+			<title>Importar imagens</title>
+				<para>
+					Essa entrada abre um diálogo de arquivos para que você
+					escolha as imagens a serem importadas para o Imagination.
+					Para selecionar mais de uma imagem, pressione a tecla
+					CTRL enquanto seleciona arquivos separados ou a tecla
+					SHIFT para selecionar uma sequência de arquivos. Uma
+					barra de progresso é exibida na barra de estado notificando
+					você do progresso na importação das imagens. As miniaturas
+					não serão exibidas até que o carregamento se complete.
+				</para>
+			</sect3>
+			<sect3 id="import_music">
+				<title>Importar música</title>
+				<para>
+					Essa é o mesmo que a anterior mas serve para os arquivos
+					de áudio. Por favor, certifique-se que o seu libsox
+					é capaz de lidar com os arquivos de áudio selecionados
+					(em distribuições derivadas do Debian, você provavelmente
+					terá de instalar o pacote
+					<citetitle>libsox-fmt-all</citetitle>).
+				</para>
+			</sect3>
+			<sect3 id="properties">
+				<title>Propriedades</title>
+				<para>
+					Essa entrada exibe um diálogo com as propriedades da apresentação de slides. Por favor, veja a seção Novo para uma explicação das configurações disponíveis.
+				</para>
+			</sect3>
+			<sect3 id="preview_slideshow">
+				<title>Visualização</title>
+				<para>
+					Essa entrada inicia a visualização da apresentação de slides na área de imagem. Se você quiser iniciar a visualização por um slide específico, selecione-o clicando sobre ele . A qualidade da visualização é alterada pelas opções no menu <menuchoice><guimenu>Slide</guimenu><guimenuitem>Qualidade da visualização</guimenuitem></menuchoice>.
+				</para>
+			</sect3>
+			<sect3 id="export">
+				<title>Exportar</title>
+				<para>
+					Esse submenu permite que você exporte a apresentação
+					de slides em quatro formatos diferentes: VOB (DVD),
+					OGV (Ogg Theora/Vorbis), FLV (Flash) e 3GP (celulares).
+					Cada formato tem seu próprio conjunto de preferências
+					que você poderá ajustar quando selecioná-los. Por favor,
+					certifique-se de ter todas as bibliotecas necessárias
+					instaladas primeiro, de outro modo você receberá erros
+					do ffmpeg, o codificador pela linha de comando que o
+					Imagination usa para gerar o vídeo. A extensão será
+					adicionada automaticamente ao nome do arquivo.
+				</para>
+			</sect3>
+			<sect3 id="quit">
+				<title>Sair</title>
+				<para>
+					Essa entrada fecha o Imagination. Se a apresentação ainda não tiver sido salva, o Imagination pedirá confirmação.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="slide">
+			<title>Menu Slide</title>
+			<itemizedlist>
+				<listitem><para>Recortar</para></listitem>
+				<listitem><para>Copiar</para></listitem>
+				<listitem><para>Colar</para></listitem>
+				<listitem><para>Qualidade da visualização</para></listitem>
+				<listitem><para>Zoom</para></listitem>
+				<listitem><para>Adicionar um slide vazio</para></listitem>
+				<listitem><para>Excluir</para></listitem>
+				<listitem><para>Relatório</para></listitem>
+				<listitem><para>Rotacionar no sentido anti-horário</para></listitem>
+				<listitem><para>Rotacionar no sentido horário</para></listitem>
+				<listitem><para>Selecionar tudo</para></listitem>
+				<listitem><para>Desselecionar tudo</para></listitem>
+			</itemizedlist>
+			<sect3 id="cut">
+				<title>Recortar</title>
+				<para>
+					Essa entrada permite que você recorte um número de slides selecionados.
+				</para>
+			</sect3>
+			<sect3 id="copy">
+				<title>Copiar</title>
+				<para>
+					Essa entrada permite que você copie um número de slides selecionados.
+				</para>
+			</sect3>
+			<sect3 id="paste">
+				<title>Colar</title>
+				<para>
+					Antes de escolher Colar você precisa clicar no slide após o qual você quer posicionar os slides previamente selecionados com Recortar ou Copiar.
+				</para>
+			</sect3>
+			<sect3 id="preview">
+				<title>Qualidade da visualização</title>
+				<para>
+					Esse submenu permite que você defina a qualidades da
+					imagem ou da visualização na área de imagem. Essa opção
+					não afeta o vídeo exportado de modo algum. Sua principal
+					função é a de apressar o processo de criação, visto
+					que carregar imagens grandes do disco no seu tamanho
+					original pode levar algum tempo (o carregamento de uma
+					imagem de 4032x3024 do disco leva cerca de 2s em um
+					computador moderno). Veja bem, a visualização pode não
+					funcionar muito bem em computadores mais lentos quando
+					for selecionada a qualidade alta.
+				</para>
+			</sect3>
+			<sect3 id="zoom">
+				<title>Zoom</title>
+				<para>
+					Esse submenu permite a você ampliar ou reduzir a imagem na área de imagem. Ele foi adicionado para que o Imagination possa ser usado em notebooks que tenham uma resolução de tela limitada. Ele afeta também o tamanho das miniaturas quando o Imagination estiver no modo de visão geral (por favor, veja o menu Ver para uma explicação da área de visão geral).
+				</para>
+			</sect3>
+			<sect3 id="Add_empty_slide">
+				<title>Adicionar um slide vazio</title>
+				<figure id="empty_slide">
+					<title>Criar um novo slide</title>
+					<graphic fileref="images/empty_slide_dialog.png"></graphic>
+				</figure>
+				<para>
+					Essa entrada do menu exibe o diálogo acima no qual pode-se
+					escolher a cor de fundo do slide vazio de três modos
+					distintos: 1) com uma cor sólida, 2) com um gradiente
+					linear, 3) com um gradiente radial. Essa funcionalidade
+					é bastante útil quando você quiser separar suas imagens
+					em grupos distintos introduzindo um slide de texto simples
+					entre eles. Se um slide é selecionado, o slide vazio
+					será adicionado após ele senão ele será adicionado após
+					o último slide.
+				</para>
+				<para>
+					Os slides criados desse modo são de modo algum diferentes
+					de quaisquer outros slides. Você ainda pode adicionar
+					texto a eles ou caprichá-los ao adicionar movimento.
+				</para>
+				<para>
+					Os gradientes podem ser controlados em dois níveis.
+					Um nível é a seleção das cores de início e fim. O segundo
+					nível é a posição das extremidades, que são representadas
+					por dois quadrados brancos que podem ser arrastados
+					pela área de visualização.
+				</para>
+			</sect3>
+			<sect3 id="delete">
+				<title>Excluir</title>
+				<para>
+					Essa entrada do menu exclui os slides selecionados. Segure a tecla SHIFT para selecionar mais de um slide ao mesmo tempo ou CTRL para selecionar slides separados. Por favor, saiba que essa ação não pode ser desfeita!
+				</para>
+			</sect3>
+			<sect3 id="report">
+				<title>Relatório</title>
+				<figure id="slide_report">
+					<title>Diálogo de relatório de transições de slides</title>
+					<graphic fileref="images/slide_report_dialog.png"></graphic>
+				</figure>
+				<para>
+					Essa entrada do menu exibe o diálogo de relatório de transições de slides no qual pode-se ver o número de slides que possuem a mesma transição a eles aplicada.
+					Clique num slide para tê-lo automaticamente selecionado pelo Imagination. Os slides cujas transições só foram usadas uma vez não são exibidos.
+					Por favor, opine sobre esse recurso pois não estamos seguros se é um recurso útil. Obrigado.
+				</para>
+			</sect3>
+			<sect3 id="rotate_clockwise">
+				<title>Rotacionar no sentido anti-horário</title>
+				<para>
+					Essa entrada permite que você rode o slide selecionado no sentido anti-horário. A imagem no disco NÃO é afetada pela rotação então se você salvar a apresentação e carregá-la novamente o slide será exibido no seu estado original anterior à rotação.
+				</para>
+			</sect3>
+			<sect3 id="rotate_counterclockwise">
+				<title>Rotacionar no sentido horário</title>
+				<para>
+					Essa entrada permite que você rode o slide selecionado no sentido horário. A imagem no disco NÃO é afetada pela rotação então se você salvar a apresentação e carregá-la novamente o slide será exibido no seu estado original anterior à rotação.
+				</para>
+			</sect3>
+			<sect3 id="select">
+				<title>Selecionar tudo</title>
+				<para>
+					É preciso explicar essa entrada?
+				</para>
+			</sect3>
+			<sect3 id="unselect">
+				<title>Desselecionar tudo</title>
+				<para>
+					E essa?
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="view">
+			<title>Menu Ver</title>
+			<itemizedlist>
+				<listitem><para>Modo de visualização</para></listitem>
+				<listitem><para>Modo de visão geral</para></listitem>
+			</itemizedlist>
+			<sect3 id="preview_mode">
+				<title>Modo de visualização</title>
+				<para>
+					Essa entrada habilita o modo de visualização; são exibidas a área de imagem e a área das miniaturas. O tamanho da área de imagem pode ser ampliado ou reduzido com os controles de Zoom possibilitando ao Imagination ser usado em telas pequenas.
+				</para>
+			</sect3>
+			<sect3 id="overview_mode">
+				<title>Modo de visão geral</title>
+				<para>
+					Essa entrada habilita o modo de visão geral; a área de imagem e a área das miniaturas não são exibidas. Esse modo organiza os slides numa matriz. O tamanho das miniaturas pode ser ampliado ou reduzido com os controles de Zoom. As entradas do menu Recortar/Copiar/Colar são suportadas. Os slides também podem ser organizados ao manter pressionado o botão esquerdo do mouse enquanto se o movimenta.
+				</para>
+			</sect3>
+		</sect2>
+		<sect2 id="help">
+			<title>Menu Ajuda</title>
+			<itemizedlist>
+				<listitem><para>Conteúdo</para></listitem>
+				<listitem><para>Sobre</para></listitem>
+			</itemizedlist>
+			<sect3 id="content">
+				<title>Conteúdo</title>
+				<para>
+					Essa entrada possibilita a exibição desta documentação HTML no navegador instalado no sistema.
+				</para>
+			</sect3>
+			<sect3 id="about">
+				<title>Sobre</title>
+				<para>
+					Essa entrada exibe o diálogo Sobre e os créditos.
+				</para>
+			</sect3>
+		</sect2>
+	</sect1>
+	<sect1 id="license">
+		<title>Licença</title>
+		<para>
+			O &application; é licenciado sob a licença GPL2.
+		</para>
+	</sect1>
+</article>

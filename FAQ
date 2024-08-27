@@ -1,0 +1,39 @@
+Q: I have rotated a slide and saved the slideshow but when I load it the slide is untouched.
+A: When you rotate a slide Imagination makes a copy of it and rotate this one since it's not
+an image editing program.
+
+Q: How are transition effects applied?
+A: Read the explanation at: http://imagination.sf.net/transitions.html#understanding
+
+Q: Why there is no XYZ transition available?
+A: Because we haven't written it yet. Our intention is to offer all transitions
+that are part of the SMIL 3.0 Specification:
+http://www.w3.org/TR/SMIL20/smil-transitions.html#TransitionEffects-Appendix
+but since there are a lot of them, this will take some time. If you really want
+XYZ transition, have a look at transition folder in source directory and create
+your own transition, send it to us and we'll do our best to get it included in
+next release of Imagination.
+
+Q: What will happen if my audio files are too short or too long for video?
+A: If your audio files are too short for slideshow, the end of the slideshow
+will simply be played in silence. If your audio files are too long, they will be
+truncated at the end of the slideshow. In the next release, audio will be
+<quote>smoothed</quote> before added to slideshow.
+
+Q: Why playing mp3 files on Fedora doesn't work?
+A: Because Fedora supplies sox without support for mp3 (legal reasons). You'll
+need to build sox with mp3 support if you wish to preview mp3 files on Fedora.
+
+Q: Is it possible to rearrange the order of the slides?
+A: Sure, hold down left mouse button and move the slides then release it.
+
+Q: I want to start my slideshow with a Fade-In transition, why don't you add it?
+A: Because you already have it! Select the background color from the Properties menu
+and then apply the Cross-Fade effect on the first slide.
+
+Q: I have Ubuntu and ffmpeg is installed but I get this error message from ffmpeg
+in the console: "Unknown encoder 'mpeg2video' "
+A: Please install these packages:
+libavcodec-unstripped-52                   3:0.svn20090303-1ubuntu2+unstripped1 ffmpeg codec library
+libavformat-unstripped-52                  3:0.svn20090303-1ubuntu2+unstripped1 ffmpeg file format library
+libavutil-unstripped-49                    3:0.svn20090303-1ubuntu2+unstripped1 ffmpeg utility library

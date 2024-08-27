@@ -1,0 +1,5 @@
+* 23/02/20
+This is experimental code to try to produce a movie file by using avlibrary rather than running
+ffepg into the background. This branch is based on 3.5.1 release.
+
+Giuseppe Torelli

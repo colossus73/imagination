@@ -1,0 +1,5 @@
+# set of available languages (in alphabetic order)
+# List for release
+# cs de fr en_GB es it pt_BR sv zh_CN zh_TW
+# list for trunk
+ca cs de fr en_GB es it pt_BR sv zh_CN zh_TW ja ku ru sl_SI

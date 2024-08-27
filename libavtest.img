@@ -1,0 +1,60 @@
+#Imagination 2.0 Slideshow Project - http://imagination.sf.net
+
+[slideshow settings]
+video width=1920
+video height=1080
+blank slide=false
+background color=0;0;0;
+distort images=true
+number of slides=4
+
+[slide 1]
+gradient=4
+start_color=0.60392156862745094;0.59999999999999998;0.58823529411764708;
+stop_color=0.23921568627450981;0.2196078431372549;0.27450980392156865;
+start_point=0.5;0.5;
+stop_point=0;0;
+duration=1
+flipped=false
+transition_id=-1
+no_points=0
+
+[slide 2]
+filename=/home/gt/Pictures/switzerland-1080x720.jpg
+angle=0
+duration=4
+flipped=false
+transition_id=62
+no_points=0
+
+[slide 3]
+filename=/home/gt/Pictures/torta_rustica.jpg
+angle=0
+duration=4
+flipped=false
+transition_id=37
+no_points=0
+text=GTKTEXTBUFFERCONTENTS-0001     <text_view_markup>\n <tags>\n  <tag name="bold" priority="0">\n   <attr name="weight" type="gint" value="700" />\n  </tag>\n </tags>\n<text><apply_tag name="bold">This is not a pizza!</apply_tag></text>\n</text_view_markup>\n
+text length=218
+anim id=0
+anim duration=1
+posX=581
+posY=482
+subtitle angle=0
+font=Sans Bold 63
+font color=0;0;0;1;
+font bgcolor=1;1;1;1;
+font bgcolor2=1;1;1;0;
+border color=1;1;1;1;
+top border=false
+bottom border=false
+border width=1
+alignment=1
+
+[slide 4]
+filename=/home/gt/Pictures/yucatan.jpg
+angle=0
+duration=3
+flipped=false
+transition_id=56
+no_points=0

@@ -1,0 +1,5 @@
+Reduced redundant code in subtitles.c
+Made the Export dialog to add the suffix of the container to the slideshow filename.
+Made the preview timer a bit more precise.
+Got rid of eventbox widget in the main window.
+Made the Open Recent menu to display "No recent items" if no recent project are found.

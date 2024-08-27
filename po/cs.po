@@ -1,0 +1,1118 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: imagination 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-01-03 16:02+0100\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Robert Chéramy <robert@cheramy.net>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Poedit-Language: Czech\n"
+"X-Poedit-Country: CZECH REPUBLIC\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: ../imagination.desktop.in.h:1
+msgid "Imagination"
+msgstr "Imagination"
+
+#: ../imagination.desktop.in.h:2
+#, fuzzy
+msgid "A slideshow maker"
+msgstr "Aplikace pro vytváření prezentací na disky DVD"
+
+#: ../imagination.desktop.in.h:3
+#, fuzzy
+msgid "A lightweight slideshow maker using GTK+2"
+msgstr ""
+"Odlehčená aplikace pro vytváření prezentací na disky DVD používající GTK+2"
+
+#: ../src/audio.c:108
+#, c-format
+msgid "Playing %s..."
+msgstr "Přehrávání %s..."
+
+#: ../src/audio.c:136 ../src/main-window.c:1268
+msgid "Play the selected file"
+msgstr "Přehrát vybraný soubor"
+
+#: ../src/audio.c:144
+msgid "Stop the playback"
+msgstr "Zastavit přehrávání"
+
+#: ../src/audio.c:272
+#, c-format
+msgid ""
+"%s:\n"
+"incompatible sample rate\n"
+msgstr ""
+"%s:\n"
+"nekompatibilní vzorkovací frekvence\n"
+
+#: ../src/audio.c:277
+#, c-format
+msgid ""
+"%s:\n"
+"incompatible number of channels\n"
+msgstr ""
+"%s:\n"
+"nekompatibilní počet kanálů\n"
+
+#: ../src/audio.c:283
+#, c-format
+msgid ""
+"%s:\n"
+"incompatible sample rate and number of channels\n"
+msgstr ""
+"%s:\n"
+"nekompatibilní vzorkovací frekvence a počet kanálů\n"
+
+#: ../src/audio.c:303
+#, c-format
+msgid ""
+"%s\n"
+"<b>Do you want to continue without these files?</b>"
+msgstr ""
+"%s\n"
+"<b>Chcete pokračovat bez těchto souborů?</b>"
+
+#: ../src/audio.c:307 ../src/audio.c:454
+msgid "Audio files mismatch:"
+msgstr "Neshoda ve zvukových souborech:"
+
+#: ../src/audio.c:401
+msgid "Incompatible sample rate."
+msgstr "Nekompatibilní vzorkovací frekvence."
+
+#: ../src/audio.c:408
+msgid "Incompatible number of channels."
+msgstr "Nekompatibilní počet kanálů."
+
+#: ../src/audio.c:415
+msgid "Incompatible sample rate and number of channels."
+msgstr "Nekompatibilní vzorkovací frekvence a počet kanálů."
+
+#: ../src/audio.c:437
+#, c-format
+msgid ""
+"File selection contains %d audio file that is incompatible with other files."
+msgid_plural ""
+"File selection contains %d audio files that are incompatible with other "
+"files."
+msgstr[0] ""
+"Výběr souborů obsahuje %d zvukový soubor, který není kompatibilní s "
+"ostatními soubory."
+msgstr[1] ""
+"Výběr souborů obsahuje %d zvukové soubory, které nejsou kompatibilní s "
+"ostatními soubory."
+msgstr[2] ""
+"Výběr souborů obsahuje %d zvukových souborů, které nejsou kompatibilní s "
+"ostatními soubory."
+
+#: ../src/audio.c:443
+msgid "Please check audio tab for more information."
+msgstr "Více informací naleznete na kartě zvuk."
+
+#: ../src/main-window.c:224
+msgid "_Slideshow"
+msgstr "_Prezentace"
+
+#: ../src/main-window.c:230
+msgid "_New"
+msgstr ""
+
+#: ../src/main-window.c:235
+msgid "_Open"
+msgstr ""
+
+#: ../src/main-window.c:240
+msgid "Import slideshow"
+msgstr "Importování prezentace"
+
+#: ../src/main-window.c:244
+msgid "_Save"
+msgstr ""
+
+#: ../src/main-window.c:249
+msgid "Save _As"
+msgstr ""
+
+#: ../src/main-window.c:253
+msgid "_Close"
+msgstr ""
+
+#: ../src/main-window.c:261
+msgid "Import p_ictures"
+msgstr "Importovat _obrázky"
+
+#: ../src/main-window.c:266
+msgid "Import _music"
+msgstr "Importovat _hudbu"
+
+#: ../src/main-window.c:271
+#, fuzzy
+msgid "_Properties"
+msgstr "Vlastnosti projektu"
+
+#: ../src/main-window.c:279
+msgid "Preview"
+msgstr "Náhled"
+
+#: ../src/main-window.c:285
+#, fuzzy
+msgid "With music"
+msgstr "Importovat hudbu"
+
+#: ../src/main-window.c:290
+#, fuzzy
+msgid "Without music"
+msgstr "Importovat hudbu"
+
+#: ../src/main-window.c:295
+#, fuzzy
+msgid "Continuos"
+msgstr "Obsah"
+
+#: ../src/main-window.c:300
+#, fuzzy
+msgid "Ex_port"
+msgstr "Export"
+
+#: ../src/main-window.c:308
+msgid "_Quit"
+msgstr ""
+
+#. Slide menu
+#: ../src/main-window.c:313
+msgid "_Slide"
+msgstr "_Snímek"
+
+#: ../src/main-window.c:319
+msgid "Cu_t"
+msgstr ""
+
+#: ../src/main-window.c:324
+msgid "Copy"
+msgstr ""
+
+#: ../src/main-window.c:329
+msgid "Paste"
+msgstr ""
+
+#. Zoom controls
+#: ../src/main-window.c:335
+msgid "_Zoom"
+msgstr "_Přiblížení"
+
+#: ../src/main-window.c:341 ../src/main-window.c:549
+msgid "Zoom In"
+msgstr "Přiblížit"
+
+#: ../src/main-window.c:346 ../src/main-window.c:555
+msgid "Zoom Out"
+msgstr "Oddálit"
+
+#: ../src/main-window.c:351 ../src/main-window.c:561
+msgid "Normal Size"
+msgstr "Běžná velikost"
+
+#: ../src/main-window.c:357
+msgid "Add empt_y slide"
+msgstr "Přidat prá_zdný snímek"
+
+#: ../src/main-window.c:362
+#, fuzzy
+msgid "Edit _empty slide"
+msgstr "Přidat prá_zdný snímek"
+
+#: ../src/main-window.c:368
+msgid "Dele_te"
+msgstr "_Smazat"
+
+#: ../src/main-window.c:373
+msgid "Repor_t"
+msgstr "_Hlášení"
+
+#: ../src/main-window.c:378
+msgid "_Flip horizontally"
+msgstr ""
+
+#: ../src/main-window.c:383
+msgid "Rotate co_unter-clockwise"
+msgstr "Otočit p_roti směru hodinových ručiček"
+
+#: ../src/main-window.c:388
+msgid "_Rotate clockwise"
+msgstr "_Otočit ve směru hodinových ručiček"
+
+#: ../src/main-window.c:393
+#, fuzzy
+msgid "Select All"
+msgstr "O_dznačit vše"
+
+#: ../src/main-window.c:398
+msgid "Un_select all"
+msgstr "O_dznačit vše"
+
+#. View menu
+#: ../src/main-window.c:404
+msgid "_View"
+msgstr "_Zobrazit"
+
+#: ../src/main-window.c:410
+msgid "Preview mode"
+msgstr "Režim náhledu"
+
+#: ../src/main-window.c:415
+msgid "Overview mode"
+msgstr "Režim celkového pohledu"
+
+#: ../src/main-window.c:418
+msgid "Preview _frame rate"
+msgstr "Náhled _frekvence snímků"
+
+#: ../src/main-window.c:421
+msgid "Fullscreen"
+msgstr ""
+
+#: ../src/main-window.c:440
+#, c-format
+msgid "%d frame per second"
+msgid_plural "%d frames per second"
+msgstr[0] "%d snímek za sekundu"
+msgstr[1] "%d snímky za sekundu"
+msgstr[2] "%d snímků za sekundu"
+
+#. Help menu
+#: ../src/main-window.c:457
+msgid "_Help"
+msgstr "_Nápověda"
+
+#: ../src/main-window.c:462
+msgid "Contents"
+msgstr "Obsah"
+
+#: ../src/main-window.c:467
+msgid "About"
+msgstr ""
+
+#: ../src/main-window.c:480 ../src/new_slideshow.c:63
+msgid "Create a new slideshow"
+msgstr "Vytvořit novou prezentaci"
+
+#: ../src/main-window.c:486
+msgid "Open a slideshow"
+msgstr "Otevřít prezentaci"
+
+#: ../src/main-window.c:492
+msgid "Save the slideshow"
+msgstr "Uložit prezentaci"
+
+#: ../src/main-window.c:505
+msgid "Import pictures"
+msgstr "Importovat obrázky"
+
+#: ../src/main-window.c:514
+msgid "Import music"
+msgstr "Importovat hudbu"
+
+#: ../src/main-window.c:520
+msgid "Delete the selected slides"
+msgstr "Smazat vybrané snímky"
+
+#: ../src/main-window.c:526
+#, fuzzy
+msgid "Flip horizontally the selected slides"
+msgstr "Smazat vybrané snímky"
+
+#: ../src/main-window.c:533
+msgid "Rotate the slide 90 degrees to the left"
+msgstr "Otočit snímek o 90 stupňů doleva"
+
+#: ../src/main-window.c:541
+msgid "Rotate the slide 90 degrees to the right"
+msgstr "Otočit snímek o 90 stupňů doprava"
+
+#: ../src/main-window.c:568
+msgid "Fit Zoom in Window"
+msgstr "Přizpůsobit přiblížení velikosti okna"
+
+#: ../src/main-window.c:577 ../src/callbacks.c:1607
+#, fuzzy
+msgid "Starts the preview without music"
+msgstr "Spouští náhled"
+
+#: ../src/main-window.c:586
+msgid "Go to the first slide of the slideshow"
+msgstr "Přejít na první snímek prezentace:"
+
+#: ../src/main-window.c:592
+msgid "Go to the previous slide of the slideshow"
+msgstr "Přejít na předchozí snímek prezentace:"
+
+#: ../src/main-window.c:600
+#, fuzzy
+msgid "Current slide number"
+msgstr "Přejde na zadané číslo snímku"
+
+#: ../src/main-window.c:610 ../src/main-window.c:835
+msgid " of "
+msgstr " z"
+
+#: ../src/main-window.c:618
+msgid "Total number of slides"
+msgstr ""
+
+#: ../src/main-window.c:624
+msgid "Go to the next slide of the slideshow"
+msgstr "Přejít na následující snímek prezentace:"
+
+#: ../src/main-window.c:630
+msgid "Go to the last slide of the slideshow"
+msgstr "Přejít na poslední snímek prezentace:"
+
+#: ../src/main-window.c:684
+msgid "Video"
+msgstr "Video"
+
+#: ../src/main-window.c:698
+msgid "<b>Slide Settings</b>"
+msgstr "<b>Nastavení snímku</b>"
+
+#. Transition types label
+#: ../src/main-window.c:714
+msgid "Transition Type:"
+msgstr "Typ přechodu:"
+
+#: ../src/main-window.c:728
+#, fuzzy
+msgid "Transition type"
+msgstr "Typ přechodu:"
+
+#: ../src/main-window.c:737
+msgid "Random"
+msgstr "Náhodný"
+
+#: ../src/main-window.c:738
+msgid "Imagination randomly decides which transition to apply"
+msgstr "Aplikace Transition náhodně zvolí použitý přechod"
+
+#. Transition duration
+#: ../src/main-window.c:744
+msgid "Transition Speed:"
+msgstr "Rychlost přechodu:"
+
+#: ../src/main-window.c:756
+msgid "Fast"
+msgstr "Rychlý"
+
+#: ../src/main-window.c:758
+msgid "Normal"
+msgstr "Střední"
+
+#: ../src/main-window.c:760
+msgid "Slow"
+msgstr "Pomalý"
+
+#. Slide duration
+#: ../src/main-window.c:767
+msgid "Slide Duration in sec:"
+msgstr "Délka zobrazení snímku v sekundách:"
+
+#. Slide Total Duration
+#: ../src/main-window.c:780
+msgid "Slideshow Length:"
+msgstr "Délka prezentace:"
+
+#: ../src/main-window.c:795
+msgid "<b>Slide Motion</b>"
+msgstr "<b>Pohyb snímku</b>"
+
+#: ../src/main-window.c:811
+msgid "Stop Point:"
+msgstr "Bod zastavení:"
+
+#: ../src/main-window.c:853
+#, fuzzy
+msgid "Add Stop point"
+msgstr "Bod zastavení:"
+
+#: ../src/main-window.c:857
+msgid "Duration:"
+msgstr "Délka:"
+
+#: ../src/main-window.c:875
+#, fuzzy
+msgid "Remove Stop point"
+msgstr "Bod zastavení:"
+
+#: ../src/main-window.c:880
+msgid "Zoom: "
+msgstr "Přiblížení:"
+
+#: ../src/main-window.c:898
+msgid "<b>Slide Text</b>"
+msgstr "<b>Text snímku</b>"
+
+#: ../src/main-window.c:920
+#, fuzzy
+msgid "Font color"
+msgstr "Použít _jednu barvu"
+
+#: ../src/main-window.c:927
+msgid ""
+"Font border color. If the opacity value is set to 0, Imagination will not "
+"render any border"
+msgstr ""
+
+#: ../src/main-window.c:935
+#, fuzzy
+msgid "Font background color"
+msgstr "Klikněte pro výběr barvy pozadí písma"
+
+#: ../src/main-window.c:964
+msgid "Remove formatting"
+msgstr ""
+
+#: ../src/main-window.c:972
+msgid "Align left"
+msgstr ""
+
+#: ../src/main-window.c:980
+msgid "Align center"
+msgstr ""
+
+#: ../src/main-window.c:988
+msgid "Align right"
+msgstr ""
+
+#: ../src/main-window.c:1017
+msgid "Click to choose the font"
+msgstr "Klikněte pro výběr písma"
+
+#: ../src/main-window.c:1025
+#, fuzzy
+msgid "Click to choose the text pattern"
+msgstr "Klikněte pro výběr písma"
+
+#: ../src/main-window.c:1035
+msgid "Top Border"
+msgstr ""
+
+#: ../src/main-window.c:1039
+msgid "Bottom Border"
+msgstr ""
+
+#: ../src/main-window.c:1048
+#, fuzzy
+msgid "Border width"
+msgstr "Přesun zdola"
+
+#: ../src/main-window.c:1054
+#, fuzzy
+msgid "Border color"
+msgstr "Přesun zdola"
+
+#: ../src/main-window.c:1059
+msgid "Animation:"
+msgstr "Animace:"
+
+#: ../src/main-window.c:1072
+msgid "Animation Speed:"
+msgstr "Rychlost animace:"
+
+#: ../src/main-window.c:1100
+#, fuzzy
+msgid "<b>Slide Text Position</b>"
+msgstr "<b>Pohyb snímku</b>"
+
+#: ../src/main-window.c:1111
+#, fuzzy
+msgid "Horizontal Position: "
+msgstr "Pozice titulků:"
+
+#: ../src/main-window.c:1130
+msgid "Center the text horizontally"
+msgstr ""
+
+#: ../src/main-window.c:1132
+#, fuzzy
+msgid "Vertical Position: "
+msgstr "Pozice titulků:"
+
+#: ../src/main-window.c:1151
+msgid "Center the text vertically"
+msgstr ""
+
+#: ../src/main-window.c:1153
+msgid "Angle: "
+msgstr ""
+
+#: ../src/main-window.c:1171
+msgid "Reset the angle"
+msgstr ""
+
+#. Background music frame
+#: ../src/main-window.c:1174
+msgid "Audio"
+msgstr "Zvuk"
+
+#: ../src/main-window.c:1183
+msgid "<b>Background Music</b>"
+msgstr "<b>Hudba na pozadí</b>"
+
+#: ../src/main-window.c:1235
+msgid "Music Duration:"
+msgstr "Délka přehrávání hudby:"
+
+#: ../src/main-window.c:1249
+msgid "Final fade-out duration:"
+msgstr ""
+
+#: ../src/main-window.c:1276
+msgid "Delete the selected file"
+msgstr "Smazat vybraný soubor"
+
+#: ../src/main-window.c:1283
+msgid "Move the selected file up"
+msgstr "Přesunout vybraný soubor nahoru"
+
+#: ../src/main-window.c:1290
+msgid "Move the selected file down"
+msgstr "Přesunou vybraný soubor dolů"
+
+#: ../src/main-window.c:1297
+msgid "Clear all files"
+msgstr "Odebrat všechny soubory"
+
+#. End of Background music frame
+#. Begin of Message tab
+#: ../src/main-window.c:1302
+msgid "Messages"
+msgstr "Zprávy"
+
+#: ../src/main-window.c:1741 ../src/callbacks.c:1389
+msgid "Sorry, I could not perform the operation!"
+msgstr "Operaci nelze provést."
+
+#: ../src/main-window.c:1895
+#, c-format
+msgid "File '%s' not found"
+msgstr "Soubor '%s' nenalezen"
+
+#: ../src/main-window.c:1904
+msgid "Resolution"
+msgstr "Rozlišení"
+
+#: ../src/main-window.c:1904
+msgid "Type"
+msgstr "Typ"
+
+#. No animation function (id = 0)
+#: ../src/main-window.c:2193 ../src/main-window.c:2195 ../src/support.c:188
+#: ../src/subtitles.c:285
+msgid "None"
+msgstr "Žádný"
+
+#: ../src/main-window.c:2659
+msgid "Please delete the pattern to choose the color"
+msgstr ""
+
+#: ../src/main-window.c:2830
+msgid "Slides Transitions Report Dialog"
+msgstr "Dialogové okno pro výpis hlášení o přechodech snímků"
+
+#: ../src/main-window.c:2908
+msgid ""
+"\n"
+"<span weight='bold'>Note:</span>\n"
+"\n"
+"Slides whose transition is applied only once are not shown here.\n"
+"Click on the slide to have Imagination automatically select it."
+msgstr ""
+"\n"
+"<span weight='bold'>Note:</span>\n"
+"\n"
+"Snímky, jejichž přechod se použije pouze jednou, se zde nezobrazují.\n"
+"Aplikace Imagination snímek automaticky vybere po kliknutí na něj."
+
+#: ../src/callbacks.c:117
+#, fuzzy
+msgid ""
+"You didn't save your slideshow yet.\n"
+"Are you sure you want to close it?"
+msgstr "Dosud jste prezentaci neuložili. Opravdu ji chcete zavřít?"
+
+#: ../src/callbacks.c:261
+#, fuzzy, c-format
+msgid "Cannot open new slide %s: %s"
+msgstr "Vytvořit novou prezentaci"
+
+#: ../src/callbacks.c:280
+#, c-format
+msgid "Cannot open the thumbnail %s of the new slide %s"
+msgstr ""
+
+#: ../src/callbacks.c:329
+#, c-format
+msgid "Please wait, importing image %d out of %d"
+msgstr "Čekejte prosím, importuje se %d snímek z %d"
+
+#: ../src/callbacks.c:402
+msgid "Import audio files, use CTRL key for multiple select"
+msgstr "Import zvukových souborů, více souborů vyberete použitím klávesy CTRL"
+
+#: ../src/callbacks.c:414
+msgid "All audio files"
+msgstr "Všechny zvukové soubory"
+
+#: ../src/callbacks.c:423 ../src/callbacks.c:501 ../src/callbacks.c:1705
+#: ../src/support.c:362
+msgid "All files"
+msgstr "Všechny soubory"
+
+#: ../src/callbacks.c:482
+msgid "Import images, use SHIFT key for multiple select"
+msgstr "Import obrázků, více souborů vyberete použitím klávesy SHIFT"
+
+#: ../src/callbacks.c:495
+msgid "All image files"
+msgstr "Všechny obrázky"
+
+#: ../src/callbacks.c:702
+#, c-format
+msgid "%d x %d pixels"
+msgid_plural "%d x %d pixels"
+msgstr[0] "%d x %d obrazový bod"
+msgstr[1] "%d x %d obrazové body"
+msgstr[2] "%d x %d obrazových bodů"
+
+#: ../src/callbacks.c:990
+msgid "translator-credits"
+msgstr "Michal Várady <miko.vaji@gmail.com>"
+
+#: ../src/callbacks.c:1614
+msgid "Stops the preview"
+msgstr "Zastaví náhled"
+
+#: ../src/callbacks.c:1669
+msgid "I do not know what to do with this slideshow filename."
+msgstr ""
+
+#: ../src/callbacks.c:1688
+msgid "Load an Imagination slideshow project"
+msgstr "Načtení projektu prezentace aplikace Imagination"
+
+#: ../src/callbacks.c:1689
+msgid "Save an Imagination slideshow project"
+msgstr "Uložení projektu prezentace aplikace Imagination"
+
+#: ../src/callbacks.c:1699
+#, fuzzy
+msgid "Imagination projects (*.img)"
+msgstr "Projekty aplikace Imagination (*.img)"
+
+#: ../src/callbacks.c:1716
+msgid "Don't include folder names in the filenames"
+msgstr ""
+
+#: ../src/callbacks.c:1717
+msgid ""
+"If you check this button, be sure to include ALL the project files in the "
+"SAME folder before attempting to open it again."
+msgstr ""
+
+#: ../src/callbacks.c:2635
+#, fuzzy
+msgid "Edit empty slide"
+msgstr "Přidat prá_zdný snímek"
+
+#: ../src/callbacks.c:2635
+msgid "Create empty slide"
+msgstr "Vytvořit prázdný snímek"
+
+#: ../src/callbacks.c:2644
+msgid "Empty slide options:"
+msgstr "Možnosti prázdného snímku:"
+
+#: ../src/callbacks.c:2654
+#, fuzzy
+msgid "_Solid color"
+msgstr "Použít _jednu barvu"
+
+#: ../src/callbacks.c:2660
+#, fuzzy
+msgid "_Linear gradient"
+msgstr "Použít _lineární přechod"
+
+#: ../src/callbacks.c:2666
+#, fuzzy
+msgid "_Radial gradient"
+msgstr "Použít _radiální přechod"
+
+#: ../src/callbacks.c:2672
+#, fuzzy
+msgid "_Fade gradient"
+msgstr "Použít _radiální přechod"
+
+#: ../src/callbacks.c:3409
+#, fuzzy
+msgid "Please choose a PNG file"
+msgstr "Zvolte zvukové soubory pro import"
+
+#: ../src/callbacks.c:3423
+#, fuzzy
+msgid "PNG files"
+msgstr "Všechny soubory"
+
+#: ../src/callbacks.c:3431
+msgid "Delete current pattern"
+msgstr ""
+
+#. Display propert title depending on the callback that is calling this function.
+#: ../src/new_slideshow.c:63
+msgid "Project properties"
+msgstr "Vlastnosti projektu"
+
+#: ../src/new_slideshow.c:81
+msgid "<b>Slideshow Settings</b>"
+msgstr "<b>Nastavení prezentace</b>"
+
+#. Video Format
+#: ../src/new_slideshow.c:97
+#, fuzzy
+msgid "Video Format:"
+msgstr "Formát videa:"
+
+#. Video Size
+#: ../src/new_slideshow.c:117
+msgid "Video Size:"
+msgstr "Velikost videa:"
+
+#. FPS
+#: ../src/new_slideshow.c:130
+msgid "Frames per Second (FPS):"
+msgstr "Snímek za sekundu:"
+
+#. Aspect Ratio
+#: ../src/new_slideshow.c:141
+#, fuzzy
+msgid "Television Format:"
+msgstr "<b>Televizní formát</b>"
+
+#. Bitrate
+#: ../src/new_slideshow.c:152
+msgid "Bitrate:"
+msgstr ""
+
+#: ../src/new_slideshow.c:168
+msgid "<b>Advanced Settings</b>"
+msgstr "<b>Pokročilá nastavení</b>"
+
+#: ../src/new_slideshow.c:180
+msgid "Rescale images to fit desired aspect ratio"
+msgstr ""
+"Změnit poměry stran obrázků tak, aby odpovídaly požadovanému poměru stran"
+
+#: ../src/new_slideshow.c:186
+msgid "End slideshow with blank slide"
+msgstr ""
+
+#: ../src/new_slideshow.c:189
+#, fuzzy
+msgid "Select blank slide color:"
+msgstr "Vybrat barvu pozadí:"
+
+#: ../src/slideshow_project.c:276
+msgid "This is not an Imagination project file!"
+msgstr "Toto není soubor projektu aplikace Imagination."
+
+#: ../src/slideshow_project.c:452
+#, c-format
+msgid "Slide %i: can't load image %s\n"
+msgstr "Snímek %i: nelze načíst obrázek %s\n"
+
+#: ../src/slideshow_project.c:615
+#, c-format
+msgid "Can't load image %s\n"
+msgstr "Nelze načíst obrázek %s\n"
+
+#: ../src/support.c:139
+#, c-format
+msgid "Welcome to Imagination - %d transition loaded."
+msgid_plural "Welcome to Imagination - %d transitions loaded."
+msgstr[0] "Vítejte v aplikaci Imagination - byl načten %d přechod."
+msgstr[1] "Vítejte v aplikaci Imagination - byly načteny %d přechody."
+msgstr[2] "Vítejte v aplikaci Imagination - bylo načteno %d přechodů."
+
+#: ../src/support.c:150
+#, c-format
+msgid "%d slide selected"
+msgid_plural "%d slides selected"
+msgstr[0] "Nalezen %d snímek"
+msgstr[1] "Nalezeny %d snímky"
+msgstr[2] "Nalezeno %d snímků"
+
+#: ../src/support.c:161
+#, c-format
+msgid "%d slide loaded %s"
+msgid_plural "%d slides loaded %s"
+msgstr[0] "%d snímek načten %s"
+msgstr[1] "%d snímky načteny %s"
+msgstr[2] "%d snímků načteno %s"
+
+#: ../src/support.c:165
+msgid " - Use the CTRL key to select/unselect or SHIFT for multiple select"
+msgstr ""
+" - Pro označení nebo odznačení použijte klávesu CTRL, pomocí klávesy SHIFT "
+"vyberete více položek"
+
+#: ../src/support.c:331
+msgid "Please choose the slideshow project filename"
+msgstr "Zvolte název souboru projektu prezentace"
+
+#: ../src/support.c:1169
+msgid "Click to choose the font color"
+msgstr "Klikněte pro výběr barvy písma"
+
+#: ../src/subtitles.c:289
+msgid "Fade"
+msgstr "Ztmavení"
+
+#: ../src/subtitles.c:293
+msgid "Slide from left"
+msgstr "Přesun zleva"
+
+#: ../src/subtitles.c:297
+msgid "Slide from right"
+msgstr "Přesun zprava"
+
+#: ../src/subtitles.c:301
+msgid "Slide from top"
+msgstr "Přesun shora"
+
+#: ../src/subtitles.c:305
+msgid "Slide from bottom"
+msgstr "Přesun zdola"
+
+#: ../src/subtitles.c:309
+msgid "Grow"
+msgstr "Růst"
+
+#: ../src/subtitles.c:313
+msgid "Spin & Grow"
+msgstr ""
+
+#: ../src/subtitles.c:317
+#, fuzzy
+msgid "Slide bottom to top"
+msgstr "Přesun shora"
+
+#: ../src/subtitles.c:321
+#, fuzzy
+msgid "Slide right to left"
+msgstr "Přesun zleva"
+
+#: ../src/subtitles.c:325
+msgid "Wave colors static"
+msgstr ""
+
+#: ../src/export.c:64
+#, c-format
+msgid "Failed while exporting slide %d :"
+msgstr ""
+
+#: ../src/export.c:150
+msgid "<b>Export Settings</b>"
+msgstr "<b>Nastavení exportu</b>"
+
+#: ../src/export.c:166
+msgid "Filename:"
+msgstr "Název souboru:"
+
+#: ../src/export.c:317
+msgid "Exporting the slideshow"
+msgstr "Exportování prezentace"
+
+#: ../src/export.c:329
+msgid "Preparing for export ..."
+msgstr "Příprava na export..."
+
+#: ../src/export.c:333
+msgid "Status of export"
+msgstr ""
+
+#: ../src/export.c:343
+msgid "Overall progress:"
+msgstr "Celkový průběh:"
+
+#: ../src/export.c:356
+msgid "Elapsed time:"
+msgstr ""
+
+#: ../src/export.c:371
+msgid "Cancel"
+msgstr ""
+
+#: ../src/export.c:380
+msgid "Pause"
+msgstr ""
+
+#: ../src/export.c:480 ../src/export.c:943
+#, c-format
+msgid "Slide %d export progress:"
+msgstr "Průběh exportu snímku %d:"
+
+#: ../src/export.c:511
+msgid "Close"
+msgstr ""
+
+#: ../src/export.c:515
+#, c-format
+msgid ""
+"Elapsed time: %s\n"
+"\n"
+msgstr ""
+
+#: ../src/export.c:794
+msgid "Failed to launch the encoder!"
+msgstr "Nepodařilo se spustit enkodér."
+
+#: ../src/export.c:941
+#, c-format
+msgid "Final transition export progress:"
+msgstr "Průběh exportu hotových přechodů"
+
+#, fuzzy
+#~ msgid "Click to choose the slide text borders color"
+#~ msgstr "Klikněte pro výběr barvy písma"
+
+#~ msgid "Placing is relative to:"
+#~ msgstr "Umístění je relativní k:"
+
+#~ msgid "Exported video"
+#~ msgstr "Exportované video"
+
+#~ msgid "Original image"
+#~ msgstr "Původní obrázek"
+
+#~ msgid "Click to expand the area"
+#~ msgstr "Klikněte pro zvětšení oblasti"
+
+#~ msgid "Click to shrink the area"
+#~ msgstr "Klikněte pro zmenšení oblasti"
+
+#~ msgid "_Preview"
+#~ msgstr "_Náhled"
+
+#~ msgid "Preview quality"
+#~ msgstr "Kvalita náhledu"
+
+#~ msgid "_Low"
+#~ msgstr "_Nízká"
+
+#~ msgid "High"
+#~ msgstr "Vysoká"
+
+#~ msgid "Add"
+#~ msgstr "Přidat"
+
+#~ msgid "Update"
+#~ msgstr "Aktualizovat"
+
+#~ msgid "Remove"
+#~ msgstr "Odebrat"
+
+#, fuzzy
+#~ msgid "Aspect Ratio:"
+#~ msgstr "Poměr stran:"
+
+#, fuzzy
+#~ msgid "<b>Video Size</b>"
+#~ msgstr "<b>Kvalita videa:</b>"
+
+#~ msgid "VOB (DVD video)"
+#~ msgstr "VOB (DVD video)"
+
+#~ msgid "MP4 (MPEG-4)"
+#~ msgstr "MP4 (MPEG-4)"
+
+#~ msgid "OGV (Theora/Vorbis)"
+#~ msgstr "OGV (Theora/Vorbis)"
+
+#~ msgid "FLV (Flash video)"
+#~ msgstr "FLV (Flash video)"
+
+#~ msgid "3GP (Mobile Phones)"
+#~ msgstr "3GP (Mobilní telefony)"
+
+#~ msgid "Normal 4:3"
+#~ msgstr "Běžný 4:3"
+
+#~ msgid "Widescreen 16:9"
+#~ msgstr "Širokoúhlý 16:9"
+
+#~ msgid "<b>Video Quality:</b>"
+#~ msgstr "<b>Kvalita videa:</b>"
+
+#~ msgid "Low"
+#~ msgstr "Nízká"
+
+#~ msgid "Medium"
+#~ msgstr "Střední"
+
+#~ msgid "VOB (DVD Video)"
+#~ msgstr "VOB (DVD video)"
+
+#~ msgid "OGV (Theora Vorbis)"
+#~ msgstr "OGV (Theora/Vorbis)"
+
+#~ msgid "FLV (Flash Video)"
+#~ msgstr "FLV (Flash video)"
+
+#, fuzzy
+#~ msgid "low"
+#~ msgstr "Pomalý"
+
+#~ msgid "Rotate the slide clockwise"
+#~ msgstr "Otočit snímek ve směru hodinových ručiček"
+
+#~ msgid "Goto first slide"
+#~ msgstr "Přejít na první snímek"
+
+#~ msgid "Goto last slide"
+#~ msgstr "Přejít na poslední snímek"
+
+#~ msgid "VOB export"
+#~ msgstr "Export do formátu VOB"
+
+#~ msgid "OGG export"
+#~ msgstr "Export do formátu OGG"
+
+#~ msgid "FLV export"
+#~ msgstr "Export do formátu FLV"
+
+#~ msgid "An error occurred while trying to rotate the slide:"
+#~ msgstr "Při pokusu o otočení snímku došlo k chybě:"
+
+#, fuzzy
+#~ msgid "Sorry,I could not perform the operation!"
+#~ msgstr "Tuto operaci nelze provést."
+
+#~ msgid "Slide Number:"
+#~ msgstr "Číslo snímku:"
+
+#~ msgid "Export the DVD slideshow"
+#~ msgstr "Exportovat DVD prezentaci"
+
+#~ msgid ""
+#~ "The length of the audio track is longer than the video one. Do you want "
+#~ "to continue?"
+#~ msgstr ""
+#~ "Délka zvukové stopy je delší než délka obrazové stopy. Chcete pokračovat?"
+
+#~ msgid "Export the slideshow as:"
+#~ msgstr "Exportovat prezentaci jako:"

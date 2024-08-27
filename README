@@ -1,0 +1,9 @@
+Imagination is a lightweight DVD slide show maker developed with GTK+2.
+
+NOTE FOR PACKAGERS:
+===================
+
+If you intend to install Imagination (as opposed to just running make and then
+lauching src/imagination), you must compile with CFLAGS="-DPLUGINS_INSTALLED=1".
+If you fail to do so Imagination won't be able to load the transitions and the
+transition's images.
