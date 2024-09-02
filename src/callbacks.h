@@ -52,6 +52,7 @@ void img_goto_last_slide(GtkWidget *, img_window_struct *);
 void img_on_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
 void img_start_stop_export(GtkWidget *, img_window_struct *);
 void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
+void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
 void img_choose_slideshow_filename(GtkWidget *,img_window_struct *);
 void img_close_slideshow(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
@@ -151,4 +152,5 @@ void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct 
 void img_subtitle_style_changed(GtkButton *button, img_window_struct *img);
 void img_set_slide_text_align(GtkButton *button, img_window_struct *img);
 void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img);
+gboolean img_transition_timeout(img_window_struct *);
 #endif

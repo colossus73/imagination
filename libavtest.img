@@ -11,9 +11,11 @@ number of slides=4
 [slide 1]
 gradient=4
 start_color=0.60392156862745094;0.59999999999999998;0.58823529411764708;
-stop_color=0.23921568627450981;0.2196078431372549;0.27450980392156865;
-start_point=0.5;0.5;
+stop_color=0.36862745098039218;0.36078431372549019;0.39215686274509803;
+start_point=0;0;
 stop_point=0;0;
+countdown_color=1;1;1;
+countdown=5
 duration=1
 flipped=false
 transition_id=-1

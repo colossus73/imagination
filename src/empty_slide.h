@@ -21,6 +21,7 @@
  #include <gtk/gtk.h>
  #include "imagination.h"
  #include "callbacks.h"
+ #include "export.h"
  
 /* Internal structure, used for creating empty slide */
 typedef struct _ImgEmptySlide ImgEmptySlide;
@@ -60,7 +61,9 @@ struct _ImgEmptySlide
 	gint		source;
 };
 
-static gboolean img_fade_countdown(ImgEmptySlide *slide);
+gboolean img_fade_countdown(ImgEmptySlide *slide);
+gboolean img_empty_slide_countdown_preview(img_window_struct *img);
+
 static void img_countdown_value_changed (GtkSpinButton *spinbutton, ImgEmptySlide *slide);
 
 static void img_gradient_toggled( GtkToggleButton *button,

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 #include "support.h"
-#include <glib/gstdio.h>
+#include <glib/gstdio.h> //This is for g_unlink
 
 static gboolean img_plugin_is_loaded(img_window_struct *, GModule *);
 
@@ -140,13 +140,13 @@ void img_set_statusbar_message(img_window_struct *img_struct, gint selected)
 		gtk_statusbar_push( GTK_STATUSBAR( img_struct->statusbar ),
 							img_struct->context_id, message );
 		g_free( message );
-		gtk_label_set_text( GTK_LABEL( img_struct->total_slide_number_label ), NULL );
+		//gtk_label_set_text( GTK_LABEL( img_struct->total_slide_number_label ), NULL );
 		gtk_icon_view_set_columns (GTK_ICON_VIEW (img_struct->thumbnail_iconview), -1);
 	}
 	else 
 	{
 		total_slides = g_strdup_printf("%d",img_struct->slides_nr);
-		gtk_label_set_text(GTK_LABEL(img_struct->total_slide_number_label),total_slides);
+		//gtk_label_set_text(GTK_LABEL(img_struct->total_slide_number_label),total_slides);
 	    if (selected)
 			message = g_strdup_printf( ngettext( "%d slide selected",
 						"%d slides selected",
@@ -488,10 +488,12 @@ img_set_slide_file_info( slide_struct *slide,
 }
 
 void
-img_set_slide_gradient_info( slide_struct *slide,
+img_set_empty_slide_info( slide_struct *slide,
 							 gint          gradient,
+							 gint          countdown,
 							 gdouble      *start_color,
 							 gdouble      *stop_color,
+							 gdouble      *countdown_color,
 							 gdouble      *start_point,
 							 gdouble      *stop_point )
 {
@@ -507,6 +509,12 @@ img_set_slide_gradient_info( slide_struct *slide,
 	{
 		slide->g_start_point[i] = start_point[i];
 		slide->g_stop_point[i]  = stop_point[i];
+	}
+	if (gradient == 4)
+	{
+		slide->countdown = countdown;
+		for( i = 0; i < 3; i++ )
+			slide->countdown_color[i] = countdown_color[i];
 	}
 }
 
@@ -939,8 +947,7 @@ img_scale_image( const gchar      *filename,
 }
 
 void
-img_sync_timings( slide_struct      *slide,
-				  img_window_struct *img )
+img_sync_timings( slide_struct  *slide, img_window_struct *img )
 {
 	/* If times are already synchronized, return */
 	if( slide->duration >= slide->anim_duration )
@@ -977,8 +984,7 @@ void img_select_nth_slide(img_window_struct *img, gint slide_to_select)
 	gtk_tree_path_free (path);
 }
 
-GdkPixbuf *
-img_convert_surface_to_pixbuf( cairo_surface_t *surface )
+GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface )
 {
 	GdkPixbuf *pixbuf;
 	gint       w, h, ss, sp, row, col;
@@ -1016,12 +1022,14 @@ img_convert_surface_to_pixbuf( cairo_surface_t *surface )
 	return( pixbuf );
 }
 
-gboolean
-img_scale_gradient( gint              gradient,
+gboolean img_scale_empty_slide( gint gradient,  gint countdown,
 					gdouble          *p_start,
 					gdouble          *p_stop,
 					gdouble          *c_start,
 					gdouble          *c_stop,
+					gdouble          *countdown_color,
+					gboolean			preview,
+					gdouble 			countdown_angle,
 					gint              width,
 					gint              height,
 					GdkPixbuf       **pixbuf,
@@ -1076,11 +1084,20 @@ img_scale_gradient( gint              gradient,
 			
 		case 4:
 		cairo_text_extents_t te;
-		int offset = 80;
-		double x = 25, y = 30, width2 = 90, height2 = 60, aspect = 1.0, corner_radius = height2 / 10.0;
+		int offset = 215;
+		int font_size = 250;
+		double x = 55, y = 60, width2 = width / 8, height2 = height / 8, aspect = 1.0, corner_radius = height2 / 10.0;
 		double radius = corner_radius / aspect;
 		double degrees = M_PI / 180.0;
 		
+		cairo_set_line_width(cr,4.0);
+
+		if (width == 88 && height == 49) /* Are we creating the thumbnail? If so we need smaller values */
+		{	
+			font_size = 20;
+			cairo_set_line_width(cr,1.0);
+		}
+
 		width /= 2;
 		height /= 2;
 
@@ -1090,7 +1107,7 @@ img_scale_gradient( gint              gradient,
 		
 		//Draw the left rectangles column
 		cairo_set_source_rgb(cr, c_stop[0],  c_stop[1], c_stop[2]);
-		for (int i=0; i<=4; i++)
+		for (int i=0; i<=3; i++)
 		{
 			cairo_new_sub_path (cr);
 			cairo_arc (cr, x + width2 - radius, y + i * (60 + offset) + radius, radius, -90 * degrees, 0 * degrees);
@@ -1102,7 +1119,7 @@ img_scale_gradient( gint              gradient,
 		}
 		
 		//Draw the right rectangles column
-		for (int i=0; i<=4; i++)
+		for (int i=0; i<=3; i++)
 		{
 			cairo_new_sub_path (cr);
 			cairo_arc (cr, (width * 2 - width2 - x) + width2 - radius, y + i * (60 + offset) + radius, radius, -90 * degrees, 0 * degrees);
@@ -1129,12 +1146,21 @@ img_scale_gradient( gint              gradient,
 		//Draw the second circle
 		cairo_arc(cr, width, height, width / 2 - 40, 0, 2 * G_PI);
 		cairo_stroke(cr);
+		
+		if (preview)
+		{
+			//Draw sector
+			cairo_move_to(cr, width, height);
+			cairo_set_source_rgb(cr, c_stop[0],  c_stop[1], c_stop[2]);
+			cairo_arc(cr, width, height, 440, 0, countdown_angle);
+			cairo_fill(cr);
+		}
 
 		// Draw the countdown number
-		cairo_set_source_rgb(cr, 1,  1, 1);
+		cairo_set_source_rgb(cr, countdown_color[0],  countdown_color[1], countdown_color[2]);
 		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 150);
-		gchar *digit = g_strdup_printf("%d", 5);
+		cairo_set_font_size(cr, font_size);
+		gchar *digit = g_strdup_printf("%d", countdown);
 		cairo_text_extents (cr, digit, &te);
 		cairo_move_to(cr, width - te.x_bearing - te.width / 2, height - te.y_bearing - te.height / 2);
 		cairo_show_text(cr, digit);
@@ -1386,16 +1412,6 @@ gboolean img_check_for_recent_file(img_window_struct *img, const gchar *input)
 		menu_items = g_list_remove(menu_items, last_item->data);
 	}
 	g_list_free(menu_items);
-	return FALSE;
-}
-
-gboolean img_increase_preview_time(img_window_struct *img)
-{
-	if (img->preview_is_running)
-	{
-		img->elapsed_time++;
-		return TRUE;
-	}
 	return FALSE;
 }
 

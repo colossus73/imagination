@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -78,23 +78,22 @@ img_save_slideshow( img_window_struct *img,
         if (filename)
 		{
 			/* Save original filename and rotation */
-			g_key_file_set_string( img_key_file, conf,
-								   "filename", filename);
+			g_key_file_set_string( img_key_file, conf, "filename", filename);
 			g_key_file_set_integer( img_key_file, conf, "angle", entry->angle );
 		}
 		else
 		{
 			/* We are dealing with an empty slide */
-			gdouble *start_color = entry->g_start_color,
-					*stop_color  = entry->g_stop_color,
-					*start_point = entry->g_start_point,
-					*stop_point  = entry->g_stop_point;
-
 			g_key_file_set_integer(img_key_file, conf, "gradient",	entry->gradient);
-			g_key_file_set_double_list(img_key_file, conf, "start_color", start_color, 3 );
-			g_key_file_set_double_list(img_key_file, conf, "stop_color" , stop_color , 3 );
-			g_key_file_set_double_list(img_key_file, conf, "start_point", start_point, 2 );
-			g_key_file_set_double_list(img_key_file, conf, "stop_point" , stop_point , 2 );
+			g_key_file_set_double_list(img_key_file, conf, "start_color", entry->g_start_color, 3 );
+			g_key_file_set_double_list(img_key_file, conf, "stop_color" , entry->g_stop_color , 3 );
+			g_key_file_set_double_list(img_key_file, conf, "start_point", entry->g_start_point, 2 );
+			g_key_file_set_double_list(img_key_file, conf, "stop_point" , entry->g_stop_point, 2 );
+			if (entry->gradient == 4)
+			{
+					g_key_file_set_double_list(img_key_file, conf, "countdown_color", entry->countdown_color, 3 );
+					g_key_file_set_integer(img_key_file, conf, "countdown",	entry->countdown);
+			}
 		}
 
 		/* Duration */
@@ -263,10 +262,8 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 							&table );
 
 	/* Video Size */
-	img->video_size[0] = g_key_file_get_integer(img_key_file, "slideshow settings",
-                          "video width", NULL);
-	img->video_size[1] = g_key_file_get_integer(img_key_file, "slideshow settings",
-                          "video height", NULL);
+	img->video_size[0] = g_key_file_get_integer(img_key_file, "slideshow settings", "video width", NULL);
+	img->video_size[1] = g_key_file_get_integer(img_key_file, "slideshow settings", "video height", NULL);
 	
 	if (img->video_size[0] == 0)
 		img->video_size[0] = 1280;
@@ -288,9 +285,9 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	gtk_icon_view_set_model( GTK_ICON_VIEW( img->thumbnail_iconview ), NULL );
 
 	gchar *subtitle = NULL, *pattern_name = NULL, *font_desc;
-	gdouble *my_points = NULL, *p_start = NULL, *p_stop = NULL, *c_start = NULL, *c_stop = NULL;
+	gdouble *my_points = NULL, *p_start = NULL, *p_stop = NULL, *c_start = NULL, *c_stop = NULL, *countdown_color = NULL;
 	gsize length;
-	gint anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle;
+	gint anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0;
 	GdkPixbuf *pix = NULL;
     gboolean      load_ok, flipped, img_load_ok, top_border, bottom_border;
 	gchar *original_filename = NULL;
@@ -300,20 +297,17 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	ImgAngle   angle = 0;
 
 		/* Load last slide setting (bye bye transition) */
-		img->bye_bye_transition = g_key_file_get_boolean( img_key_file, "slideshow settings",
-										 "blank slide", NULL);
+		img->bye_bye_transition = g_key_file_get_boolean( img_key_file, "slideshow settings",  "blank slide", NULL);
 		
 		/* Load project backgroud color */
-		color = g_key_file_get_double_list( img_key_file, "slideshow settings",
-											"background color", NULL, NULL );
+		color = g_key_file_get_double_list( img_key_file, "slideshow settings",	"background color", NULL, NULL );
 		img->background_color[0] = color[0];
 		img->background_color[1] = color[1];
 		img->background_color[2] = color[2];
 		g_free( color );
 
 		/* Loads the thumbnails and set the slides info */
-		number = g_key_file_get_integer( img_key_file, "slideshow settings",
-										 "number of slides", NULL);
+		number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of slides", NULL);
 		/* Store the previous number of slides and set img->slides_nr so to have the correct number of slides displayed on the status bar */
 		previous_nr_of_slides = img->slides_nr;
 		img->slides_nr = number;
@@ -368,10 +362,18 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				c_stop  = g_key_file_get_double_list(img_key_file, conf, "stop_color", NULL, NULL);
 				p_start = g_key_file_get_double_list(img_key_file, conf, "start_point", NULL, NULL);
 				p_stop = g_key_file_get_double_list(img_key_file, conf, "stop_point", NULL, NULL);
-
+				if (gradient == 4)
+				{
+					countdown_color = g_key_file_get_double_list(img_key_file, conf, "countdown_color", NULL, NULL);
+					countdown = g_key_file_get_integer(img_key_file, conf, "countdown", NULL);
+				}
 				/* Create thumbnail */
-				load_ok = img_scale_gradient( gradient, p_start, p_stop,
-											  c_start, c_stop, 88, 49,
+				load_ok = img_scale_empty_slide( gradient, countdown, p_start, p_stop,
+											  c_start, c_stop, 
+											  countdown_color, 
+											  0,
+											  -1,
+											  88, 49,
 											  &thumb, NULL );
                 /* No image is loaded, so img_load_ok is OK if load_ok is */
                 img_load_ok = load_ok;
@@ -422,8 +424,8 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 					else
 					{
 						g_return_val_if_fail(c_start && c_stop && p_start && p_stop, FALSE);
-						img_set_slide_gradient_info( slide_info, gradient,
-													 c_start, c_stop,
+						img_set_empty_slide_info( slide_info, gradient, countdown,
+													 c_start, c_stop, countdown_color,
 													 p_start, p_stop );
 					}
 

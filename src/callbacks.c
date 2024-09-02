@@ -26,7 +26,7 @@
 
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
-static gboolean img_transition_timeout(img_window_struct *);
+gboolean img_transition_timeout(img_window_struct *);
 static gboolean img_still_timeout(img_window_struct *);
 static void img_swap_toolbar_images( img_window_struct *, gboolean);
 static void img_clean_after_preview(img_window_struct *);
@@ -272,12 +272,12 @@ void img_increase_progressbar(img_window_struct *img, gint nr)
 
 GSList *img_import_slides_file_chooser(img_window_struct *img)
 {
-	GtkFileFilter *all_images_filter, *all_files_filter;
+	GtkFileFilter *image_filter, *sound_filter, *all_files_filter;
 	GSList *slides = NULL;
 	int response;
 
 	img->import_slide_chooser =
-		gtk_file_chooser_dialog_new( _("Import images, use SHIFT key for "
+		gtk_file_chooser_dialog_new( _("Import any media, use SHIFT key for "
 									   "multiple select"),
 									 GTK_WINDOW (img->imagination_window),
 									 GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -289,10 +289,23 @@ GSList *img_import_slides_file_chooser(img_window_struct *img)
 	img_file_chooser_add_preview(img);
 
 	/* Image files filter */
-	all_images_filter = gtk_file_filter_new ();
-	gtk_file_filter_set_name(all_images_filter,_("All image files"));
-	gtk_file_filter_add_pixbuf_formats( all_images_filter );
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(img->import_slide_chooser),all_images_filter);
+	image_filter = gtk_file_filter_new ();
+	gtk_file_filter_set_name(image_filter,_("All image files"));
+	gtk_file_filter_add_pixbuf_formats(image_filter);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(img->import_slide_chooser), image_filter);
+	
+	/* Sound files filter */
+	sound_filter = gtk_file_filter_new ();
+	gtk_file_filter_set_name(sound_filter,_("All sound files"));
+	gtk_file_filter_add_pattern(sound_filter,"*.aac");
+	gtk_file_filter_add_pattern(sound_filter,"*.aiff");
+	gtk_file_filter_add_pattern(sound_filter,"*.flac");
+	gtk_file_filter_add_pattern(sound_filter,"*.mp2");
+	gtk_file_filter_add_pattern(sound_filter,"*.mp3");
+	gtk_file_filter_add_pattern(sound_filter,"*.ogg");
+	gtk_file_filter_add_pattern(sound_filter,"*.pcm");
+	gtk_file_filter_add_pattern(sound_filter,"*.wav");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(img->import_slide_chooser),sound_filter);
 
 	/* All files filter */
 	all_files_filter = gtk_file_filter_new ();
@@ -397,7 +410,7 @@ void img_exit_fullscreen(img_window_struct *img)
 	gtk_widget_show (img->paned);
 	gtk_widget_show(img->statusbar);
 	gtk_widget_show(img->menubar);
-	gtk_widget_show(img->toolbar);
+	gtk_widget_show(img->sidebar);
 
 	gtk_widget_set_halign(img->viewport_align, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img->viewport_align, GTK_ALIGN_CENTER);
@@ -837,7 +850,7 @@ void img_go_fullscreen(GtkMenuItem * UNUSED(item), img_window_struct *img)
 	//gtk_widget_hide (img->paned);
 	gtk_widget_hide (img->statusbar);
 	gtk_widget_hide (img->menubar);
-	gtk_widget_hide (img->toolbar);
+	gtk_widget_hide (img->sidebar);
 
 	gtk_widget_set_halign(img->viewport_align, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(img->viewport_align, GTK_ALIGN_FILL);
@@ -903,14 +916,11 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 	}
 	else
 	{
-		g_timeout_add(1185, (GSourceFunc)img_increase_preview_time, img);
-
 		model = GTK_TREE_MODEL( img->thumbnail_model );
 		list = gtk_icon_view_get_selected_items(
 					GTK_ICON_VIEW( img->thumbnail_iconview ) );
 		if( list )
-			gtk_icon_view_get_cursor( GTK_ICON_VIEW(img->thumbnail_iconview),
-									  &path, NULL);
+			gtk_icon_view_get_cursor( GTK_ICON_VIEW(img->thumbnail_iconview), &path, NULL);
 		if( list )
 		{
 			/* Start preview from this slide */
@@ -937,9 +947,12 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		gtk_tree_model_get( model, &iter, 1, &entry, -1);
 
 		if( ! entry->o_filename )
-			img_scale_gradient( entry->gradient, entry->g_start_point,
+			img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
 								entry->g_stop_point, entry->g_start_color,
-								entry->g_stop_color, img->video_size[0],
+								entry->g_stop_color, 
+								entry->countdown_color, 
+								1, entry->countdown_angle,
+								img->video_size[0],
 								img->video_size[1], NULL, &img->image2 );
 		else
 			img_scale_image( entry->p_filename, img->video_ratio,
@@ -964,9 +977,12 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 			
 			if( ! entry->o_filename )
 			{
-				img_scale_gradient( entry->gradient, entry->g_start_point,
+				img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
 									entry->g_stop_point, entry->g_start_color,
-									entry->g_stop_color, img->video_size[0],
+									entry->g_stop_color, 
+									entry->countdown_color, 
+									1, entry->countdown_angle,
+									img->video_size[0],
 									img->video_size[1], NULL, &img->image1 );
 			}
 			else
@@ -1028,12 +1044,12 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		img->exported_image = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
 														  img->video_size[0],
 														  img->video_size[1] );
-//img_run_encoder(img);
-		img->source_id = g_timeout_add( 1000 / img->preview_fps,
-										(GSourceFunc)img_transition_timeout,
-										img );
+
+		if (entry->gradient == 4)
+			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
+		else
+			img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
 	}
-	return;
 }
 
 void img_goto_first_slide(GtkWidget * UNUSED(button), img_window_struct *img)
@@ -1048,7 +1064,7 @@ void img_goto_first_slide(GtkWidget * UNUSED(button), img_window_struct *img)
 		return;
 
 	slide = g_strdup_printf("%d", 1);
-	gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
+	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
 	g_free(slide);
 	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
 	path = gtk_tree_path_new_from_indices(0,-1);
@@ -1075,7 +1091,7 @@ void img_goto_prev_slide(GtkWidget * UNUSED(button), img_window_struct *img)
 		return;
 
 	slide = g_strdup_printf("%d", slide_nr);
-	gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
+	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
 	g_free(slide);
 	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
 	path = gtk_tree_path_new_from_indices(--slide_nr,-1);
@@ -1113,7 +1129,7 @@ void img_goto_next_slide(GtkWidget * UNUSED(button), img_window_struct *img)
 	path = gtk_tree_path_new_from_indices(++slide_nr, -1);
 
 	slide = g_strdup_printf("%d", slide_nr + 1);
-	gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
+	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
 	g_free(slide);
 	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
 	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
@@ -1140,7 +1156,7 @@ void img_goto_last_slide(GtkWidget * UNUSED(button), img_window_struct *img)
 		return;
 
 	slide = g_strdup_printf("%d", img->slides_nr);
-	gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
+	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
 	g_free(slide);
 	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
 	path = gtk_tree_path_new_from_indices(img->slides_nr - 1, -1);
@@ -1184,20 +1200,6 @@ void img_on_drag_data_received (GtkWidget * UNUSED(widget), GdkDragContext
 }
 
 /*
- * img_on_draw_event:
- * @widget: preview GtkDrawingArea
- * @event: expose event info
- * @img: global img_window_struct structure
- *
- * This function is responsible for all of the drawing on preview area, thus it
- * should handle "edit mode" (when user is constructing slide show), "preview
- * mode" (when user is previewing his work) and "export mode" (when export is in
- * progress).
- *
- * This might be seen as an overkill for single function, but since all of the
- * actual rendering is done by helper functions, this function just merely
- * paints the results on screen.
- *
  * Return value: This function returns TRUE if the area has been painted, FALSE
  * otherwise (this way the default expose function is only called when no slide
  * is selected).
@@ -1209,7 +1211,7 @@ gboolean img_on_draw_event( GtkWidget *UNUSED(widget), cairo_t *cr, img_window_s
 
 	/* If we're previewing or exporting, only paint frame that is being
 	 * currently produced. */
-	if( img->preview_is_running || img->export_is_running > 2)
+	if( img->preview_is_running || img->export_is_running )
 	{
 		gdouble factor;
 
@@ -1288,15 +1290,13 @@ img_draw_image_on_surface( cairo_t           *cr,
 	cairo_restore( cr );
 }
 
-static gboolean img_transition_timeout(img_window_struct *img)
+gboolean img_transition_timeout(img_window_struct *img)
 {
 	/* If we output all transition slides (or if there is no slides to output in
 	 * transition part), connect still preview phase. */
 	if( img->slide_cur_frame == img->slide_trans_frames )
 	{
-		img->source_id = g_timeout_add( 1000 / img->preview_fps,
-										(GSourceFunc)img_still_timeout, img );
-
+		img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_still_timeout, img );
 		return FALSE;
 	}
 
@@ -1347,10 +1347,10 @@ static gboolean img_still_timeout(img_window_struct *img)
 
 	/* This is a dirty hack to prevent Imagination
 	keep painting the source image with the second
-	* color set in the empty slide fade gradient */
+	* color set in the empty slide fade gradient 
 	if (strcmp(gtk_entry_get_text(GTK_ENTRY(img->slide_number_entry)) , "2") == 0)
 		img->gradient_slide = FALSE;
-
+*/
 	/* Render frame */
 	img_render_still_frame( img, img->preview_fps );
 
@@ -1416,8 +1416,8 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 
     /* Determine what to do */
     append = widget == img->import_project_menu;
-    open_replace = widget == img->open_menu || widget == GTK_WIDGET(img->open_button);
-    save = widget == img->save_as_menu || widget == img->save_menu || widget == GTK_WIDGET(img->save_button);
+    open_replace = widget == img->open_menu;
+    save = widget == img->save_as_menu || widget == img->save_menu;
     /* Determine the mode of the chooser. */
     if (open_replace || append) {
 	action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -1545,7 +1545,7 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	/* Disable the video tab */
     img_disable_videotab (img);
 
-    gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), "");
+    //gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), "");
     gtk_widget_set_valign(img->thumbnail_iconview, GTK_ALIGN_BASELINE);
 }
 
@@ -2268,7 +2268,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 	}
 
 	gtk_window_get_size( GTK_WINDOW( img->imagination_window ), &w, &h );
-	g = gtk_paned_get_position( GTK_PANED( img->paned ) );
+	//g = gtk_paned_get_position( GTK_PANED( img->paned ) );
 	f = gdk_window_get_state( gtk_widget_get_window( img->imagination_window ) );
 	max = f & GDK_WINDOW_STATE_MAXIMIZED;
 
@@ -2372,7 +2372,7 @@ img_load_window_settings( img_window_struct *img )
 
 	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
-	gtk_paned_set_position( GTK_PANED( img->paned ), g );
+	//gtk_paned_set_position( GTK_PANED( img->paned ), g );
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
@@ -2394,7 +2394,7 @@ img_set_window_default_settings( img_window_struct *img )
 	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ),
 								 800, 600 );
-	gtk_paned_set_position( GTK_PANED( img->paned ), 500 );
+	//gtk_paned_set_position( GTK_PANED( img->paned ), 500 );
 }
 
 static void img_reset_rotation_flip( slide_struct *slide) {
@@ -2787,4 +2787,8 @@ void img_open_recent_slideshow(GtkWidget *menu, img_window_struct *img)
 		img_load_slideshow(img, menu, filename);
 }
 
+void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct *img )
+{
+	GSList *list = img_import_slides_file_chooser(img);
+}
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 #define __IMAGINATION_H__
 
 #include <stdlib.h>
-//#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -30,7 +29,7 @@
 #include <cairo.h>
 
 #define comment_string \
-	"Imagination 2.0 Slideshow Project - http://imagination.sf.net"
+	"Imagination 2.0 Slideshow Project - http://imagination.sf.net" //The version number is left to 2.0 to allow compatibility of project files generated with older versions
 
 #ifdef __GNUC__
 #  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
@@ -139,9 +138,12 @@ struct _slide_struct
 
 
 	/* Fields that are filled if we create slide in memory */
-	gint    gradient;         			/* Gradient type */
+	gint  gradient;         			/* Gradient type */
+	gint 	countdown;					/* Slide countdown */
 	gdouble g_start_color[3]; /* RGB start color */
 	gdouble g_stop_color[3];  /* RGB stop color */
+	gdouble countdown_color[3];  /* RGB countdown color */
+	gdouble countdown_angle;  /* Countdown angle being used in the preview and export of such empty slide */
 	gdouble g_start_point[2]; /* x, y coordinates of start point */
 	gdouble g_stop_point[2];  /* x, y coordinates of stop point */
 
@@ -185,7 +187,7 @@ struct _img_window_struct
 	/* Main GUI related variables */
 	GtkWidget	*imagination_window;
 	GtkWidget 	*menubar;
-	GtkWidget *toolbar;
+	GtkWidget *sidebar;
 	GtkAccelGroup *accel_group;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
@@ -195,8 +197,6 @@ struct _img_window_struct
     GtkWidget   *import_project_menu;
 	GtkWidget	*save_menu;
 	GtkWidget	*save_as_menu;
-	GtkToolItem	*open_button;
-	GtkToolItem	*save_button;
 	GtkWidget	*cut;
 	GtkWidget	*copy;
 	GtkWidget	*paste;
@@ -223,12 +223,12 @@ struct _img_window_struct
   	GtkWidget	*image_area;
   	guint		context_id;
   	GtkListStore *thumbnail_model;
+  	GtkListStore *media_model;
   	gchar		*current_dir;
   	GdkCursor 	*cursor;			/* Cursor to be stored before going fullscreen */
 	GtkWidget   *paned;				/* Main paned (used for saving/restoring geometry) */
 
 	GtkWidget *prev_root;   /* Preview mode root widget */
-	GtkWidget *over_root;   /* Overview mode root widget */
 	GtkWidget *thum_root;   /* Thumbnail root widget */
 	GtkWidget *active_icon; /* Currently active icon view */
 	GObject   *over_cell;   /* Overview cell renderer */
@@ -368,23 +368,7 @@ struct _img_window_struct
 	GtkWidget	*slide_number_entry;
 
 	/* Export dialog related stuff */
-	gint        export_is_running;  /* 0 - export is not running
-									     . no cleaning needed
-									   1 - geting info from user
-									     . no cleaning needed
-									   2 - preparing audio
-									     . terminate sox thread
-										 . delete any created files
-										 . free cmd_line
-										 . free audio_file
-									   3 - exporting video (pre-spawn)
-									     . free cmd_line
-										 . free audio_file
-									   4 - exporting video (post-spawn)
-									     . kill ffmpeg
-										 . free cmd_line
-										 . free audio_file
-										 */
+	gint        export_is_running;
 	GtkWidget   *export_pbar1;
 	GtkWidget   *export_pbar2;
 	GtkWidget   *export_label;
@@ -398,7 +382,7 @@ struct _img_window_struct
 	GSourceFunc  export_idle_func;	/* Stored procedure for pause */
 	GTimer		 *elapsed_timer;	/* GTimer for the elapsed time */
 
-	/* Av library stuff */
+	/* AV library stuff */
 	AVFrame 		*video_frame;
 	AVFrame 		*audio_frame;
 	AVStream		*video_stream;

@@ -25,6 +25,8 @@
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 
+gboolean img_export_transition( img_window_struct *img );
+
 gboolean
 img_stop_export( img_window_struct *img );
 

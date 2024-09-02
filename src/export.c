@@ -17,6 +17,7 @@
 */
 
 #include "export.h"
+#include "empty_slide.h"
 #include "support.h"
 #include "callbacks.h"
 #include <fcntl.h>
@@ -27,9 +28,6 @@ img_start_export( img_window_struct *img);
 
 static gint
 img_initialize_av_parameters(img_window_struct *, gint , gint , enum AVCodecID);
-
-static gboolean
-img_export_transition( img_window_struct *img );
 
 static gboolean
 img_export_still( img_window_struct *img );
@@ -60,7 +58,7 @@ static gboolean img_start_export( img_window_struct *img)
 	cairo_t      *cr;
 
 	/* Set export info */
-	img->export_is_running = 3;
+	img->export_is_running = 1;
 	
 	/* Create progress window with cancel and pause buttons, calculate
 	 * the total number of frames to display. */
@@ -160,9 +158,12 @@ static gboolean img_start_export( img_window_struct *img)
 
 	if( ! entry->o_filename )
 	{
-		success = img_scale_gradient( entry->gradient, entry->g_start_point,
+		success = img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
 							entry->g_stop_point, entry->g_start_color,
-							entry->g_stop_color, img->video_size[0],
+							entry->g_stop_color, 
+							entry->countdown_color, 
+							0, entry->countdown_angle,
+							img->video_size[0],
 							img->video_size[1], NULL, &img->image2 );
 	}
 	else
@@ -179,7 +180,6 @@ static gboolean img_start_export( img_window_struct *img)
 	}
 
 	/* Add export idle function and set initial values */
-	img->export_is_running = 4;
 	img->current_slide = entry;
 	img->total_nr_frames = img->total_secs * img->export_fps;
 	img->displayed_frame = 0;
@@ -197,6 +197,7 @@ static gboolean img_start_export( img_window_struct *img)
 													  img->video_size[0],
 													  img->video_size[1] );
 
+	/* Fade empty slide */
 	if (entry->gradient == 3)
 	{
 		cairo_t	*cr;
@@ -225,18 +226,21 @@ static gboolean img_start_export( img_window_struct *img)
 								   &img->cur_ss_iter );
 
 	img->export_slide = 1;
-	img->export_idle_func = (GSourceFunc)img_export_transition;
-	img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
 
+	img->export_idle_func = (GSourceFunc)img_export_transition;
+	if (img->current_slide->gradient == 4)
+			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
+	else
+		img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
+	
 	img->elapsed_timer = g_timer_new();
 
 	string = g_strdup_printf( _("Slide %d export progress:"), 1 );
-	/* I did this for the translators. ^^ */
 	gtk_label_set_label( GTK_LABEL( img->export_label ), string );
 	g_free( string );
 
-	/* Update display */
-	gtk_widget_queue_draw( img->image_area );
+	/* Update display 
+	gtk_widget_queue_draw( img->image_area );*/
 
 	return( FALSE );
 }
@@ -276,7 +280,7 @@ void img_close_export_dialog(img_window_struct *img)
 gboolean img_stop_export( img_window_struct *img )
 {
 	/* Do any additional tasks */
-	if( img->export_is_running > 3 )
+	if( img->export_is_running)
 	{
 		g_source_remove( img->source_id );
 
@@ -362,7 +366,7 @@ img_prepare_pixbufs( img_window_struct *img)
 		gtk_tree_path_free(path);
 		
 		selected_slide_nr = g_strdup_printf("%d",img->cur_nr_of_selected_slide);
-		gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry),selected_slide_nr);
+		//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry),selected_slide_nr);
 		g_free(selected_slide_nr);
 
 		/* We have next iter, so prepare for next round */
@@ -372,11 +376,14 @@ img_prepare_pixbufs( img_window_struct *img)
 
 		if( ! img->current_slide->o_filename )
 		{
-			img_scale_gradient( img->current_slide->gradient,
+			img_scale_empty_slide( img->current_slide->gradient,
+								img->current_slide->countdown,
 								img->current_slide->g_start_point,
 								img->current_slide->g_stop_point,
 								img->current_slide->g_start_color,
 								img->current_slide->g_stop_color,
+								img->current_slide->countdown_color,
+								0, img->current_slide->countdown_angle,
 								img->video_size[0],
 								img->video_size[1], NULL, &img->image2 );
 		}
@@ -516,8 +523,7 @@ img_calc_next_slide_time_offset( img_window_struct *img,
  *
  * Return value: TRUE if transition isn't exported completely, FALSE otherwise.
  */
-static gboolean
-img_export_transition( img_window_struct *img )
+gboolean img_export_transition( img_window_struct *img )
 {
 	gchar   string[10];
 	gchar	*dummy;
@@ -644,9 +650,9 @@ img_export_still( img_window_struct *img )
 	gtk_label_set_text(GTK_LABEL(img->elapsed_time_label), dummy);
 	g_free(dummy);
 	
-	/* Draw every 10th frame of animation on screen */
+	/* Draw every 10th frame of animation on screen 
 	if( img->displayed_frame % 10 == 0 )
-		gtk_widget_queue_draw( img->image_area );
+		gtk_widget_queue_draw( img->image_area );*/
 
 	return( TRUE );
 }
@@ -763,9 +769,7 @@ img_render_transition_frame( img_window_struct *img )
 	cairo_destroy( cr );
 }
 
-void
-img_render_still_frame( img_window_struct *img,
-						gdouble            rate )
+void img_render_still_frame( img_window_struct *img, gdouble rate )
 {
 	cairo_t      *cr;
 	ImgStopPoint *p_draw_point;                  /* Pointer to current sp */
@@ -1110,7 +1114,7 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 	gtk_grid_attach( GTK_GRID(export_grid), img->vcodec_menu, 1,1,1,1);
 	g_signal_connect(G_OBJECT (img->container_menu),"changed",G_CALLBACK (img_container_changed),img);
 
-	label = gtk_label_new( _("Range:") );
+	label = gtk_label_new( _("Slides Range:") );
 	gtk_label_set_xalign (GTK_LABEL(label), 0.0);
 	gtk_grid_attach( GTK_GRID(export_grid), label, 0,2,1,1);
 

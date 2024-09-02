@@ -30,8 +30,6 @@
 
 #include <gtk/gtk.h>
 #include <string.h>
-#include <unistd.h>
-#include <math.h>
 #include "imagination.h"
 #include "imgcellrendereranim.h"
 
@@ -69,10 +67,12 @@ img_set_slide_file_info( slide_struct *slide,
 						 const gchar  *filename );
 
 void
-img_set_slide_gradient_info( slide_struct *slide,
+img_set_empty_slide_info( slide_struct *slide,
 							 gint          gradient,
+							 gint          countdown,
 							 gdouble      *start_color,
 							 gdouble      *stop_color,
+							 gdouble      *countdown_color,
 							 gdouble      *start_point,
 							 gdouble      *stop_point );
 
@@ -104,15 +104,11 @@ void img_free_slide_struct( slide_struct * );
 
 void img_save_relative_filenames(GtkCheckButton *togglebutton, img_window_struct *img);
 
-gboolean
-img_set_total_slideshow_duration( img_window_struct *img );
+gboolean img_set_total_slideshow_duration( img_window_struct *img );
 
-gint
-img_calc_slide_duration_points( GList *list,
-								gint   length );
+gint img_calc_slide_duration_points( GList *list, gint   length );
 
-gboolean
-img_scale_image( const gchar      *filename,
+gboolean img_scale_image( const gchar      *filename,
 				 gdouble           ratio,
 				 gint              width,
 				 gint              height,
@@ -121,40 +117,29 @@ img_scale_image( const gchar      *filename,
 				 GdkPixbuf       **pixbuf,
 				 cairo_surface_t **surface );
 
-void
-img_set_project_mod_state( img_window_struct *img,
-						   gboolean           modified );
+void img_set_project_mod_state( img_window_struct *img, gboolean           modified );
+void img_sync_timings( slide_struct      *slide, img_window_struct *img );
+GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 
-void
-img_sync_timings( slide_struct      *slide,
-				  img_window_struct *img );
-
-GdkPixbuf *
-img_convert_surface_to_pixbuf( cairo_surface_t *surface );
-
-gboolean
-img_scale_gradient( gint              gradient,
+gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					gdouble          *p_start,
 					gdouble          *p_stop,
 					gdouble          *c_start,
 					gdouble          *c_stop,
+					gdouble          *countdown_color,
+					gboolean			preview,
+					gdouble 			countdown_angle,
 					gint              width,
 					gint              height,
 					GdkPixbuf       **pixbuf,
 					cairo_surface_t **surface );
 
 void str_replace(gchar *str, const gchar *search, const gchar *replace);
-
 void img_set_text_buffer_tags(img_window_struct *img);
-
 void img_store_rtf_buffer_content(img_window_struct *img);
-
 void img_check_for_rtf_colors(img_window_struct *img, gchar *subtitle);
-
 void img_slide_set_p_filename(slide_struct *info_slide, gchar *filename);
-
 gboolean img_check_for_recent_file(img_window_struct *, const gchar *);
 
-gboolean img_increase_preview_time(img_window_struct *);
 
 #endif

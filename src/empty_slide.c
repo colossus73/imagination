@@ -80,14 +80,21 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 		slide.c_stop[1] = img->current_slide->g_stop_color[1];
 		slide.c_stop[2] = img->current_slide->g_stop_color[2];
 		
-		if (slide.gradient < 2) /* solid and linear */
+		if (slide.gradient < 2 || slide.gradient == 4) /* solid and linear */
 		{
 			slide.pl_start[0] = img->current_slide->g_start_point[0] * w;
 			slide.pl_start[1] = img->current_slide->g_start_point[1] * h;
 			slide.pl_stop[0]  = img->current_slide->g_stop_point[0] * w;
 			slide.pl_stop[1]  = img->current_slide->g_stop_point[1] * h;
+			if (slide.gradient == 4)
+			{
+				slide.countdown = img->current_slide->countdown;
+				slide.countdown_color[0] = img->current_slide->countdown_color[0];
+				slide.countdown_color[1] = img->current_slide->countdown_color[1];
+				slide.countdown_color[2] = img->current_slide->countdown_color[2];
+			}
 		}
-		else /* radial */
+		else if (slide.gradient == 3) /* radial and countdown */
 		{
 			slide.pr_start[0] = img->current_slide->g_start_point[0] * w;
 			slide.pr_start[1] = img->current_slide->g_start_point[1] * h;
@@ -185,7 +192,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 	slide.range_countdown = gtk_spin_button_new_with_range (1,10, 1);
 	gtk_grid_attach (GTK_GRID (grid), slide.range_countdown, 0, 9, 1, 1);
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (slide.range_countdown),TRUE);
-	gtk_spin_button_set_value (GTK_SPIN_BUTTON (slide.range_countdown), 5.0);
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (slide.range_countdown), slide.countdown);
 
 	g_signal_connect (G_OBJECT (slide.range_countdown),"value-changed",G_CALLBACK (img_countdown_value_changed), &slide);
 	
@@ -269,13 +276,13 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 			}
 
 			/* Update slide info */
-			img_set_slide_gradient_info( slide_info, slide.gradient,
-										 slide.c_start, slide.c_stop,
+			img_set_empty_slide_info( slide_info, slide.gradient, gtk_spin_button_get_value(GTK_SPIN_BUTTON(slide.range_countdown)),
+										 slide.c_start, slide.c_stop, slide.countdown_color,
 										 p_start, p_stop );
 
 			/* Create thumbnail */
-			img_scale_gradient( slide.gradient, p_start, p_stop,
-								slide.c_start, slide.c_stop,
+			img_scale_empty_slide( slide.gradient, gtk_spin_button_get_value(GTK_SPIN_BUTTON(slide.range_countdown)), p_start, p_stop,
+								slide.c_start, slide.c_stop, slide.countdown_color, 0, -1,
 								88, 49,
 								&thumb, NULL );
 
@@ -309,11 +316,13 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 													3, slide_info->subtitle ? TRUE : FALSE,
 													-1 );
 					/* Update gradient in image area */
-					img_scale_gradient( slide.gradient,
+					img_scale_empty_slide( slide.gradient, gtk_spin_button_get_value(GTK_SPIN_BUTTON(slide.range_countdown)),
 								slide_info->g_start_point,
 								slide_info->g_stop_point,
 								slide_info->g_start_color,
 								slide_info->g_stop_color,
+								slide_info->countdown_color	,
+								0, -1, 
 								img->video_size[0],
 								img->video_size[1],
 								NULL,
@@ -405,7 +414,7 @@ static void img_gradient_toggled( GtkToggleButton *button, ImgEmptySlide   *slid
 	gtk_widget_queue_draw( slide->preview );
 }
 
-static gboolean img_fade_countdown(ImgEmptySlide *slide)
+gboolean img_fade_countdown(ImgEmptySlide *slide)
 {
 	if (slide->gradient == 3)
 	{
@@ -437,9 +446,42 @@ static gboolean img_fade_countdown(ImgEmptySlide *slide)
 	return TRUE;
 }
 
-static void
-img_gradient_color_set( GtkColorChooser *button,
-						ImgEmptySlide  *slide )
+gboolean img_empty_slide_countdown_preview(img_window_struct *img)
+{
+	slide_struct *slide = img->current_slide;
+	
+	slide->countdown_angle += 0.5;
+	if (slide->countdown_angle > 6.5)
+	{
+		slide->countdown_angle = 0;
+		slide->countdown--;
+	}
+	if (slide->countdown < 1)
+	{
+			if (img->export_is_running)
+				img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
+			else
+				img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
+			return FALSE;
+	}
+	img_scale_empty_slide( slide->gradient, 
+							slide->countdown,
+							slide->g_start_point,
+							slide->g_stop_point,
+							slide->g_start_color,
+							slide->g_stop_color,
+							slide->countdown_color,
+							1,
+							slide->countdown_angle,
+							img->video_size[0],
+							img->video_size[1], NULL,
+							&img->exported_image );
+							
+	gtk_widget_queue_draw(img->image_area);
+	return TRUE;
+}
+
+static void img_gradient_color_set( GtkColorChooser *button, ImgEmptySlide  *slide )
 {
 	GdkRGBA  color;
 	gdouble  *my_color;
@@ -572,7 +614,7 @@ gboolean img_gradient_draw( GtkWidget  *UNUSED(widget), cairo_t *cr, ImgEmptySli
 		
 		//Draw the left rectangles column
 		cairo_set_source_rgb(cr, slide->c_stop[0],  slide->c_stop[1], slide->c_stop[2]);
-		for (int i=0; i<=4; i++)
+		for (int i=0; i<=3; i++)
 		{
 			cairo_new_sub_path (cr);
 			cairo_arc (cr, x + width2 - radius, y + i * (60 + offset) + radius, radius, -90 * degrees, 0 * degrees);
@@ -584,7 +626,7 @@ gboolean img_gradient_draw( GtkWidget  *UNUSED(widget), cairo_t *cr, ImgEmptySli
 		}
 		
 		//Draw the right rectangles column
-		for (int i=0; i<=4; i++)
+		for (int i=0; i<=3; i++)
 		{
 			cairo_new_sub_path (cr);
 			cairo_arc (cr, (width * 2 - width2 - x) + width2 - radius, y + i * (60 + offset) + radius, radius, -90 * degrees, 0 * degrees);
