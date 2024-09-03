@@ -1415,3 +1415,27 @@ gboolean img_check_for_recent_file(img_window_struct *img, const gchar *input)
 	return FALSE;
 }
 
+gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filename)
+{
+	GtkTreeIter iter;
+	gchar *filename;
+
+	if( gtk_tree_model_get_iter_first(GTK_TREE_MODEL(img->media_model), &iter) )
+	{
+		do
+		{
+			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 2, &filename, -1);
+			if (strcmp(filename, full_path_filename) == 0)
+			{
+				g_free(filename);
+				return TRUE;
+			}
+			g_free(filename);
+		}
+		while( gtk_tree_model_iter_next(GTK_TREE_MODEL(img->media_model), &iter) );
+	}
+	else
+		return FALSE;
+
+}
+

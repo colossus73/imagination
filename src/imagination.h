@@ -224,6 +224,7 @@ struct _img_window_struct
   	guint		context_id;
   	GtkListStore *thumbnail_model;
   	GtkListStore *media_model;
+  	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
   	GdkCursor 	*cursor;			/* Cursor to be stored before going fullscreen */
 	GtkWidget   *paned;				/* Main paned (used for saving/restoring geometry) */

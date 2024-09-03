@@ -32,7 +32,7 @@ static void img_swap_toolbar_images( img_window_struct *, gboolean);
 static void img_clean_after_preview(img_window_struct *);
 static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *, GtkProgressBar *, ImgAngle );
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
-
+static void img_add_thumbnail_widget_area(gint type, gchar *filename, img_window_struct *img);
 static void
 img_image_area_change_zoom( gdouble            step,
 							gboolean           reset,
@@ -2789,6 +2789,71 @@ void img_open_recent_slideshow(GtkWidget *menu, img_window_struct *img)
 
 void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct *img )
 {
+	GSList *bak;
+	GFile *file;
+	GFileInfo *file_info;
+	const gchar *content_type;
+	gchar *mime_type;
+
 	GSList *list = img_import_slides_file_chooser(img);
+	if (list == NULL)
+		return;
+		
+	bak = list;
+	while (list)
+	{
+		//Determine the mime type
+		file = g_file_new_for_path (list->data);
+		file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
+		content_type = g_file_info_get_content_type (file_info);
+		mime_type = g_content_type_get_mime_type (content_type);
+		if (strstr(mime_type, "image"))
+			img_add_thumbnail_widget_area(0, list->data, img);
+		else if (strstr(mime_type, "audio"))
+			img_add_thumbnail_widget_area(1, list->data, img);
+		else if (strstr(mime_type, "video"))
+			g_print("Video!");
+		else
+		{
+			gchar *string = g_strconcat( _("Can't recognize file type of media\n"), list->data, NULL);
+			img_message(img, string);
+			g_free(string);
+		}
+		g_free(mime_type);
+		list = list->next;
+	}
+	g_slist_free(bak);
+}
+
+static void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, img_window_struct *img)
+{
+	/* type:
+	 * 0 image
+	 * 1 audio
+	 * 2 video 
+	 */
+	GdkPixbuf *pb;
+	GtkTreeIter iter;
+	gchar *filename;
+	
+	if (img_find_media_in_list(img, full_path_filename))
+		return;
+
+	filename = g_path_get_basename(full_path_filename);
+	
+	gtk_list_store_append (img->media_model, &iter);
+	switch (type)
+	{
+		case 0:
+		pb = gtk_icon_theme_load_icon(img->icon_theme, "image-x-generic", 24, 0, NULL);
+		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2 , full_path_filename, 3, 0 , -1);
+		break;
+		
+		case 1:
+		pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 24, 0, NULL);
+		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2 , full_path_filename, 3, 1 , -1);
+		break;
+	}
+	g_free(filename);
 }
 
