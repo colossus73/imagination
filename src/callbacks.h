@@ -67,17 +67,8 @@ gboolean img_image_area_scroll( GtkWidget *, GdkEvent *, img_window_struct * );
 gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
-void img_clipboard_cut_copy_operation(img_window_struct *, ImgClipboardMode );
-void img_clipboard_clear (GtkClipboard *, img_window_struct *);
-void img_clipboard_get (GtkClipboard *, GtkSelectionData *, guint , img_window_struct *);
 void img_text_pos_changed( GtkRange *range, img_window_struct *);
-void img_zoom_in ( GtkWidget         *item, img_window_struct *img );
-void img_zoom_out( GtkWidget        *item, img_window_struct *img );
-
-void
-img_zoom_fit( GtkWidget         *item,
-              img_window_struct *img );
-
+void img_add_thumbnail_widget_area(gint type, gchar *filename, img_window_struct *img);
 void
 img_quality_toggled( GtkCheckMenuItem  *item,
 					 img_window_struct *img );

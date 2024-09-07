@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,7 +49,6 @@
 GtkWidget *img_load_icon(gchar *, GtkIconSize );
 gchar *img_convert_seconds_to_time(gint );
 GtkWidget *_gtk_combo_box_new_text(gint);
-void img_set_fadeout_duration(img_window_struct *, gint);
 gint img_ask_user_confirmation(img_window_struct *, gchar *);
 void img_message(img_window_struct *, gchar *);
 void img_set_statusbar_message(img_window_struct *, gint);
@@ -58,6 +57,7 @@ void img_show_file_chooser(GtkWidget *, GtkEntryIconPosition, int, img_window_st
 void img_select_nth_slide(img_window_struct *, gint);
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img);
 void img_update_zoom_variables(img_window_struct *img);
+gchar * img_get_audio_duration(gchar * );
 
 slide_struct *
 img_create_new_slide( void );

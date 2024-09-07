@@ -7,6 +7,49 @@ blank slide=false
 background color=0;0;0;
 distort images=true
 number of slides=4
+number of media=14
+
+[Media 1]
+filename=/home/gt/Pictures/yucatan.jpg
+
+[Media 2]
+filename=/home/gt/Desktop/round_button.png
+
+[Media 3]
+filename=/home/gt/Desktop/ravem/raven_gives_signals.png
+
+[Media 4]
+filename=/home/gt/Desktop/ravem/prova_2.png
+
+[Media 5]
+filename=/home/gt/Pictures/beef_chicken.jpg
+
+[Media 6]
+filename=/home/gt/Desktop/ravem/attachment_5.png
+
+[Media 7]
+filename=/home/gt/Desktop/ravem/attachment_3.png
+
+[Media 8]
+filename=/home/gt/Pictures/12.JPG
+
+[Media 9]
+filename=/home/gt/Desktop/08 Outrun/images/1.png
+
+[Media 10]
+filename=/home/gt/Pictures/13232920_170927423309312_7609691026315844110_n.jpg
+
+[Media 11]
+filename=/home/gt/Desktop/ellipsize.png
+
+[Media 12]
+filename=/home/gt/Pictures/22.jpg
+
+[Media 13]
+filename=/home/gt/Pictures/Molise_in_Action_River_Trekking_25 Luglio_Mattina/Molise_In_Action_River_Trekking_25 Luglio_Mattina_27.jpg
+
+[Media 14]
+filename=/home/gt/Pictures/avocadoripecheck.jpg
 
 [slide 1]
 gradient=4

@@ -21,43 +21,50 @@
 
 static gboolean img_populate_hash_table( GtkTreeModel *, GtkTreePath *, GtkTreeIter *, GHashTable ** );
 
-void
-img_save_slideshow( img_window_struct *img,
-					const gchar       *output,
-					gboolean		  relative )
+void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean relative )
 {
 	GKeyFile *img_key_file;
-	gchar *conf, *path, *filename, *file, *font_desc;
+	gchar *conf, *conf_media, *path, *filename, *file, *font_desc;
 	gint count = 0;
 	gsize len;
 	GtkTreeIter iter;
+	GtkTreeIter media_iter;
 	slide_struct *entry;
 	GtkTreeModel *model;
+	GtkTreeModel *media_model;
 
+	//Save the bottom iconview, to be removed when the timeline will be finally ready
 	model = GTK_TREE_MODEL( img->thumbnail_model );
+	media_model = GTK_TREE_MODEL( img->media_model );
 	if (!gtk_tree_model_get_iter_first (model, &iter))
+		return;
+		
+	if (!gtk_tree_model_get_iter_first (media_model, &media_iter))
 		return;
 
 	img_key_file = g_key_file_new();
 
 	/* Slideshow settings */
 	g_key_file_set_comment(img_key_file, NULL, NULL, comment_string, NULL);
-
-	g_key_file_set_integer(img_key_file, "slideshow settings",
-                          "video width", img->video_size[0]);
-    g_key_file_set_integer(img_key_file, "slideshow settings",
-                          "video height", img->video_size[1]);
-
-	g_key_file_set_boolean( img_key_file, "slideshow settings",
-										 "blank slide", img->bye_bye_transition);
-
-	g_key_file_set_double_list( img_key_file, "slideshow settings",
-								"background color", img->background_color, 3 );
+	g_key_file_set_integer(img_key_file, "slideshow settings", "video width", img->video_size[0]);
+    g_key_file_set_integer(img_key_file, "slideshow settings", "video height", img->video_size[1]);
+	g_key_file_set_boolean( img_key_file, "slideshow settings",  "blank slide", img->bye_bye_transition);
+	g_key_file_set_double_list( img_key_file, "slideshow settings", "background color", img->background_color, 3 );
 	g_key_file_set_boolean(img_key_file,"slideshow settings", "distort images", img->distort_images);
-
 	g_key_file_set_integer(img_key_file, "slideshow settings", "number of slides", img->slides_nr);
+	g_key_file_set_integer(img_key_file, "slideshow settings", "number of media", img->media_nr);
+
+	do
+	{
+		count++;
+		gtk_tree_model_get(media_model, &media_iter,2,&filename,-1);
+		conf = g_strdup_printf("Media %d",count);
+		g_key_file_set_string( img_key_file, conf, "filename", filename);
+	}
+	while (gtk_tree_model_iter_next (media_model,&media_iter));
 
 	/* Slide settings */
+	count = 0;
 	do
 	{
 		count++;
@@ -226,8 +233,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 
 	/* Create new key file */
 	img_key_file = g_key_file_new();
-	g_key_file_load_from_file( img_key_file, input,
-									 G_KEY_FILE_KEEP_COMMENTS, NULL );
+	g_key_file_load_from_file( img_key_file, input, G_KEY_FILE_KEEP_COMMENTS, NULL );
 	dummy = g_key_file_get_comment( img_key_file, NULL, NULL, NULL);
 
 	if (dummy == NULL)
@@ -254,12 +260,9 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	project_current_dir = g_path_get_dirname(input);
 
 	/* Create hash table for efficient searching */
-	table = g_hash_table_new_full( g_direct_hash, g_direct_equal,
-								   NULL, g_free );
+	table = g_hash_table_new_full( g_direct_hash, g_direct_equal, NULL, g_free );
 	model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
-	gtk_tree_model_foreach( model,
-							(GtkTreeModelForeachFunc)img_populate_hash_table,
-							&table );
+	gtk_tree_model_foreach( model, (GtkTreeModelForeachFunc)img_populate_hash_table, &table );
 
 	/* Video Size */
 	img->video_size[0] = g_key_file_get_integer(img_key_file, "slideshow settings", "video width", NULL);
@@ -278,9 +281,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 
 	img->video_ratio = (gdouble)img->video_size[0] / img->video_size[1];
 
-    img_zoom_fit(NULL, img);
-
-	/* Make loading more efficient by removing model from icon view */
+   	/* Make loading more efficient by removing model from icon view */
 	g_object_ref( G_OBJECT( img->thumbnail_model ) );
 	gtk_icon_view_set_model( GTK_ICON_VIEW( img->thumbnail_iconview ), NULL );
 
@@ -293,7 +294,11 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	gchar *original_filename = NULL;
 	GtkIconTheme *icon_theme;
 	GtkIconInfo  *icon_info;
+	GFile *file;
+	GFileInfo *file_info;
 	const gchar  *icon_filename;
+	const gchar *content_type;
+	gchar *mime_type;
 	ImgAngle   angle = 0;
 
 		/* Load last slide setting (bye bye transition) */
@@ -306,6 +311,23 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 		img->background_color[2] = color[2];
 		g_free( color );
 
+		/* Loads the media files */
+		 number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
+		 for( i = 1; i <= number; i++ )
+		{
+			conf = g_strdup_printf("Media %d", i);
+			slide_filename = g_key_file_get_string(img_key_file,conf,"filename", NULL);
+			file = g_file_new_for_path (slide_filename);
+			file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
+			content_type = g_file_info_get_content_type (file_info);
+			mime_type = g_content_type_get_mime_type (content_type);
+			if (strstr(mime_type, "image"))
+				img_add_thumbnail_widget_area(0, slide_filename, img);
+			else if (strstr(mime_type, "audio"))
+				img_add_thumbnail_widget_area(1, slide_filename, img);
+			g_free(conf);
+			g_free(slide_filename);
+		}
 		/* Loads the thumbnails and set the slides info */
 		number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of slides", NULL);
 		/* Store the previous number of slides and set img->slides_nr so to have the correct number of slides displayed on the status bar */

@@ -197,15 +197,12 @@ struct _img_window_struct
     GtkWidget   *import_project_menu;
 	GtkWidget	*save_menu;
 	GtkWidget	*save_as_menu;
-	GtkWidget	*cut;
-	GtkWidget	*copy;
-	GtkWidget	*paste;
 	GtkWidget	*edit_empty_slide;
 	GtkWidget	*remove_menu;
 	GtkWidget	*select_all_menu;
 	GtkWidget	*report_menu;
 	GtkWidget 	*fullscreen_loop_preview;
-	GtkToolItem *preview_button;
+	GtkWidget	*preview_button;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*duration;				// Duration spin button
@@ -227,9 +224,8 @@ struct _img_window_struct
   	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
   	GdkCursor 	*cursor;			/* Cursor to be stored before going fullscreen */
-	GtkWidget   *paned;				/* Main paned (used for saving/restoring geometry) */
+	GtkWidget   *main_horizontal_box;				/* main_horizontal_box (used for saving/restoring geometry) */
 
-	GtkWidget *prev_root;   /* Preview mode root widget */
 	GtkWidget *thum_root;   /* Thumbnail root widget */
 	GtkWidget *active_icon; /* Currently active icon view */
 	GObject   *over_cell;   /* Overview cell renderer */
@@ -246,20 +242,15 @@ struct _img_window_struct
 	/* Subtitle related controls */
 	GtkWidget *sub_textview;      /* Text view */
 	GtkWidget *sub_font;          /* Font button */
-	GtkWidget *sub_color;         /* Font color selector button */
+	GtkWidget *subtitle_font_color;         /* Font color selector button */
     GtkWidget *sub_brdr_color;    /* Border font color selector button */
     GtkWidget *sub_bgcolor;       /* Background font color selector button */
-    GtkWidget *sub_border_color;  /* Border on font background color selector button */
     GtkWidget *bold_style;
     GtkWidget *italic_style;
     GtkWidget *underline_style;
-    GtkWidget *clear_formatting;
     GtkWidget *left_justify;
     GtkWidget *fill_justify;
     GtkWidget *right_justify;
-    GtkWidget *border_top;  	  /* Border top widget */
-    GtkWidget *border_bottom;  	  /* Border bottom widget */
-    GtkWidget *sub_border_width;  /* Border width on font background button */
     GtkWidget *pattern_image;	  /* Font Pattern */
 	GtkWidget *sub_anim;          /* Animation combo box */
 	GtkWidget *sub_anim_duration; /* Animation duration spin button */
@@ -312,6 +303,7 @@ struct _img_window_struct
   	gdouble		total_secs;
 	gint		total_music_secs;
   	gint		slides_nr;
+  	gint		media_nr;
   	gint		cur_nr_of_selected_slide;
 	slide_struct final_transition;  /* Only speed, render and duration fields
 									   of this structure are used (and duration
@@ -395,7 +387,6 @@ struct _img_window_struct
 
 	/* Application related stuff */
 	gdouble  image_area_zoom; /* Zoom to be applied to image area */
-	gdouble  overview_zoom;   /* Zoom to be applied in overview mode */
 	gint     preview_fps;     /* Preview frame rate */
 
 	/* Clipboard related stuff */

@@ -32,7 +32,7 @@ static void img_swap_toolbar_images( img_window_struct *, gboolean);
 static void img_clean_after_preview(img_window_struct *);
 static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *, GtkProgressBar *, ImgAngle );
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
-static void img_add_thumbnail_widget_area(gint type, gchar *filename, img_window_struct *img);
+
 static void
 img_image_area_change_zoom( gdouble            step,
 							gboolean           reset,
@@ -407,7 +407,7 @@ void img_exit_fullscreen(img_window_struct *img)
 	GdkWindow *win;
 
 	gtk_widget_show(img->thumb_scrolledwindow);
-	gtk_widget_show (img->paned);
+	gtk_widget_show (img->main_horizontal_box);
 	gtk_widget_show(img->statusbar);
 	gtk_widget_show(img->menubar);
 	gtk_widget_show(img->sidebar);
@@ -847,7 +847,7 @@ void img_go_fullscreen(GtkMenuItem * UNUSED(item), img_window_struct *img)
 	//gtk_widget_remove_accelerator (img->fullscreen, img->accel_group, GDK_KEY_F11, 0);
 
 	gtk_widget_hide (img->thumb_scrolledwindow);
-	//gtk_widget_hide (img->paned);
+	//gtk_widget_hide (img->main_horizontal_box);
 	gtk_widget_hide (img->statusbar);
 	gtk_widget_hide (img->menubar);
 	gtk_widget_hide (img->sidebar);
@@ -1174,6 +1174,10 @@ void img_on_drag_data_received (GtkWidget * UNUSED(widget), GdkDragContext
 	gchar *filename;
 	GSList *slides = NULL;
 	GtkWidget *dialog;
+	GFile *file;
+	GFileInfo *file_info;
+	const gchar *content_type;
+	gchar *mime_type;
 	int len = 0;
 
 	pictures = gtk_selection_data_get_uris(data);
@@ -1187,15 +1191,34 @@ void img_on_drag_data_received (GtkWidget * UNUSED(widget), GdkDragContext
 		return;
 	}
 	gtk_drag_finish (context,TRUE,FALSE,time);
+
 	while(pictures[len])
 	{
 		filename = g_filename_from_uri (pictures[len],NULL,NULL);
-		slides = g_slist_prepend(slides, filename);
+		//Determine the mime type
+		if (filename == NULL)
+			goto end;
+		file = g_file_new_for_path (filename);
+		file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
+		content_type = g_file_info_get_content_type (file_info);
+		mime_type = g_content_type_get_mime_type (content_type);
+		if (strstr(mime_type, "image"))
+			img_add_thumbnail_widget_area(0, filename, img);
+		else if (strstr(mime_type, "audio"))
+			img_add_thumbnail_widget_area(1, filename, img);
+		else if (strstr(mime_type, "video"))
+			g_print("Video!");
+		else
+		{
+			gchar *string = g_strconcat( _("Can't recognize file type of media\n"), filename, NULL);
+			img_message(img, string);
+			g_free(string);
+		}
+		g_free(mime_type);
+		g_free(filename);
+end:
 		len++;
 	}
-
-	img_add_slides(slides, img);
-
 	g_strfreev (pictures);
 }
 
@@ -1372,14 +1395,14 @@ static void img_swap_toolbar_images( img_window_struct *img,gboolean flag )
 	{
 		tmp_image = gtk_image_new_from_icon_name ("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR);
 		gtk_widget_show(tmp_image);
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->preview_button), tmp_image);
-		gtk_widget_set_tooltip_text(GTK_WIDGET(img->preview_button),_("Starts the preview without music"));
+		gtk_button_set_image(GTK_BUTTON(img->preview_button), tmp_image);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(img->preview_button),_("Starts the preview"));
 	}
 	else
 	{
 		tmp_image = gtk_image_new_from_icon_name ("media-playback-stop", GTK_ICON_SIZE_LARGE_TOOLBAR);
 		gtk_widget_show(tmp_image);
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->preview_button), tmp_image);
+		gtk_button_set_image(GTK_BUTTON(img->preview_button), tmp_image);
 		gtk_widget_set_tooltip_text(GTK_WIDGET(img->preview_button),_("Stops the preview"));
 	}
 }
@@ -1695,77 +1718,6 @@ void img_text_pos_changed( GtkRange *range, img_window_struct *img)
 	img_taint_project(img);
 }
 
-/* Zoom callback functions */
-void
-img_zoom_in( GtkWidget         * UNUSED(item),
-			 img_window_struct *img )
-{
-		img_image_area_change_zoom( 0.05, FALSE, img );
-}
-
-void
-img_zoom_out( GtkWidget         * UNUSED(item),
-			  img_window_struct *img )
-{
-		img_image_area_change_zoom( - 0.05, FALSE, img );
-}
-
-void
-img_zoom_fit( GtkWidget         * UNUSED(item),
-              img_window_struct *img )
-{
-    gdouble step, level1, level2;
-    GtkAllocation allocation;
-    
-	gtk_widget_get_allocation(img->prev_root, &allocation);
-    /* we want to fit the frame into prev_root. Frame = video + 4 px */
-    level1 = (float)allocation.width / (img->video_size[0] + 4);
-    level2 = (float)allocation.height / (img->video_size[1] + 4);
-    if (level1 < level2)
-       /* step is relative to zoom level 1 */
-		step = level1 - 1;
-	else
-		step = level2 - 1;
-
-        img_image_area_change_zoom( 0, TRUE, img );
-        img_image_area_change_zoom( step, FALSE, img );
-}
-
-/*
- * img_image_area_change_zoom:
- * @step: amount of zoom to be changed
- * @reset: do we want to reset zoom level
- * @img: global img_widget_struct structure
- *
- * This function will increase/decrease/reset zoom level. If @step is less than
- * zero, preview area will zoom out, if @step is bigger that zero, image area
- * will zoom in.
- *
- * If @reset is TRUE, @step value is ignored and zoom reset to 1.
- *
- * Zoom level of image area is in interval [0.1, 5], but this can be easily
- * changed by adjusting bounds array values. If the zoom would be set outside of
- * this interval, it is clamped in between those two values.
- */
-static void
-img_image_area_change_zoom( gdouble            step,
-							gboolean           reset,
-							img_window_struct *img )
-{
-	static gdouble bounds[] = { 0.1, 5.0 };
-
-	if( reset )
-		img->image_area_zoom = 1;
-	else
-		img->image_area_zoom = CLAMP( img->image_area_zoom + step,
-									  bounds[0], bounds[1] );
-
-	/* Apply change */
-	gtk_widget_set_size_request( img->image_area,
-								 img->video_size[0] * img->image_area_zoom,
-								 img->video_size[1] * img->image_area_zoom );
-}
-
 void
 img_add_stop_point( GtkButton         * UNUSED(button),
 					img_window_struct *img )
@@ -1970,21 +1922,17 @@ img_update_subtitles_widgets( img_window_struct *img )
 	GtkIconTheme	*icon_theme;
 	GdkAtom			format;
 
-	/* Block all handlers */
+	/* Block all handlers 
 	g_signal_handlers_block_by_func( img->slide_text_buffer,
 									 img_queue_subtitle_update, img );
 	g_signal_handlers_block_by_func( img->sub_font,
 									 img_text_font_set, img );
-	g_signal_handlers_block_by_func( img->sub_color,
+	g_signal_handlers_block_by_func( img->subtitle_font_color,
 									 img_font_color_changed, img );
     g_signal_handlers_block_by_func( img->sub_brdr_color,
                                      img_font_brdr_color_changed, img );
 	g_signal_handlers_block_by_func( img->sub_bgcolor,
-                                     img_font_bg_color_changed, img );
-	g_signal_handlers_block_by_func( img->sub_border_color,
-                                     img_sub_border_color_changed, img );
-    g_signal_handlers_block_by_func( img->sub_border_width,
-                                     img_sub_border_width_changed, img );                                    
+                                     img_font_bg_color_changed, img );                         
 	g_signal_handlers_block_by_func( img->sub_anim,
 									 img_text_anim_set, img );
 	g_signal_handlers_block_by_func( img->sub_anim_duration,
@@ -1992,11 +1940,7 @@ img_update_subtitles_widgets( img_window_struct *img )
 	g_signal_handlers_block_by_func( img->sub_posX, img_text_pos_changed, img );
 	g_signal_handlers_block_by_func( img->sub_posY, img_text_pos_changed, img );
 	g_signal_handlers_block_by_func( img->sub_angle,
-									   img_text_pos_changed, img );
-	g_signal_handlers_block_by_func( img->border_top,
-									   img_subtitle_top_border_toggled, img );
-	g_signal_handlers_block_by_func( img->border_bottom,
-									   img_subtitle_bottom_border_toggled, img );
+									   img_text_pos_changed, img );*/
 	/* Update subtitle text area */
 	if (img->current_slide->subtitle)
 	{
@@ -2031,51 +1975,36 @@ img_update_subtitles_widgets( img_window_struct *img )
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->pattern_image), tmp_image);
 	g_object_unref(pattern_pix);
 
-	/* Update font button */
-	string = pango_font_description_to_string(img->current_slide->font_desc);	
-	gtk_font_chooser_set_font(GTK_FONT_CHOOSER(img->sub_font), string);
-	g_free(string);
+	//~ /* Update font button */
+	//~ string = pango_font_description_to_string(img->current_slide->font_desc);	
+	//~ gtk_font_chooser_set_font(GTK_FONT_CHOOSER(img->sub_font), string);
+	//~ g_free(string);
 
-	/* Update color button */
-	f_colors = img->current_slide->font_color;
-	color.red   = f_colors[0];
-	color.green = f_colors[1];
-	color.blue  = f_colors[2];
-	color.alpha = f_colors[3];
-	gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_color ), &color ); 
+	//~ /* Update color button */
+	//~ f_colors = img->current_slide->font_color;
+	//~ color.red   = f_colors[0];
+	//~ color.green = f_colors[1];
+	//~ color.blue  = f_colors[2];
+	//~ color.alpha = f_colors[3];
+	//~ gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->subtitle_font_color ), &color ); 
 	
-    /* Update border color button */
-    f_colors = img->current_slide->font_brdr_color;
-    color.red   = f_colors[0];
-    color.green = f_colors[1];
-    color.blue  = f_colors[2];
-    color.alpha = f_colors[3];
-    gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_brdr_color ), &color ); 
+    //~ /* Update border color button */
+    //~ f_colors = img->current_slide->font_brdr_color;
+    //~ color.red   = f_colors[0];
+    //~ color.green = f_colors[1];
+    //~ color.blue  = f_colors[2];
+    //~ color.alpha = f_colors[3];
+    //~ gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_brdr_color ), &color ); 
                             
-    /* Update background color button */
-    f_colors = img->current_slide->font_bg_color;
-    color.red   = f_colors[0];
-    color.green = f_colors[1];
-    color.blue  = f_colors[2];
-    color.alpha = f_colors[3];
-    gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_bgcolor ), &color ); 
+    //~ /* Update background color button */
+    //~ f_colors = img->current_slide->font_bg_color;
+    //~ color.red   = f_colors[0];
+    //~ color.green = f_colors[1];
+    //~ color.blue  = f_colors[2];
+    //~ color.alpha = f_colors[3];
+    //~ gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_bgcolor ), &color ); 
                             
-     /* Update border color button */
-    f_colors = img->current_slide->border_color;
-    color.red   = f_colors[0];
-    color.green = f_colors[1];
-    color.blue  = f_colors[2];
-    color.alpha = f_colors[3];
-    gtk_color_chooser_set_rgba( GTK_COLOR_CHOOSER( img->sub_border_color ), &color ); 
-
-	/* Update toggle buttons top/bottom borders */
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(img->border_top), img->current_slide->top_border);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(img->border_bottom), img->current_slide->bottom_border);
-
-	/* Update spinbutton border with*/
-	gtk_spin_button_set_value( GTK_SPIN_BUTTON( img->sub_border_width ), img->current_slide->border_width );
-	
-	/* Update animation */
+   /* Update animation */
 	gtk_combo_box_set_active( GTK_COMBO_BOX( img->sub_anim ),
 							  img->current_slide->anim_id );
 
@@ -2088,21 +2017,15 @@ img_update_subtitles_widgets( img_window_struct *img )
 	gtk_range_set_value( GTK_RANGE(img->sub_posY), (gdouble) img->current_slide->posY);
 	gtk_range_set_value( GTK_RANGE(img->sub_angle), (gdouble) img->current_slide->subtitle_angle);
 
-	/* Unblock all handlers */
+	/* Unblock all handlers
 	g_signal_handlers_unblock_by_func( img->slide_text_buffer,
 									   img_queue_subtitle_update, img );
 	g_signal_handlers_unblock_by_func( img->sub_font,
 									   img_text_font_set, img );
-	g_signal_handlers_unblock_by_func( img->sub_color,
-									   img_font_color_changed, img );
     g_signal_handlers_unblock_by_func( img->sub_brdr_color,
                                        img_font_brdr_color_changed, img );
 	g_signal_handlers_unblock_by_func( img->sub_bgcolor,
                                        img_font_bg_color_changed, img );
-	g_signal_handlers_unblock_by_func( img->sub_border_color,
-                                       img_sub_border_color_changed, img );                                       
-	g_signal_handlers_unblock_by_func( img->sub_border_width,
-                                     img_sub_border_width_changed, img );  
 	g_signal_handlers_unblock_by_func( img->sub_anim,
 									   img_text_anim_set, img );
 	g_signal_handlers_unblock_by_func( img->sub_anim_duration,
@@ -2112,11 +2035,7 @@ img_update_subtitles_widgets( img_window_struct *img )
 	g_signal_handlers_unblock_by_func( img->sub_posY,
 									   img_text_pos_changed, img );
 	g_signal_handlers_unblock_by_func( img->sub_angle,
-									   img_text_pos_changed, img );
-	g_signal_handlers_unblock_by_func( img->border_top,
-									   img_subtitle_top_border_toggled, img );
-	g_signal_handlers_unblock_by_func( img->border_bottom,
-									   img_subtitle_bottom_border_toggled, img );								   								   
+									   img_text_pos_changed, img );		 */					   								   
 }
 
 void
@@ -2198,56 +2117,6 @@ img_calc_current_ken_point( ImgStopPoint *res,
 	res->zoom = from->zoom * ( 1 - fracz ) + to->zoom * fracz;
 }
 
-void img_clipboard_cut_copy_operation(img_window_struct *img, ImgClipboardMode mode)
-{
-	GtkClipboard *img_clipboard;
-	GList *selected = NULL;
-	GtkTargetEntry targets[] = 
-	{
-		{ "application/imagination-info-list", 0, 0 }
-	};
-
-	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->active_icon));
-	if (selected == NULL)
-		return;
-
-	img_clipboard = gtk_clipboard_get (IMG_CLIPBOARD);
-
-	/* Let's delete the GList if the user chooses Cut/Copy again instead of Paste */
-	if (img->selected_paths)
-	{
-		GList *node17;
-		for(node17 = img->selected_paths;node17 != NULL;node17 = node17->next) {
-			gtk_tree_path_free(node17->data);
-		}
-		g_list_free (img->selected_paths);
-	}
-	img->selected_paths = selected;
-	img->clipboard_mode = mode;
-
-	gtk_clipboard_set_with_data (	img_clipboard,
-									targets, G_N_ELEMENTS (targets),
-									(GtkClipboardGetFunc) 	img_clipboard_get,
-									NULL, img);	
-}
-
-void img_clipboard_get (GtkClipboard * UNUSED(clipboard), GtkSelectionData *selection_data, guint UNUSED(info), img_window_struct *img)
-{
-    GdkAtom target;
-    target = gtk_selection_data_get_target(selection_data);
-    if (target != IMG_INFO_LIST) {
-	return;
-    }
-
-    gtk_selection_data_set (selection_data, target, 8, (guchar *) img->selected_paths, sizeof(GList) * g_list_length(img->selected_paths) );
-}
-
-void img_clipboard_clear (GtkClipboard * UNUSED(clipboard), img_window_struct *img)
-{
-	img_message (img, "I'm here\n");
-	//gtk_clipboard_clear(clipboard);
-}
-
 gboolean img_save_window_settings( img_window_struct *img )
 {
 	GList	  *menu_items, *node0;
@@ -2268,7 +2137,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 	}
 
 	gtk_window_get_size( GTK_WINDOW( img->imagination_window ), &w, &h );
-	//g = gtk_paned_get_position( GTK_PANED( img->paned ) );
+	//g = gtk_paned_get_position( GTK_PANED( img->main_horizontal_box ) );
 	f = gdk_window_get_state( gtk_widget_get_window( img->imagination_window ) );
 	max = f & GDK_WINDOW_STATE_MAXIMIZED;
 
@@ -2285,7 +2154,6 @@ gboolean img_save_window_settings( img_window_struct *img )
 	g_key_file_set_integer( kf, group, "height",  h );
 	g_key_file_set_integer( kf, group, "gutter",  g );
 	g_key_file_set_double(  kf, group, "zoom_p",  img->image_area_zoom );
-	g_key_file_set_double(  kf, group, "zoom_o",  img->overview_zoom );
 	g_key_file_set_boolean( kf, group, "max",     max );
 	g_key_file_set_integer( kf, group, "preview", img->preview_fps );
 	g_key_file_set_string_list(kf, group, "recent_files", (const gchar * const *)recent_files->pdata, recent_files->len);
@@ -2333,7 +2201,6 @@ img_load_window_settings( img_window_struct *img )
 	g                    = g_key_file_get_integer( kf, group, "gutter",  NULL );
 	m                    = g_key_file_get_integer( kf, group, "mode",    NULL );
 	img->image_area_zoom = g_key_file_get_double(  kf, group, "zoom_p",  NULL );
-	img->overview_zoom   = g_key_file_get_double(  kf, group, "zoom_o",  NULL );
 	max                  = g_key_file_get_boolean( kf, group, "max",     NULL );
 	recent_files		 = g_key_file_get_string(  kf, group, "recent_files", NULL);
 
@@ -2372,29 +2239,26 @@ img_load_window_settings( img_window_struct *img )
 
 	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
-	//gtk_paned_set_position( GTK_PANED( img->paned ), g );
+	//gtk_paned_set_position( GTK_PANED( img->main_horizontal_box ), g );
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
-	/* Update zoom display */
+	/* Update zoom display 
 	gtk_widget_set_size_request( img->image_area,
 								 img->video_size[0] * img->image_area_zoom,
-								 img->video_size[1] * img->image_area_zoom );
+								 img->video_size[1] * img->image_area_zoom );*/
 
 	return( TRUE );
 }
 
-void
-img_set_window_default_settings( img_window_struct *img )
+void img_set_window_default_settings( img_window_struct *img )
 {
-	img->image_area_zoom = 1.0;
-	img->overview_zoom = 1.0;
+	//img->image_area_zoom = 1.0;
 	img->preview_fps = 25;
 
 	/* Update window size and gutter position */
-	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ),
-								 800, 600 );
-	//gtk_paned_set_position( GTK_PANED( img->paned ), 500 );
+	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), 800, 600 );
+
 }
 
 static void img_reset_rotation_flip( slide_struct *slide) {
@@ -2591,33 +2455,13 @@ img_pattern_clicked(GtkMenuItem * UNUSED(item),
 		gtk_widget_show(tmp_image);
 		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->pattern_image), tmp_image);
 	
-		gtk_widget_set_sensitive(img->sub_color, FALSE);
+		gtk_widget_set_sensitive(img->subtitle_font_color, FALSE);
 
 		if (pattern_pix)
 			g_object_unref(pattern_pix); 
 	}
 	if (GTK_IS_WIDGET(fc))
 		gtk_widget_destroy(fc);
-}
-
-void img_subtitle_top_border_toggled (GtkToggleButton *button, img_window_struct *img)
-{
-	img_update_sub_properties( img, NULL, -1, -1, NULL, NULL, NULL, NULL, NULL, 
-							gtk_toggle_button_get_active(button),
-							img->current_slide->bottom_border, -1, -1);
-	
-	gtk_widget_queue_draw(img->image_area);
-	img_taint_project(img);
-}
-
-void img_subtitle_bottom_border_toggled (GtkToggleButton *button, img_window_struct *img)
-{
-	img_update_sub_properties( img, NULL, -1, -1, NULL, NULL, NULL, NULL, NULL, 
-								img->current_slide->top_border,
-								gtk_toggle_button_get_active(button), -1, -1);
-	
-	gtk_widget_queue_draw(img->image_area);
-	img_taint_project(img);
 }
 
 void img_spinbutton_value_changed (GtkSpinButton *spinbutton, img_window_struct *img)
@@ -2701,7 +2545,6 @@ void img_subtitle_style_changed(GtkButton *button, img_window_struct *img)
 	else if (GTK_WIDGET(button) == img->underline_style)
 		string = "underline";
 	else {
-		g_assert(GTK_WIDGET(button) == img->clear_formatting);
 		gtk_text_buffer_remove_all_tags(img->slide_text_buffer, &start, &end);
 		img_store_rtf_buffer_content(img);
 
@@ -2798,7 +2641,7 @@ void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct 
 	GSList *list = img_import_slides_file_chooser(img);
 	if (list == NULL)
 		return;
-		
+
 	bak = list;
 	while (list)
 	{
@@ -2825,7 +2668,7 @@ void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct 
 	g_slist_free(bak);
 }
 
-static void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, img_window_struct *img)
+void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, img_window_struct *img)
 {
 	/* type:
 	 * 0 image
@@ -2842,15 +2685,19 @@ static void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, 
 	filename = g_path_get_basename(full_path_filename);
 	
 	gtk_list_store_append (img->media_model, &iter);
+	img->media_nr++;
+	img_taint_project(img);
 	switch (type)
 	{
 		case 0:
-		pb = gtk_icon_theme_load_icon(img->icon_theme, "image-x-generic", 24, 0, NULL);
+		pb = gdk_pixbuf_new_from_file_at_scale(full_path_filename, 88, 49, TRUE, NULL);
+		//Load and scale the pixbuf and pass it instead of the icon one
 		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2 , full_path_filename, 3, 0 , -1);
+		g_object_unref(pb);
 		break;
 		
 		case 1:
-		pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 24, 0, NULL);
+		pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
 		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2 , full_path_filename, 3, 1 , -1);
 		break;
 	}

@@ -207,9 +207,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 
 			/* Update display of currently selected image */
 			img_update_current_slide( img );
-		
-			/* Adjust zoom level */
-			img_zoom_fit(NULL, img);
 		}
 	}
 	gtk_widget_destroy(dialog1);

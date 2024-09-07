@@ -119,12 +119,6 @@ GtkWidget *_gtk_combo_box_new_text(gboolean pointer)
 	return combo_box;
 }
 
-void img_set_fadeout_duration(img_window_struct *img_struct, gint duration)
-{
-    //gtk_spin_button_set_value(GTK_SPIN_BUTTON(img_struct->fadeout_duration), duration);
-    //img_struct->audio_fadeout = duration;
-}
-
 void img_set_statusbar_message(img_window_struct *img_struct, gint selected)
 {
 	gchar *message = NULL;
@@ -1199,8 +1193,8 @@ void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 	g_object_unref(pixbuf);
 	
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->pattern_image), tmp_image);
-	gtk_widget_set_sensitive(img->sub_color, TRUE);
-	gtk_widget_set_tooltip_text(img->sub_color, _("Click to choose the font color"));
+	gtk_widget_set_sensitive(img->subtitle_font_color, TRUE);
+	gtk_widget_set_tooltip_text(img->subtitle_font_color, _("Click to choose the font color"));
 
 	fc = gtk_widget_get_toplevel(GTK_WIDGET(button));
 	gtk_widget_destroy(fc);
@@ -1439,3 +1433,24 @@ gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filenam
 
 }
 
+gchar * img_get_audio_duration(gchar * filename)
+{
+	 AVFormatContext *fmt_ctx = NULL;
+	 gchar *time = NULL;
+
+    // Retrieve stream information
+    if (avformat_find_stream_info(fmt_ctx, NULL) < 0)
+    return NULL;
+
+    // Get the duration
+    int64_t duration = fmt_ctx->duration;
+    double duration_seconds = (double)duration / AV_TIME_BASE;
+	avformat_close_input(&fmt_ctx);
+
+    // Convert duration to HH:MM:SS format
+    int hours = (int)duration_seconds / 3600;
+    int minutes = ((int)duration_seconds % 3600) / 60;
+    int seconds = (int)duration_seconds % 60;
+	time = g_strdup_printf("%02d:%02d:%02d\n", hours, minutes, seconds);
+	return time;
+}

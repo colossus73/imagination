@@ -43,9 +43,6 @@ void
 img_font_brdr_color_changed( GtkColorChooser    *button,
                           img_window_struct *img );
 
-void img_sub_border_color_changed( GtkColorChooser    *button,
-                          img_window_struct *img );
-
 void
 img_font_bg_color_changed( GtkColorChooser    *button,
                           img_window_struct *img );
