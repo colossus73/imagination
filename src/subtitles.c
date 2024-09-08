@@ -363,19 +363,6 @@ img_render_subtitle( img_window_struct 	  *img,
 	lw /= PANGO_SCALE;
 	lh /= PANGO_SCALE;
 
-	if (centerX)
-	{
-		posx = (img->video_size[0] - lw) /2;
-		img->current_slide->posX = posx;
-		gtk_range_set_value( GTK_RANGE(img->sub_posX), (gdouble) img->current_slide->posX);
-	}
-	if (centerY)
-	{
-		posy = (img->video_size[1] - lh) /2;
-		img->current_slide->posY = posy;
-		gtk_range_set_value( GTK_RANGE(img->sub_posY), (gdouble) img->current_slide->posY);
-	}
-
 	/* Do animation */
 	if( img->current_slide->anim )
 		(*img->current_slide->anim)( cr, layout, img->video_size[0], img->video_size[1], lw, lh, posx, posy, angle, progress, img->current_slide);

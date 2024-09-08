@@ -67,7 +67,6 @@ gboolean img_image_area_scroll( GtkWidget *, GdkEvent *, img_window_struct * );
 gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
-void img_text_pos_changed( GtkRange *range, img_window_struct *);
 void img_add_thumbnail_widget_area(gint type, gchar *filename, img_window_struct *img);
 void
 img_quality_toggled( GtkCheckMenuItem  *item,

@@ -188,6 +188,7 @@ struct _img_window_struct
 	GtkWidget	*imagination_window;
 	GtkWidget 	*menubar;
 	GtkWidget *sidebar;
+	GtkWidget *sidebar_notebook;
 	GtkAccelGroup *accel_group;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
@@ -217,6 +218,7 @@ struct _img_window_struct
   	GtkWidget	*statusbar;
   	GtkWidget	*progress_bar;
   	GtkWidget 	*viewport_align;
+  	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
   	guint		context_id;
   	GtkListStore *thumbnail_model;
@@ -239,13 +241,19 @@ struct _img_window_struct
 	GtkWidget *ken_add;      /* Add stop point button */
 	GtkWidget *ken_remove;   /* Remove stop point button */
 
-	/* Subtitle related controls */
-	GtkWidget *sub_textview;      /* Text view */
-	GtkWidget *sub_font;          /* Font button */
-	GtkWidget *subtitle_font_color;         /* Font color selector button */
-    GtkWidget *sub_brdr_color;    /* Border font color selector button */
-    GtkWidget *sub_bgcolor;       /* Background font color selector button */
-    GtkWidget *bold_style;
+	/* Text related controls */
+	GtkWidget *sub_textview;
+	GtkWidget *sub_font;        			
+	GtkWidget *sub_font_color;    
+	GtkWidget *sub_font_bg_color;
+	GtkWidget *sub_font_bg_radius;
+	GtkWidget *sub_font_bg_padding;
+	GtkWidget *sub_font_shadow_color; 
+	GtkWidget *sub_font_shadow_distance; 
+	GtkWidget *sub_font_shadow_angle; 
+	GtkWidget *sub_font_stroke_color; 
+	GtkWidget *sub_font_strike_size; 
+	GtkWidget *bold_style;
     GtkWidget *italic_style;
     GtkWidget *underline_style;
     GtkWidget *left_justify;
@@ -254,14 +262,9 @@ struct _img_window_struct
     GtkWidget *pattern_image;	  /* Font Pattern */
 	GtkWidget *sub_anim;          /* Animation combo box */
 	GtkWidget *sub_anim_duration; /* Animation duration spin button */
-	GtkWidget *sub_posX;          /* Position X hscale range */
-	GtkWidget *sub_posY;          /* Position Y hscale range */
-	GtkWidget *x_justify;         /* Button to justify text on x axis */
-	GtkWidget *y_justify;         /* Button to justify text on y axis */
 	GtkWidget *reset_angle;       /* Button to reset the angle to 0 */
 	GtkWidget *sub_angle;          /* Text angle hscale range */
-	GtkAdjustment *sub_posX_adj;	/* Gtk Adjustment for pos x scale */
-	GtkAdjustment *sub_posY_adj;	/* Gtk Adjustment for pos y scale */
+	
 	/* Import slides dialog variables */
 	GtkWidget	*dim_label;
 	GtkWidget	*size_label;

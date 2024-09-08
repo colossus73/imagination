@@ -1193,8 +1193,8 @@ void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 	g_object_unref(pixbuf);
 	
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->pattern_image), tmp_image);
-	gtk_widget_set_sensitive(img->subtitle_font_color, TRUE);
-	gtk_widget_set_tooltip_text(img->subtitle_font_color, _("Click to choose the font color"));
+	gtk_widget_set_sensitive(img->sub_font_color, TRUE);
+	gtk_widget_set_tooltip_text(img->sub_font_color, _("Click to choose the font color"));
 
 	fc = gtk_widget_get_toplevel(GTK_WIDGET(button));
 	gtk_widget_destroy(fc);

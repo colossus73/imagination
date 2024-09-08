@@ -185,11 +185,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 		/* Get bye bye transition settings */
 		img->bye_bye_transition = gtk_switch_get_active(GTK_SWITCH(img->bye_bye_transition_checkbox));
 
-		/* Set the max value of slide subtitles hrange scale
-		* according to the new video size */
-		gtk_adjustment_set_upper(img->sub_posX_adj, (gdouble)img->video_size[0]);
-		gtk_adjustment_set_upper(img->sub_posY_adj, (gdouble)img->video_size[1]);
-	
 		/* Get color settings */
 		gtk_color_chooser_get_rgba( GTK_COLOR_CHOOSER(bg_button), &new);
 		img->background_color[0] = (gdouble)new.red;

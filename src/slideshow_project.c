@@ -274,11 +274,6 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	if (img->video_size[1] == 0)
 		img->video_size[1] = 720;
 		
-	/* Set the max value of slide subtitles hrange scale
-	 * according to the new video size */
-	gtk_adjustment_set_upper( img->sub_posX_adj, (gdouble)img->video_size[0]);
-	gtk_adjustment_set_upper( img->sub_posY_adj, (gdouble)img->video_size[1]);
-
 	img->video_ratio = (gdouble)img->video_size[0] / img->video_size[1];
 
    	/* Make loading more efficient by removing model from icon view */
