@@ -58,7 +58,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 	{
 		count++;
 		gtk_tree_model_get(media_model, &media_iter,2,&filename,-1);
-		conf = g_strdup_printf("Media %d",count);
+		conf = g_strdup_printf("media %d",count);
 		g_key_file_set_string( img_key_file, conf, "filename", filename);
 	}
 	while (gtk_tree_model_iter_next (media_model,&media_iter));
@@ -308,20 +308,36 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 
 		/* Loads the media files */
 		 number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
-		 for( i = 1; i <= number; i++ )
+		 if (number > 0)
 		{
-			conf = g_strdup_printf("Media %d", i);
-			slide_filename = g_key_file_get_string(img_key_file,conf,"filename", NULL);
-			file = g_file_new_for_path (slide_filename);
-			file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
-			content_type = g_file_info_get_content_type (file_info);
-			mime_type = g_content_type_get_mime_type (content_type);
-			if (strstr(mime_type, "image"))
-				img_add_thumbnail_widget_area(0, slide_filename, img);
-			else if (strstr(mime_type, "audio"))
-				img_add_thumbnail_widget_area(1, slide_filename, img);
-			g_free(conf);
-			g_free(slide_filename);
+			 for( i = 1; i <= number; i++ )
+			{
+				conf = g_strdup_printf("media %d", i);
+				slide_filename = g_key_file_get_string(img_key_file,conf,"filename", NULL);
+				file = g_file_new_for_path (slide_filename);
+				
+				file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
+				content_type = g_file_info_get_content_type (file_info);
+				if (content_type == NULL)
+				{
+					gchar *string;
+					string = g_strconcat(_("Can't load media %s\n"), slide_filename, NULL);
+					n_invalid++;
+					img_message(img, string);
+					g_free(string);
+				}
+				else
+				{
+					mime_type = g_content_type_get_mime_type (content_type);
+					if (strstr(mime_type, "image"))
+						img_add_thumbnail_widget_area(0, slide_filename, img);
+					else if (strstr(mime_type, "audio"))
+						img_add_thumbnail_widget_area(1, slide_filename, img);
+				}
+				g_free(conf);
+				g_free(slide_filename);
+				g_object_unref(file);
+			}
 		}
 		/* Loads the thumbnails and set the slides info */
 		number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of slides", NULL);
@@ -329,7 +345,6 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 		previous_nr_of_slides = img->slides_nr;
 		img->slides_nr = number;
 
-		gtk_widget_show( img->progress_bar );
 		n_invalid = 0;
 		for( i = 1; i <= number; i++ )
 		{
@@ -382,6 +397,13 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				if (gradient == 4)
 				{
 					countdown_color = g_key_file_get_double_list(img_key_file, conf, "countdown_color", NULL, NULL);
+					if (countdown_color == NULL)
+					{
+						countdown_color = g_new (gdouble, 3);
+						countdown_color[0] = 0.36862745098039218;
+						countdown_color[1] = 0.36078431372549019;
+						countdown_color[2] = 0.39215686274509803;
+					}
 					countdown = g_key_file_get_integer(img_key_file, conf, "countdown", NULL);
 				}
 				/* Create thumbnail */
@@ -454,7 +476,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 					/* If image has been flipped or rotated, do it now too. */
 					if( (flipped || angle) && ! g_strrstr(icon_filename, "image-missing"))
 					{
-						img_rotate_flip_slide( slide_info, angle, flipped, NULL );
+						img_rotate_flip_slide( slide_info, angle, flipped);
 						g_object_unref( thumb );
 						img_scale_image( slide_info->p_filename, img->video_ratio,
 										 88, 0, img->distort_images,
@@ -536,8 +558,6 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				img_message(img, string);
 				g_free(string);
             }
-
-			img_increase_progressbar(img, i);
 			g_free(slide_filename);
 			g_free(conf);
 		}
@@ -547,16 +567,12 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	img->distort_images = g_key_file_get_boolean( img_key_file,
 												  "slideshow settings",
 												  "distort images", NULL );
-	gtk_widget_hide(img->progress_bar);
-
 	gtk_icon_view_set_model( GTK_ICON_VIEW( img->thumbnail_iconview ),
 							 GTK_TREE_MODEL( img->thumbnail_model ) );
 	g_object_unref( G_OBJECT( img->thumbnail_model ) );
 
 	g_key_file_free (img_key_file);
 	img_set_total_slideshow_duration(img);
-
-	img_set_statusbar_message(img, 0);
 
 	g_hash_table_destroy( table );
 	g_free(project_current_dir);

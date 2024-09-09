@@ -119,47 +119,6 @@ GtkWidget *_gtk_combo_box_new_text(gboolean pointer)
 	return combo_box;
 }
 
-void img_set_statusbar_message(img_window_struct *img_struct, gint selected)
-{
-	gchar *message = NULL;
-	gchar *total_slides = NULL;
-
-	if (img_struct->slides_nr == 0)
-	{
-		message = g_strdup_printf(
-				ngettext( "Welcome to Imagination - %d transition loaded.",
-						  "Welcome to Imagination - %d transitions loaded.",
-						  img_struct->nr_transitions_loaded ),
-				img_struct->nr_transitions_loaded );
-		gtk_statusbar_push( GTK_STATUSBAR( img_struct->statusbar ),
-							img_struct->context_id, message );
-		g_free( message );
-		//gtk_label_set_text( GTK_LABEL( img_struct->total_slide_number_label ), NULL );
-		gtk_icon_view_set_columns (GTK_ICON_VIEW (img_struct->thumbnail_iconview), -1);
-	}
-	else 
-	{
-		total_slides = g_strdup_printf("%d",img_struct->slides_nr);
-		//gtk_label_set_text(GTK_LABEL(img_struct->total_slide_number_label),total_slides);
-	    if (selected)
-			message = g_strdup_printf( ngettext( "%d slide selected",
-						"%d slides selected",
-						selected ), selected);
-		else
-			message = g_strdup_printf( ngettext( "%d slide loaded %s",
-						"%d slides loaded %s",
-						img_struct->slides_nr ),
-					img_struct->slides_nr,
-					_(" - Use the CTRL key to select/unselect "
-						"or SHIFT for multiple select") );
-		gtk_statusbar_push( GTK_STATUSBAR( img_struct->statusbar ),
-							img_struct->context_id, message );
-		gtk_icon_view_set_columns (GTK_ICON_VIEW (img_struct->thumbnail_iconview), img_struct->slides_nr + 1);
-		g_free(total_slides);
-		g_free(message);
-	}
-}
-
 void img_load_available_transitions(img_window_struct *img)
 {
 	GtkTreeIter    piter, citer;
@@ -464,12 +423,10 @@ img_create_new_slide( void )
 }
 
 void
-img_set_slide_file_info( slide_struct *slide,
-						 const gchar  *filename )
+img_set_slide_file_info( slide_struct *slide, const gchar  *filename )
 {
 	GdkPixbufFormat *format;
-	gint             width,
-					 height;
+	gint  width, height;
 
 	format = gdk_pixbuf_get_file_info( filename, &width, &height );
 

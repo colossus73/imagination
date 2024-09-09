@@ -30,7 +30,7 @@ gboolean img_transition_timeout(img_window_struct *);
 static gboolean img_still_timeout(img_window_struct *);
 static void img_swap_toolbar_images( img_window_struct *, gboolean);
 static void img_clean_after_preview(img_window_struct *);
-static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *, GtkProgressBar *, ImgAngle );
+static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *, ImgAngle );
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
 
 static void
@@ -173,7 +173,6 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 
 	actual_slides = img->slides_nr;
 	img->slides_nr += g_slist_length(slides);
-	gtk_widget_show(img->progress_bar);
 
 	/* Remove model from thumbnail iconview for efficiency */
 	g_object_ref( G_OBJECT( img->thumbnail_model ) );
@@ -189,11 +188,8 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 	    thumb = gdk_pixbuf_new_from_file_at_size(filename, 1, 1, &error);
 	    if (!thumb)
 	    {
-			gchar *string;
-			string = g_strconcat(_("Cannot open new slide %s: %s"), filename, error->message, NULL);
-			img_message(img, string);
+			img_message(img, error->message);
 			g_error_free (error);
-			g_free(string);
 			error = NULL;
 			img->slides_nr--;
 			goto next_slide;
@@ -205,7 +201,7 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 		    &(slide_info->angle));
 	    g_object_unref(thumb);
 	    /* create the associated p_filename taking orientation into account */
-	    img_rotate_flip_slide(slide_info, slide_info->angle, slide_info->flipped, NULL);
+	    img_rotate_flip_slide(slide_info, slide_info->angle, slide_info->flipped);
 	    /* create the thumbnail */
 	    img_scale_image( slide_info->p_filename, img->video_ratio, 88, 0,
 			img->distort_images, img->background_color,
@@ -229,13 +225,10 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 	    slides_cnt++;
 	next_slide:
 	    g_free(slides->data);
-	    img_increase_progressbar(img, slides_cnt);
 	    slides = slides->next;
 	}
-	gtk_widget_hide(img->progress_bar);
 	g_slist_free(bak);
 	img_set_total_slideshow_duration(img);
-	img_set_statusbar_message(img,0);
 	img_taint_project(img);
 
 	gtk_icon_view_set_model( GTK_ICON_VIEW( img->thumbnail_iconview ),
@@ -251,7 +244,7 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 		img_select_nth_slide(img, actual_slides);
 }
 
-void img_increase_progressbar(img_window_struct *img, gint nr)
+/*void img_increase_progressbar(img_window_struct *img, gint nr)
 {
 	gchar *message;
 	gdouble percent = 0;
@@ -263,13 +256,12 @@ void img_increase_progressbar(img_window_struct *img, gint nr)
 	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (img->progress_bar), percent);
 	message = g_strdup_printf( _("Please wait, importing image %d out of %d"),
 							   nr, img->slides_nr );
-	gtk_statusbar_push(GTK_STATUSBAR(img->statusbar), img->context_id, message);
 	g_free(message);
 
 	while (gtk_events_pending())
 		gtk_main_iteration();
 }
-
+*/
 GSList *img_import_slides_file_chooser(img_window_struct *img)
 {
 	GtkFileFilter *image_filter, *sound_filter, *all_files_filter;
@@ -407,7 +399,6 @@ void img_exit_fullscreen(img_window_struct *img)
 
 	gtk_widget_show(img->thumb_scrolledwindow);
 	gtk_widget_show (img->main_horizontal_box);
-	gtk_widget_show(img->statusbar);
 	gtk_widget_show(img->menubar);
 	gtk_widget_show(img->sidebar);
 
@@ -554,7 +545,6 @@ void img_delete_selected_slides(GtkMenuItem * UNUSED(item),img_window_struct *im
 	}
 	g_list_free(bak);
 
-	img_set_statusbar_message(img,0);
 	cairo_surface_destroy( img->current_image );
 	img->current_image = NULL;
 	gtk_widget_queue_draw( img->image_area );
@@ -610,7 +600,6 @@ img_rotate_selected_slides( img_window_struct *img,
 		return;
 
 	img_taint_project(img);
-	gtk_widget_show(img->progress_bar);
 
 	bak = selected;
 	while (selected)
@@ -624,7 +613,7 @@ img_rotate_selected_slides( img_window_struct *img,
 		if (info_slide->o_filename != NULL)
 		{
 			angle = ( info_slide->angle + ( clockwise ? 1 : -1 ) ) % 4;
-			img_rotate_flip_slide( info_slide, angle, info_slide->flipped, GTK_PROGRESS_BAR( img->progress_bar ) );
+			img_rotate_flip_slide( info_slide, angle, info_slide->flipped );
 
 			/* Display the rotated image in thumbnails iconview */
 			img_scale_image( info_slide->p_filename, img->video_ratio, 88, 0,
@@ -634,7 +623,6 @@ img_rotate_selected_slides( img_window_struct *img,
 		}
 		selected = selected->next;
 	}
-	gtk_widget_hide(img->progress_bar);
 	GList *node12;
 	for(node12 = bak;node12 != NULL;node12 = node12->next) {
 		gtk_tree_path_free(node12->data);
@@ -657,9 +645,7 @@ img_rotate_selected_slides( img_window_struct *img,
 }
 
 /* Rotate clockwise */
-static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf      *original,
-									 GtkProgressBar *progress,
-									 ImgAngle        angle )
+static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *original, ImgAngle  angle )
 {
 	GdkPixbuf     *new;
 	gint           w, h, r1, r2, channels, bps;
@@ -703,9 +689,7 @@ static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf      *original,
 				
 				if( j % 100 )
 					continue;
-				
-				/* Update progress bar */
-				gtk_progress_bar_set_fraction( progress, (gdouble)( j + 1 ) / h );
+
 				while( gtk_events_pending() )
 					gtk_main_iteration();
 			}
@@ -734,8 +718,6 @@ static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf      *original,
 				if( j % 100 )
 					continue;
 
-				/* Update progress bar */
-				gtk_progress_bar_set_fraction( progress, (gdouble)( j + 1 ) / h );
 				while( gtk_events_pending() )
 					gtk_main_iteration();
 			}
@@ -764,8 +746,6 @@ static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf      *original,
 				if( j % 100 )
 					continue;
 
-				/* Update progress bar */
-				gtk_progress_bar_set_fraction( progress, (gdouble)( j + 1 ) / h );
 				while( gtk_events_pending() )
 					gtk_main_iteration();
 			}
@@ -847,7 +827,6 @@ void img_go_fullscreen(GtkMenuItem * UNUSED(item), img_window_struct *img)
 
 	gtk_widget_hide (img->thumb_scrolledwindow);
 	//gtk_widget_hide (img->main_horizontal_box);
-	gtk_widget_hide (img->statusbar);
 	gtk_widget_hide (img->menubar);
 	gtk_widget_hide (img->sidebar);
 
@@ -1458,7 +1437,7 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
     }
 
     /* If user wants to save empty slideshow, do nothing */
-    if( img->slides_nr == 0 && save )
+    if( img->media_nr == 0 && save )
 		return;
 
     /* ask for a file name if the project has never been saved yet, if we save as or if we open a project */
@@ -1547,10 +1526,11 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
     if (widget && widget == img->close_menu && !img_can_discard_unsaved_project(img))
 		return;
 
+	gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
+	img->media_nr = 0;
 	img->project_is_modified = FALSE;
 	img_free_allocated_memory(img);
 	img_refresh_window_title(img);
-	img_set_statusbar_message(img,0);
 	if( img->current_image )
 		cairo_surface_destroy( img->current_image );
 	img->current_image = NULL;
@@ -2204,8 +2184,7 @@ static void img_reset_rotation_flip( slide_struct *slide) {
 void
 img_rotate_flip_slide( slide_struct   *slide,
 				  ImgAngle        angle,
-				  gboolean        flipped,
-				  GtkProgressBar *progress )
+				  gboolean        flipped)
 {
 	/* If this slide is gradient, do nothing */
 	if( ! slide->o_filename )
@@ -2236,10 +2215,7 @@ img_rotate_flip_slide( slide_struct   *slide,
 
 	// do the rotation, flipping
 	if (angle) {
-	    if( progress )
-		    processed = img_rotate_pixbuf( image, progress, angle );
-	    else
-		    processed = gdk_pixbuf_rotate_simple( image, angle * 90 );
+	    processed = gdk_pixbuf_rotate_simple( image, angle * 90 );
 	    g_object_unref(image);
 	    image = processed;
 	}
@@ -2523,7 +2499,7 @@ void img_flip_horizontally(GtkMenuItem * UNUSED(item), img_window_struct *img)
 		/* Avoid seg-fault when dealing with text/gradient slides */
 		if (info_slide->o_filename != NULL)
 		{
-			img_rotate_flip_slide(info_slide, info_slide->angle, !(info_slide->flipped), NULL);
+			img_rotate_flip_slide(info_slide, info_slide->angle, !(info_slide->flipped));
 
 			/* Display the flipped image in thumbnails iconview */
 			img_scale_image( info_slide->p_filename, img->video_ratio, 88, 0,
@@ -2596,6 +2572,7 @@ void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct 
 			g_free(string);
 		}
 		g_free(mime_type);
+		g_object_unref(file);
 		list = list->next;
 	}
 	g_slist_free(bak);

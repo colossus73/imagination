@@ -55,14 +55,15 @@ static void img_check_numeric_entry (GtkEditable *entry, gchar *text, gint lengh
 static void img_show_uri(GtkMenuItem *, img_window_struct *);
 static void img_select_slide_from_slide_report_dialog(GtkButton *, img_window_struct *);
 static void img_show_slides_report_dialog(GtkMenuItem *, img_window_struct *);
-static gboolean img_iconview_popup(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img);       
-
-GtkWidget *button1,  *button2, *button3, *button4, *begining, *end;
+static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
+static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
+static void img_media_show_properties(GtkWidget *, img_window_struct *);
+GtkWidget *button1,  *button2, *button3, *button4, *button5, *begining, *end;
 
 static void img_toggle_button_callback(GtkToggleButton *button, GtkWidget *notebook)
 {
-    GtkWidget *buttons[] = {button2, button3};
-    for (int i = 0; i < 2; i++)
+    GtkWidget *buttons[] = {button2, button3, button4};
+    for (int i = 0; i < 3; i++)
     {
         if (buttons[i] != GTK_WIDGET(button))
         {
@@ -271,8 +272,8 @@ img_window_struct *img_create_window (void)
 	gtk_widget_add_accelerator (imagemenuitem5, "activate",img_struct->accel_group,GDK_KEY_q,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
 	g_signal_connect (G_OBJECT (imagemenuitem5),"activate",G_CALLBACK (img_quit_menu),img_struct);
 
-	/* Slide menu */
-	menuitem2 = gtk_menu_item_new_with_mnemonic (_("_Slide"));
+	/* Media menu */
+	menuitem2 = gtk_menu_item_new_with_mnemonic (_("Media"));
 	gtk_container_add (GTK_CONTAINER (img_struct->menubar), menuitem2);
 
 	slide_menu = gtk_menu_new ();
@@ -364,16 +365,23 @@ img_window_struct *img_create_window (void)
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button2, FALSE, FALSE, 5);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button2), TRUE);
        
-    button3= gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
+    button3 = gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
 	GtkWidget *label = gtk_bin_get_child(GTK_BIN(button3));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
     gtk_widget_set_tooltip_text(button3, _("Insert text"));
     gtk_button_set_relief(GTK_BUTTON(button3), GTK_RELIEF_NONE);
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button3, FALSE, FALSE, 5);
 
-	button4 = gtk_button_new_with_label("\U0001F642");
+	button4 = gtk_toggle_button_new();
+	gtk_widget_set_tooltip_text(button4, _("Ken Burns effect"));
+	image1 = gtk_image_new_from_icon_name("emblem-shared", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    gtk_button_set_image(GTK_BUTTON(button4), image1);
 	gtk_button_set_relief(GTK_BUTTON(button4), GTK_RELIEF_NONE);
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button4, FALSE, FALSE, 5);
+
+	button5 = gtk_button_new_with_label("\U0001F642");
+	gtk_button_set_relief(GTK_BUTTON(button5), GTK_RELIEF_NONE);
+    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button5, FALSE, FALSE, 5);
 
 	GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
 	gtk_box_pack_start(GTK_BOX(img_struct->main_horizontal_box), separator, FALSE, FALSE, 0);
@@ -386,6 +394,7 @@ img_window_struct *img_create_window (void)
 
 	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
 	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
+	g_signal_connect(button4, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
 
 	//Create the list media widget
 	GtkWidget *media_iconview, *vbox, *hbox;
@@ -394,15 +403,15 @@ img_window_struct *img_create_window (void)
 	media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
 	g_object_unref (img_struct->media_model);
 
-	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
-	g_object_set (G_OBJECT (scrollable_window),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
-	gtk_container_add (GTK_CONTAINER (scrollable_window), media_iconview);
+	img_struct->media_iconview_swindow = gtk_scrolled_window_new(NULL, NULL);
+	g_object_set (G_OBJECT (	img_struct->media_iconview_swindow),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
+	gtk_container_add (GTK_CONTAINER (	img_struct->media_iconview_swindow), media_iconview);
 
 	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (media_iconview), GTK_ORIENTATION_VERTICAL);
 	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (media_iconview), 0);
 	gtk_icon_view_set_columns(GTK_ICON_VIEW (media_iconview), 2);
 	
-	gtk_container_add (GTK_CONTAINER (img_struct->sidebar_notebook), scrollable_window);
+	gtk_container_add (GTK_CONTAINER (img_struct->sidebar_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (media_iconview), GTK_SELECTION_MULTIPLE);
 	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(media_iconview), drop_targets, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
 	g_signal_connect( G_OBJECT( media_iconview ), "drag-data-received", G_CALLBACK( img_on_drag_data_received), img_struct );
@@ -655,32 +664,23 @@ img_window_struct *img_create_window (void)
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_strike_size), GTK_POS_LEFT);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_strike_size, TRUE, TRUE, 0);
 	
-	
-	
-	
-	
 	/* Create the image area and the other widgets */
 	right_vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box) , right_vertical_box, TRUE, TRUE, 10);
-
-	//~ scrollable_window = gtk_scrolled_window_new(NULL, NULL);
-	//~ gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollable_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	//~ gtk_box_pack_start( GTK_BOX( right_vertical_box ), scrollable_window, TRUE, TRUE, 0 );
+	g_object_set(G_OBJECT(right_vertical_box), "margin-top", 10, "valign", GTK_ALIGN_START, NULL);
 
 	img_struct->viewport_align = gtk_viewport_new( NULL, NULL );
 	gtk_viewport_set_shadow_type(GTK_VIEWPORT(img_struct->viewport_align), GTK_SHADOW_NONE);
 	gtk_container_add( GTK_CONTAINER( right_vertical_box ), img_struct->viewport_align );
-
 	gtk_widget_set_halign(img_struct->viewport_align, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img_struct->viewport_align, GTK_ALIGN_CENTER);
-	
+
 	gtk_widget_set_hexpand(img_struct->viewport_align, FALSE);
 	gtk_widget_set_vexpand(img_struct->viewport_align, FALSE);
 	
 	img_struct->image_area = gtk_drawing_area_new();
 	gtk_container_add(GTK_CONTAINER(img_struct->viewport_align), img_struct->image_area);
-	gtk_widget_set_size_request(img_struct->image_area, 800, 500);
-	//gtk_box_pack_start(GTK_BOX(right_vertical_box), img_struct->image_area, TRUE, TRUE, 10);
+	gtk_widget_set_size_request(img_struct->image_area, 800, 450);
 	gtk_widget_add_events( img_struct->image_area, GDK_POINTER_MOTION_MASK  | GDK_BUTTON_PRESS_MASK  | GDK_BUTTON_RELEASE_MASK  | GDK_SCROLL_MASK );
 	g_signal_connect( G_OBJECT( img_struct->image_area ), "draw",	  						G_CALLBACK( img_on_draw_event ), img_struct );
 	g_signal_connect( G_OBJECT( img_struct->image_area ), "button-press-event",	G_CALLBACK( img_image_area_button_press ), img_struct );
@@ -977,6 +977,11 @@ img_window_struct *img_create_window (void)
 	gtk_button_set_image(GTK_BUTTON(img_struct->reset_angle), image_buttons);
 	gtk_widget_set_tooltip_text(img_struct->reset_angle,_("Reset the angle"));
     
+    
+    
+    
+    
+    
 	/* Create the bottom slides thumbnail model */
 	img_struct->thumbnail_model = gtk_list_store_new( 4,
                                                       GDK_TYPE_PIXBUF,  /* thumbnail */
@@ -986,7 +991,6 @@ img_window_struct *img_create_window (void)
 
 	/* Add wrapper for DnD */
 	eventbox = gtk_event_box_new();
-	img_struct->thum_root = eventbox;
 	gtk_event_box_set_above_child( GTK_EVENT_BOX( eventbox ), FALSE );
 	gtk_event_box_set_visible_window( GTK_EVENT_BOX( eventbox ), FALSE );
 	gtk_drag_dest_set( GTK_WIDGET( eventbox ), GTK_DEST_DEFAULT_ALL,
@@ -994,13 +998,13 @@ img_window_struct *img_create_window (void)
 					   GDK_ACTION_LINK | GDK_ACTION_ASK);
 	g_signal_connect( G_OBJECT( eventbox ), "drag-data-received",
 					  G_CALLBACK( img_on_drag_data_received), img_struct );
+	
 	gtk_box_pack_start( GTK_BOX( main_vertical_box ), eventbox, FALSE, TRUE, 0 );
 
 	/* Create the thumbnail viewer */
 	img_struct->thumb_scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
-	gtk_widget_set_size_request( img_struct->thumb_scrolledwindow, -1, 85 );
-	g_signal_connect( G_OBJECT( img_struct->thumb_scrolledwindow ), "scroll-event",
-					  G_CALLBACK( img_scroll_thumb ), img_struct );
+	//gtk_widget_set_size_request( img_struct->thumb_scrolledwindow, -1, 85 );
+	//g_signal_connect( G_OBJECT( img_struct->thumb_scrolledwindow ), "scroll-event", G_CALLBACK( img_scroll_thumb ), img_struct );
 	gtk_container_add( GTK_CONTAINER( eventbox ), img_struct->thumb_scrolledwindow );
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (img_struct->thumb_scrolledwindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (img_struct->thumb_scrolledwindow), GTK_SHADOW_IN);
@@ -1055,24 +1059,6 @@ img_window_struct *img_create_window (void)
 	g_signal_connect (G_OBJECT (img_struct->thumbnail_iconview),"button-press-event",G_CALLBACK (img_iconview_selection_button_press),img_struct);
 	gtk_widget_show_all( eventbox );
 
-	/* Create the status bar */
-	img_struct->statusbar = gtk_statusbar_new ();
-	gtk_widget_show (img_struct->statusbar);
-	g_object_set(img_struct->statusbar, "margin", 0, NULL);
-	gtk_box_pack_start (GTK_BOX (main_vertical_box), img_struct->statusbar, FALSE, TRUE, 0);
-	img_struct->context_id = gtk_statusbar_get_context_id (GTK_STATUSBAR (img_struct->statusbar), "statusbar");
-
-	/* Create the progress bar */
-	img_struct->progress_bar = gtk_progress_bar_new();
-	gtk_widget_set_size_request (img_struct->progress_bar, -1, 15);
-	{
-		GtkWidget *vbox;
-
-		vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-		gtk_box_pack_start (GTK_BOX (img_struct->statusbar), vbox, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (vbox), img_struct->progress_bar, TRUE, FALSE, 0);
-		gtk_widget_show (vbox);
-	}
 	gtk_widget_show_all( img_struct->main_horizontal_box );
 	gtk_window_add_accel_group (GTK_WINDOW (img_struct->imagination_window), img_struct->accel_group);
 
@@ -1138,7 +1124,6 @@ void img_iconview_selection_changed(GtkIconView *iconview, img_window_struct *im
 	
 	if (selected == NULL)
 	{
-		img_set_statusbar_message(img,nr_selected);
 		if( img->current_image )
 		{
 			cairo_surface_destroy( img->current_image );
@@ -1226,30 +1211,8 @@ void img_iconview_selection_changed(GtkIconView *iconview, img_window_struct *im
 	
 	if (nr_selected > 1)
 	{
-		img_set_statusbar_message(img,nr_selected);
 		img_ken_burns_update_sensitivity( img, FALSE, 0 );
 		img_subtitle_update_sensitivity( img, 2 );
-	}
-	else
-	{
-		if (FALSE == info_slide->load_ok)
-        {
-            slide_info_msg = g_strdup_printf(_("File '%s' not found"), info_slide->original_filename);
-            gtk_statusbar_push(GTK_STATUSBAR (img->statusbar), img->context_id, slide_info_msg);
-            g_free (slide_info_msg);
-            img_disable_videotab(img);
-        }
-        else
-        {
-            if (info_slide->o_filename != NULL)
-            {
-                slide_info_msg = g_strdup_printf("%s    %s: %s    %s: %s",info_slide->o_filename, _("Resolution"), info_slide->resolution, _("Type"), info_slide->type ? info_slide->type : "?");
-                gtk_statusbar_push(GTK_STATUSBAR (img->statusbar), img->context_id, slide_info_msg);
-                g_free(slide_info_msg);
-            }
-            img_ken_burns_update_sensitivity( img, TRUE, info_slide->no_points );
-            img_subtitle_update_sensitivity( img, 1 );
-        }
 	}
 
 	if( img->current_image )
@@ -1596,7 +1559,7 @@ img_queue_subtitle_update( GtkTextBuffer     * UNUSED(buffer),
 	if( img->subtitle_update_id )
 		g_source_remove( img->subtitle_update_id );
 
-	img_taint_project(img);
+	//img_taint_project(img);
 
 	img->subtitle_update_id =
 			g_timeout_add( 300, (GSourceFunc)img_subtitle_update, img );
@@ -2227,28 +2190,59 @@ static gboolean img_iconview_popup(GtkWidget *widget,  GdkEvent  *event, img_win
 {
 	GtkWidget *popover, *vbox, *item;
 	GdkRectangle rect;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	double vadj;
+
+	//When the vertical adjustment is greater than 0, therefore the widget content is scrolled down, the popup doesn't show up so I keep it into account
+	vadj = gtk_adjustment_get_value(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(img->media_iconview_swindow)));
 	rect.x = event->button.x;
-	rect.y = event->button.y;
-	rect.width = rect.height = 1;
+	rect.y = event->button.y - vadj;
+	rect.width = rect.height = 1; 
 
 	if (event->button.button == 3)
 	{
+		path = gtk_icon_view_get_path_at_pos (GTK_ICON_VIEW(widget), event->button.x, event->button.y);
+		if (path == NULL)
+			goto end;
+		
+		gtk_tree_model_get_iter(GTK_TREE_MODEL(img->media_model), &iter, path );
+		img->popup_iter = iter;
 		popover = gtk_popover_new(widget);
 		vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 		g_object_set (vbox, "margin", 10, NULL);
 		item = g_object_new (GTK_TYPE_MODEL_BUTTON, "text", _("Delete"),  NULL);
+		g_signal_connect( G_OBJECT( item ), "clicked", G_CALLBACK( img_media_model_remove_media ), img );
 		gtk_container_add (GTK_CONTAINER (vbox), item);
+
 		item = g_object_new (GTK_TYPE_MODEL_BUTTON, "visible", TRUE,  "text", _("Properties"),  NULL);
+		g_signal_connect( G_OBJECT( item ), "clicked", G_CALLBACK( img_media_show_properties ), img );
 		gtk_container_add (GTK_CONTAINER (vbox), item);
 		gtk_widget_show (vbox);
-	  
+
 		gtk_container_add (GTK_CONTAINER (popover), vbox);
 		gtk_popover_set_relative_to(GTK_POPOVER(popover), widget);
 		gtk_popover_set_pointing_to(GTK_POPOVER(popover), &rect);
 		gtk_widget_show_all(popover);
 		gtk_popover_popup(GTK_POPOVER(popover));
+		gtk_tree_path_free(path);
 		return TRUE;
 	}
+	end:
 	return FALSE;
 }
 
+static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *img)
+{
+	gtk_list_store_remove(GTK_LIST_STORE(img->media_model),&img->popup_iter);
+	img->media_nr--;
+	img_taint_project(img);
+}
+
+static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
+{
+	gchar *filename;
+	gtk_tree_model_get( GTK_TREE_MODEL(img->media_model), &img->popup_iter, 2, &filename, -1 );
+	g_print("%s\n",filename);
+	g_free(filename);
+}

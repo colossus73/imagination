@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,6 @@
 #  include <config.h>
 #endif
 
-#define STR_(x) #x
-#define STR(x) STR_(x)
-
 #include <gtk/gtk.h>
 #include "main-window.h"
 #include "support.h"
@@ -32,11 +29,6 @@
 
 int main (int argc, char *argv[])
 {
-	/*
-	 * static gchar libavinfo[] = "\n libavutil  : " STR(LIBAVUTIL_VERSION) \
-								"\n libavcodec : " STR(LIBAVCODEC_VERSION) \
-								"\n libavformat: " STR(LIBAVFORMAT_VERSION) "\n\n" ;
-    */
 	img_window_struct *img_window;
 
 	#ifdef ENABLE_NLS
@@ -59,9 +51,8 @@ int main (int argc, char *argv[])
 	
 	/* Load the transitions as plugins with GModule */
 	img_load_available_transitions(img_window);
-
+	g_print("Welcome to Imagination " VERSION " - %d transitions loaded\n", img_window->nr_transitions_loaded);	
 	gtk_widget_show( img_window->imagination_window );
-	img_set_statusbar_message(img_window,0);
 
 	/* Reads the arguments passed from the cmd line */
  	if (argc > 1)

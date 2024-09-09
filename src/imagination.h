@@ -215,22 +215,19 @@ struct _img_window_struct
 	GtkWidget   *text_pos_button;
 	GtkWidget 	*thumb_scrolledwindow;
   	GtkWidget	*thumbnail_iconview;
-  	GtkWidget	*statusbar;
-  	GtkWidget	*progress_bar;
   	GtkWidget 	*viewport_align;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
-  	guint		context_id;
   	GtkListStore *thumbnail_model;
   	GtkListStore *media_model;
+  	GtkWidget 	*media_iconview_swindow;
+  	GtkTreeIter popup_iter;
   	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
   	GdkCursor 	*cursor;			/* Cursor to be stored before going fullscreen */
 	GtkWidget   *main_horizontal_box;				/* main_horizontal_box (used for saving/restoring geometry) */
 
-	GtkWidget *thum_root;   /* Thumbnail root widget */
 	GtkWidget *active_icon; /* Currently active icon view */
-	GObject   *over_cell;   /* Overview cell renderer */
 
 	/* Ken Burns related controls */
 	GtkWidget *ken_left;     /* Go to left stop point button */

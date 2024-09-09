@@ -123,10 +123,7 @@ void
 img_set_window_default_settings( img_window_struct *img );
 
 void
-img_rotate_flip_slide( slide_struct   *slide,
-				  ImgAngle        angle,
-				  gboolean        flipped,
-				  GtkProgressBar *progress );
+img_rotate_flip_slide( slide_struct   *slide, ImgAngle        angle,  gboolean        flipped);
 
 void img_align_text_horizontally_vertically(GtkMenuItem *item,
 					img_window_struct *img);

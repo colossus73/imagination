@@ -51,7 +51,6 @@ gchar *img_convert_seconds_to_time(gint );
 GtkWidget *_gtk_combo_box_new_text(gint);
 gint img_ask_user_confirmation(img_window_struct *, gchar *);
 void img_message(img_window_struct *, gchar *);
-void img_set_statusbar_message(img_window_struct *, gint);
 void img_load_available_transitions(img_window_struct *);
 void img_show_file_chooser(GtkWidget *, GtkEntryIconPosition, int, img_window_struct *);
 void img_select_nth_slide(img_window_struct *, gint);
