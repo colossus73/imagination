@@ -45,10 +45,6 @@ img_rotate_slides_right( GtkWidget         *widget,
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
-void img_goto_first_slide(GtkWidget *, img_window_struct *);
-void img_goto_prev_slide(GtkWidget *, img_window_struct *);
-void img_goto_next_slide(GtkWidget *, img_window_struct *);
-void img_goto_last_slide(GtkWidget *, img_window_struct *);
 void img_on_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
 void img_start_stop_export(GtkWidget *, img_window_struct *);
 void img_open_recent_slideshow(GtkWidget *, img_window_struct *);

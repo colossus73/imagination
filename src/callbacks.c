@@ -235,33 +235,9 @@ void img_add_slides(GSList *slides, img_window_struct *img)
 							 GTK_TREE_MODEL( img->thumbnail_model ) );
 	g_object_unref( G_OBJECT( img->thumbnail_model ) );
 	
-	/* Select the first slide */
-	if (actual_slides == 0)
-		img_goto_first_slide(NULL, img);
-
-	/* Select the first loaded slide if a previous set of slides was loaded */
-	else
-		img_select_nth_slide(img, actual_slides);
+	img_select_nth_slide(img, actual_slides);
 }
 
-/*void img_increase_progressbar(img_window_struct *img, gint nr)
-{
-	gchar *message;
-	gdouble percent = 0;
-
-	// if all slides fail to be imported, slides_nr can be 0
-	if (img->slides_nr) {
-	    percent = (gdouble)nr / img->slides_nr;
-	}
-	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (img->progress_bar), percent);
-	message = g_strdup_printf( _("Please wait, importing image %d out of %d"),
-							   nr, img->slides_nr );
-	g_free(message);
-
-	while (gtk_events_pending())
-		gtk_main_iteration();
-}
-*/
 GSList *img_import_slides_file_chooser(img_window_struct *img)
 {
 	GtkFileFilter *image_filter, *sound_filter, *all_files_filter;
@@ -378,6 +354,14 @@ void img_free_allocated_memory(img_window_struct *img_struct)
 
 gboolean img_key_pressed(GtkWidget * UNUSED(widget), GdkEventKey *event, img_window_struct *img)
 {
+	if (event->keyval == GDK_KEY_Alt_L || event->keyval == GDK_KEY_Alt_R)
+	{
+		if (gtk_widget_get_visible(img->menubar))
+			gtk_widget_hide(img->menubar);
+		else	
+			gtk_widget_show(img->menubar);
+	}
+		
 	if ( img->window_is_fullscreen )
 	{
 		if (event->keyval == GDK_KEY_F11 || event->keyval == GDK_KEY_Escape)
@@ -1028,120 +1012,6 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		else
 			img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
 	}
-}
-
-void img_goto_first_slide(GtkWidget * UNUSED(button), img_window_struct *img)
-{
-	GtkTreeIter iter;
-	GtkTreePath *path;
-	GtkTreeModel *model;
-	gchar *slide = NULL;
-
-	model = GTK_TREE_MODEL( img->thumbnail_model );
-	if ( ! gtk_tree_model_get_iter_first(model,&iter))
-		return;
-
-	slide = g_strdup_printf("%d", 1);
-	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
-	g_free(slide);
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
-	path = gtk_tree_path_new_from_indices(0,-1);
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->active_icon), path, FALSE, 0, 0);
-	gtk_tree_path_free (path);
-}
-
-void img_goto_prev_slide(GtkWidget * UNUSED(button), img_window_struct *img)
-{
-	GtkTreePath *path;
-	GList *icons_selected = NULL;
-	gchar *slide = NULL;
-	gint slide_nr;
-
-	icons_selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->active_icon) );
-	if( ! icons_selected )
-		return;
-
-	slide_nr = gtk_tree_path_get_indices(icons_selected->data)[0];
-
-	if (slide_nr == 0)
-		return;
-
-	slide = g_strdup_printf("%d", slide_nr);
-	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
-	g_free(slide);
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
-	path = gtk_tree_path_new_from_indices(--slide_nr,-1);
-
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->active_icon), path, FALSE, 0, 0);
-	gtk_tree_path_free (path);
-
-	GList *node15;
-	for(node15 = icons_selected;node15 != NULL;node15 = node15->next) {
-		gtk_tree_path_free(node15->data);
-	}
-	g_list_free (icons_selected);
-}
-
-void img_goto_next_slide(GtkWidget * UNUSED(button), img_window_struct *img)
-{
-	GtkTreePath *path;
-	GList *icons_selected = NULL;
-	gchar *slide = NULL;
-	gint slide_nr;
-
-	icons_selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->active_icon) );
-	if( ! icons_selected )
-		return;
-
-	/* Now get previous iter :) */
-	slide_nr = gtk_tree_path_get_indices(icons_selected->data)[0];
-
-	if (slide_nr == (img->slides_nr-1) )
-		return;
-
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
-	path = gtk_tree_path_new_from_indices(++slide_nr, -1);
-
-	slide = g_strdup_printf("%d", slide_nr + 1);
-	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
-	g_free(slide);
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->active_icon), path, FALSE, 0, 0);
-	gtk_tree_path_free (path);
-
-	GList *node16;
-	for(node16 = icons_selected;node16 != NULL;node16 = node16->next) {
-		gtk_tree_path_free(node16->data);
-	}
-	g_list_free (icons_selected);
-}
-
-
-void img_goto_last_slide(GtkWidget * UNUSED(button), img_window_struct *img)
-{
-	GtkTreeIter iter;
-	GtkTreePath *path;
-	GtkTreeModel *model;
-	gchar *slide = NULL;
-
-	model = GTK_TREE_MODEL( img->thumbnail_model );
-	if ( ! gtk_tree_model_get_iter_first(model,&iter))
-		return;
-
-	slide = g_strdup_printf("%d", img->slides_nr);
-	//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry), slide);
-	g_free(slide);
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
-	path = gtk_tree_path_new_from_indices(img->slides_nr - 1, -1);
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->active_icon), path, FALSE, 0, 0);
-	gtk_tree_path_free (path);
 }
 
 void img_on_drag_data_received (GtkWidget * UNUSED(widget), GdkDragContext
@@ -1946,9 +1816,7 @@ img_update_subtitles_widgets( img_window_struct *img )
 	/* Update duration */
 	gtk_spin_button_set_value( GTK_SPIN_BUTTON( img->sub_anim_duration ),
 							  img->current_slide->anim_duration );
-
-	/* Update position */
-	gtk_range_set_value( GTK_RANGE(img->sub_angle), (gdouble) img->current_slide->subtitle_angle);		   								   
+ 								   
 }
 
 void
@@ -2576,7 +2444,7 @@ void img_add_any_media_callback( GtkButton * UNUSED(button),  img_window_struct 
 		list = list->next;
 	}
 	g_slist_free(bak);
-	gtk_notebook_set_current_page(GTK_NOTEBOOK(img->sidebar_notebook), 0);
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(img->side_notebook), 0);
 }
 
 void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, img_window_struct *img)
@@ -2601,8 +2469,8 @@ void img_add_thumbnail_widget_area(gint type, gchar *full_path_filename, img_win
 	switch (type)
 	{
 		case 0:
-		pb = gdk_pixbuf_new_from_file_at_scale(full_path_filename, 120, 60, TRUE, NULL);
 		//Load and scale the pixbuf and add it to the iconview
+		pb = gdk_pixbuf_new_from_file_at_scale(full_path_filename, 120, 60, TRUE, NULL);
 		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2 , full_path_filename, 3, 0 , -1);
 		g_object_unref(pb);
 		break;

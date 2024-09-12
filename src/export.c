@@ -1541,7 +1541,6 @@ static gint img_initialize_av_parameters(	img_window_struct *img,
 
 	/* AVFRAME stuff */
 	img->video_packet = av_packet_alloc();
-	
 	img->video_frame = av_frame_alloc();
 	av_frame_make_writable(img->video_frame);
 	img->video_frame->format = AV_PIX_FMT_BGRA;
@@ -1567,7 +1566,7 @@ static gint img_initialize_av_parameters(	img_window_struct *img,
 	/* Write Imagination header in the metadata */
 	opts =  NULL;
 	av_dict_set(&opts, "movflags", "use_metadata_tags", 0);
-	av_dict_set(&img->video_format_context->metadata, "Made with Imagination", VERSION, 0);
+	av_dict_set(&img->video_format_context->metadata, "Made with Imagination:", VERSION, 0);
 	ret = avformat_write_header(img->video_format_context, &opts);
 	if (ret < 0)
 	{

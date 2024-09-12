@@ -188,7 +188,7 @@ struct _img_window_struct
 	GtkWidget	*imagination_window;
 	GtkWidget 	*menubar;
 	GtkWidget *sidebar;
-	GtkWidget *sidebar_notebook;
+	GtkWidget *side_notebook;
 	GtkAccelGroup *accel_group;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
@@ -203,7 +203,9 @@ struct _img_window_struct
 	GtkWidget	*select_all_menu;
 	GtkWidget	*report_menu;
 	GtkWidget 	*fullscreen_loop_preview;
+	GtkWidget	*beginning_timer_label;
 	GtkWidget	*preview_button;
+	GtkWidget	*end_timer_label;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*duration;				// Duration spin button
@@ -224,10 +226,10 @@ struct _img_window_struct
   	GtkTreeIter popup_iter;
   	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
-  	GdkCursor 	*cursor;			/* Cursor to be stored before going fullscreen */
-	GtkWidget   *main_horizontal_box;				/* main_horizontal_box (used for saving/restoring geometry) */
-
-	GtkWidget *active_icon; /* Currently active icon view */
+  	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
+	GtkWidget   *main_horizontal_box;
+	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
+	GtkWidget *active_icon;								/* Currently active icon view */
 
 	/* Ken Burns related controls */
 	GtkWidget *ken_left;     /* Go to left stop point button */
@@ -248,8 +250,8 @@ struct _img_window_struct
 	GtkWidget *sub_font_shadow_color; 
 	GtkWidget *sub_font_shadow_distance; 
 	GtkWidget *sub_font_shadow_angle; 
-	GtkWidget *sub_font_stroke_color; 
-	GtkWidget *sub_font_strike_size; 
+	GtkWidget *sub_font_outline_color; 
+	GtkWidget *sub_font_outline_size; 
 	GtkWidget *bold_style;
     GtkWidget *italic_style;
     GtkWidget *underline_style;
@@ -259,8 +261,8 @@ struct _img_window_struct
     GtkWidget *pattern_image;	  /* Font Pattern */
 	GtkWidget *sub_anim;          /* Animation combo box */
 	GtkWidget *sub_anim_duration; /* Animation duration spin button */
-	GtkWidget *reset_angle;       /* Button to reset the angle to 0 */
-	GtkWidget *sub_angle;          /* Text angle hscale range */
+	//GtkWidget *reset_angle;       /* Button to reset the angle to 0 */
+	//GtkWidget *sub_angle;          /* Text angle hscale range */
 	
 	/* Import slides dialog variables */
 	GtkWidget	*dim_label;

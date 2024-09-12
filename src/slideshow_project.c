@@ -587,8 +587,6 @@ img_load_slideshow( img_window_struct *img, GtkWidget *menu, const gchar *input 
 	img_close_slideshow(NULL, img);
 	if (img_append_slides_from(img, menu, input))
 	{
-		/* Select the first slide */
-		img_goto_first_slide(NULL, img);
 		img->project_is_modified = FALSE;
 
 		/* If we made it to here, we succesfully loaded project, so it's safe to set

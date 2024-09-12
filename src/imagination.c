@@ -51,8 +51,11 @@ int main (int argc, char *argv[])
 	
 	/* Load the transitions as plugins with GModule */
 	img_load_available_transitions(img_window);
-	g_print("Welcome to Imagination " VERSION " - %d transitions loaded\n", img_window->nr_transitions_loaded);	
-	gtk_widget_show( img_window->imagination_window );
+	g_print(_("Welcome to Imagination " VERSION " - %d transitions loaded\n"), img_window->nr_transitions_loaded);	
+	g_print("%s\n", LIBAVCODEC_IDENT);
+	g_print("%s\n", LIBAVFORMAT_IDENT);
+	g_print("%s\n", LIBAVUTIL_IDENT);
+	gtk_widget_show_all( img_window->imagination_window );
 
 	/* Reads the arguments passed from the cmd line */
  	if (argc > 1)

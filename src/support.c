@@ -1297,7 +1297,7 @@ gint img_ask_user_confirmation(img_window_struct *img_struct, gchar *msg)
 	gint response;
 
 	dialog = gtk_message_dialog_new(GTK_WINDOW(img_struct->imagination_window),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL, "%s.", msg);
-	gtk_widget_set_margin_bottom(dialog, 5);
+	gtk_container_set_border_width( GTK_CONTAINER(dialog ), 10 );		
 	gtk_window_set_title(GTK_WINDOW(dialog),"Imagination");
 	response = gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (GTK_WIDGET (dialog));

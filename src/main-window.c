@@ -58,11 +58,11 @@ static void img_show_slides_report_dialog(GtkMenuItem *, img_window_struct *);
 static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
-GtkWidget *button1,  *button2, *button3, *button4, *button5, *begining, *end;
+GtkWidget *button1,  *button2, *toggle_button_text, *toggle_button_slide_motion, *button5, *beginning, *end;
 
 static void img_toggle_button_callback(GtkToggleButton *button, GtkWidget *notebook)
 {
-    GtkWidget *buttons[] = {button2, button3, button4};
+    GtkWidget *buttons[] = {button2, toggle_button_text, toggle_button_slide_motion};
     for (int i = 0; i < 3; i++)
     {
         if (buttons[i] != GTK_WIDGET(button))
@@ -123,25 +123,23 @@ img_window_struct *img_create_window (void)
 	GtkWidget *contents;
 	GtkWidget *add_slide;
 	GtkWidget *label_of;
-	GtkWidget *sidebar_notebook;
+	GtkWidget *side_notebook;
 	GtkWidget *scrollable_window;
 	GtkWidget *vbox_frames;
-	GtkWidget *frame1, *frame2, *frame4, *frame_label;
 	GtkWidget *transition_label;
-	GtkWidget *vbox_info_slide, *vbox_slide_motion, *vbox_slide_caption, *vbox_slide_position;
+	GtkWidget *vbox_slide_motion;
 	GtkWidget *grid;
 	GtkWidget *duration_label;
 	GtkWidget *total_time;
-	GtkWidget *hbox_stop_points, *stop_points_label;
-	GtkWidget *hbox_time_offset, *time_offset_label;
-	GtkWidget *hbox_textview, *text_animation_hbox;
+	GtkWidget *hbox_motion, *stop_points_label;
+	GtkWidget  *time_offset_label;
+	GtkWidget *hbox_textview;
 	GtkWidget *image_buttons;
 	GtkCellRenderer *pixbuf_cell;
 	GdkPixbuf *icon;
+	GtkWidget *media_iconview, *vbox, *hbox;
 	GtkWidget *eventbox;
-	GtkWidget *a_label;
 	GtkWidget *a_hbox;
-	GtkWidget *right_vertical_box;
 	GtkWidget *preview_menu;
 	GtkWidget *import_menu;
 	GtkWidget *properties_menu;
@@ -185,15 +183,21 @@ img_window_struct *img_create_window (void)
 	gtk_window_set_icon (GTK_WINDOW(img_struct->imagination_window),icon);
 	gtk_window_set_position (GTK_WINDOW(img_struct->imagination_window),GTK_WIN_POS_CENTER);
 	img_refresh_window_title(img_struct);
-	g_signal_connect (G_OBJECT (img_struct->imagination_window),"delete-event",G_CALLBACK (img_quit_application),img_struct);
+	g_signal_connect (G_OBJECT (img_struct->imagination_window), "delete-event",G_CALLBACK (img_quit_application),img_struct);
 	g_signal_connect (G_OBJECT (img_struct->imagination_window), "destroy", G_CALLBACK (gtk_main_quit), NULL );
 	g_signal_connect (G_OBJECT (img_struct->imagination_window), "key_press_event", G_CALLBACK(img_key_pressed), img_struct);
 	img_struct->accel_group = gtk_accel_group_new();
 
 	main_vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_widget_show (main_vertical_box);
 	gtk_container_add (GTK_CONTAINER (img_struct->imagination_window), main_vertical_box);
     
+    img_struct->vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
+	gtk_box_pack_end (GTK_BOX (main_vertical_box), img_struct->vpaned, TRUE, TRUE, 0);
+
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_paned_add1( GTK_PANED( img_struct->vpaned ), vbox );
+	main_vertical_box = vbox;
+	
 	/* Create the menu items */
 	img_struct->menubar = gtk_menu_bar_new ();
 	gtk_box_pack_start (GTK_BOX (main_vertical_box), img_struct->menubar, FALSE, TRUE, 0);
@@ -365,19 +369,19 @@ img_window_struct *img_create_window (void)
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button2, FALSE, FALSE, 5);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button2), TRUE);
        
-    button3 = gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
-	GtkWidget *label = gtk_bin_get_child(GTK_BIN(button3));
+    toggle_button_text = gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
+	GtkWidget *label = gtk_bin_get_child(GTK_BIN(toggle_button_text));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-    gtk_widget_set_tooltip_text(button3, _("Insert text"));
-    gtk_button_set_relief(GTK_BUTTON(button3), GTK_RELIEF_NONE);
-    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button3, FALSE, FALSE, 5);
+    gtk_widget_set_tooltip_text(toggle_button_text, _("Insert text"));
+    gtk_button_set_relief(GTK_BUTTON(toggle_button_text), GTK_RELIEF_NONE);
+    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), toggle_button_text, FALSE, FALSE, 5);
 
-	button4 = gtk_toggle_button_new();
-	gtk_widget_set_tooltip_text(button4, _("Ken Burns effect"));
+	toggle_button_slide_motion = gtk_toggle_button_new();
+	gtk_widget_set_tooltip_text(toggle_button_slide_motion, _("Ken Burns effect"));
 	image1 = gtk_image_new_from_icon_name("emblem-shared", GTK_ICON_SIZE_LARGE_TOOLBAR);
-    gtk_button_set_image(GTK_BUTTON(button4), image1);
-	gtk_button_set_relief(GTK_BUTTON(button4), GTK_RELIEF_NONE);
-    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button4, FALSE, FALSE, 5);
+    gtk_button_set_image(GTK_BUTTON(toggle_button_slide_motion), image1);
+	gtk_button_set_relief(GTK_BUTTON(toggle_button_slide_motion), GTK_RELIEF_NONE);
+    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), toggle_button_slide_motion, FALSE, FALSE, 5);
 
 	button5 = gtk_button_new_with_label("\U0001F642");
 	gtk_button_set_relief(GTK_BUTTON(button5), GTK_RELIEF_NONE);
@@ -387,18 +391,16 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start(GTK_BOX(img_struct->main_horizontal_box), separator, FALSE, FALSE, 0);
 
     //Create the hidden notebook widget
-	img_struct->sidebar_notebook = gtk_notebook_new();
-	g_object_set (G_OBJECT (img_struct->sidebar_notebook),"show-border", FALSE,"show-tabs", FALSE,"enable-popup",FALSE,NULL);
-	gtk_widget_set_can_focus (img_struct->sidebar_notebook, TRUE);
-	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box), img_struct->sidebar_notebook, FALSE, FALSE, 0);
+	img_struct->side_notebook = gtk_notebook_new();
+	g_object_set (G_OBJECT (img_struct->side_notebook),"show-border", FALSE,"show-tabs", FALSE,"enable-popup",FALSE,NULL);
+	gtk_widget_set_can_focus (img_struct->side_notebook, TRUE);
+	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box), img_struct->side_notebook, FALSE, FALSE, 0);
 
-	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
-	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
-	g_signal_connect(button4, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->sidebar_notebook);
+	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->side_notebook);
+	g_signal_connect(toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->side_notebook);
+	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct->side_notebook);
 
 	//Create the list media widget
-	GtkWidget *media_iconview, *vbox, *hbox;
-
 	img_struct->media_model = gtk_list_store_new (4, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT);
 	media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
 	g_object_unref (img_struct->media_model);
@@ -410,8 +412,10 @@ img_window_struct *img_create_window (void)
 	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (media_iconview), GTK_ORIENTATION_VERTICAL);
 	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (media_iconview), 0);
 	gtk_icon_view_set_columns(GTK_ICON_VIEW (media_iconview), 2);
+	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (media_iconview),0);
+	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (media_iconview),0);
 	
-	gtk_container_add (GTK_CONTAINER (img_struct->sidebar_notebook), 	img_struct->media_iconview_swindow);
+	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (media_iconview), GTK_SELECTION_MULTIPLE);
 	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(media_iconview), drop_targets, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
 	g_signal_connect( G_OBJECT( media_iconview ), "drag-data-received", G_CALLBACK( img_on_drag_data_received), img_struct );
@@ -428,7 +432,7 @@ img_window_struct *img_create_window (void)
 	
 	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add (GTK_CONTAINER (scrollable_window), vbox);
-	gtk_container_add (GTK_CONTAINER (img_struct->sidebar_notebook), scrollable_window);
+	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), scrollable_window);
 	
 	//1st row: font selector and font color widgets
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -630,11 +634,11 @@ img_window_struct *img_create_window (void)
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_shadow_angle), GTK_POS_LEFT);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_shadow_angle, TRUE, TRUE, 0);
 	
-	//8th row: Stroke
+	//8th row: Outline
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
 	
-	label = gtk_label_new(_("<span size='large'><b>Stroke:</b></span>"));
+	label = gtk_label_new(_("<span size='large'><b>Outline:</b></span>"));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 5);
@@ -645,11 +649,11 @@ img_window_struct *img_create_window (void)
 	label = gtk_label_new(_("Color"));
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 5);
-	img_struct->sub_font_stroke_color = gtk_button_new();
-	gtk_widget_set_name(img_struct->sub_font_stroke_color , "font_color_button");
-	gtk_widget_set_valign(img_struct->sub_font_stroke_color, GTK_ALIGN_CENTER);
-	g_signal_connect( G_OBJECT( img_struct->sub_font_stroke_color ), "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
-	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_stroke_color, FALSE, FALSE, 5);
+	img_struct->sub_font_outline_color = gtk_button_new();
+	gtk_widget_set_name(img_struct->sub_font_outline_color , "font_color_button");
+	gtk_widget_set_valign(img_struct->sub_font_outline_color, GTK_ALIGN_CENTER);
+	g_signal_connect( G_OBJECT( img_struct->sub_font_outline_color ), "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
+	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_outline_color, FALSE, FALSE, 5);
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
@@ -660,18 +664,98 @@ img_window_struct *img_create_window (void)
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
-	img_struct->sub_font_strike_size = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
-	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_strike_size), GTK_POS_LEFT);
-	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_strike_size, TRUE, TRUE, 0);
+	img_struct->sub_font_outline_size = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_outline_size), GTK_POS_LEFT);
+	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_outline_size, TRUE, TRUE, 0);
 	
-	/* Create the image area and the other widgets */
-	right_vertical_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box) , right_vertical_box, TRUE, TRUE, 10);
-	g_object_set(G_OBJECT(right_vertical_box), "margin-top", 10, "valign", GTK_ALIGN_START, NULL);
+	/* Slide motion widgets (Ken Burns) */
+	vbox_slide_motion = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox_slide_motion);
+	gtk_widget_set_valign(vbox_slide_motion, GTK_ALIGN_START);
+	gtk_widget_set_halign(vbox_slide_motion, GTK_ALIGN_END);
+	
+	label = gtk_label_new(_("<span size='large'><b>Slide Motion:</b></span>"));
+	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_box_pack_start (GTK_BOX (vbox_slide_motion), label, TRUE, TRUE, 5);
+	
+	hbox_motion = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_motion, TRUE, FALSE, 0);
+	stop_points_label = gtk_label_new(_("Stop Point:"));
+	gtk_box_pack_start (GTK_BOX (hbox_motion), stop_points_label, TRUE, TRUE, 0);
+	gtk_label_set_xalign(GTK_LABEL(stop_points_label), 0.0);
+	gtk_label_set_yalign(GTK_LABEL(stop_points_label), 0.5);
+
+	img_struct->ken_left = gtk_button_new();
+	g_signal_connect( G_OBJECT( img_struct->ken_left ), "clicked",	  G_CALLBACK( img_goto_prev_point ), img_struct );
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_left, FALSE, TRUE, 0);
+	image_buttons = gtk_image_new_from_icon_name ("go-previous", GTK_ICON_SIZE_MENU);
+	gtk_button_set_image(GTK_BUTTON(img_struct->ken_left), image_buttons);
+
+	img_struct->ken_entry = gtk_entry_new();
+	gtk_entry_set_max_length(GTK_ENTRY (img_struct->ken_entry), 2);
+	gtk_entry_set_width_chars(GTK_ENTRY (img_struct->ken_entry), 2);
+	g_signal_connect( G_OBJECT( img_struct->ken_entry ), "activate",   	G_CALLBACK( img_goto_point ), img_struct );
+	g_signal_connect( G_OBJECT( img_struct->ken_entry ), "insert-text", G_CALLBACK( img_check_numeric_entry ), NULL );
+
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_entry, FALSE, TRUE, 0);
+	label_of = gtk_label_new(_(" of "));
+	gtk_box_pack_start (GTK_BOX (hbox_motion), label_of, FALSE, FALSE, 0);
+	img_struct->total_stop_points_label = gtk_label_new(NULL);
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->total_stop_points_label, FALSE, FALSE, 0);
+
+	img_struct->ken_right = gtk_button_new();
+	g_signal_connect( G_OBJECT( img_struct->ken_right ), "clicked",   G_CALLBACK( img_goto_next_point ), img_struct );
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_right, FALSE, TRUE, 0);
+	image_buttons = gtk_image_new_from_icon_name ("go-next", GTK_ICON_SIZE_MENU);
+	gtk_button_set_image(GTK_BUTTON(img_struct->ken_right), image_buttons);
+
+	img_struct->ken_add = gtk_button_new();
+	g_signal_connect( G_OBJECT( img_struct->ken_add ), "clicked",  G_CALLBACK( img_add_stop_point ), img_struct );
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_add, FALSE, FALSE, 5);
+	image_buttons = gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_image(GTK_BUTTON(img_struct->ken_add), image_buttons);
+	gtk_widget_set_tooltip_text(img_struct->ken_add,_("Add Stop point"));
+
+	hbox_motion = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_motion, FALSE, FALSE, 0);
+	time_offset_label = gtk_label_new(_("Duration in sec:"));
+	gtk_box_pack_start (GTK_BOX (hbox_motion), time_offset_label, TRUE, TRUE, 0);
+	gtk_label_set_xalign(GTK_LABEL(time_offset_label), 0.0);
+	gtk_label_set_yalign(GTK_LABEL(time_offset_label), 0.5);
+	img_struct->ken_duration = gtk_spin_button_new_with_range (1, 60, 1);
+	gtk_entry_set_max_length(GTK_ENTRY(img_struct->ken_duration), 2);
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_duration, FALSE, FALSE, 0);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->ken_duration),TRUE);
+	g_signal_connect( G_OBJECT( img_struct->ken_duration ), "value-changed",  G_CALLBACK( img_update_stop_point ), img_struct );
+	
+	img_struct->ken_remove = gtk_button_new();
+	g_signal_connect( G_OBJECT( img_struct->ken_remove ), "clicked",  G_CALLBACK( img_delete_stop_point ), img_struct );
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_remove, FALSE, FALSE, 5);
+	image_buttons = gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_image(GTK_BUTTON(img_struct->ken_remove), image_buttons);
+	gtk_widget_set_tooltip_text(img_struct->ken_remove,_("Remove Stop point"));
+
+	hbox_motion = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_motion, FALSE, FALSE, 0);
+
+	label = gtk_label_new(_("Zoom: "));
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
+	gtk_box_pack_start (GTK_BOX (hbox_motion), label, FALSE, TRUE, 0);
+
+	img_struct->ken_zoom = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1, 30, 0.10000000000000001);
+	gtk_scale_set_value_pos (GTK_SCALE(img_struct->ken_zoom), GTK_POS_LEFT);
+	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_zoom, TRUE, TRUE, 0);
+	g_signal_connect( G_OBJECT( img_struct->ken_zoom ), "value-changed",  G_CALLBACK( img_ken_burns_zoom_changed ), img_struct );
+
+	/* Create the image area */
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start (GTK_BOX (img_struct->main_horizontal_box), vbox, TRUE, TRUE, 5);
 
 	img_struct->viewport_align = gtk_viewport_new( NULL, NULL );
 	gtk_viewport_set_shadow_type(GTK_VIEWPORT(img_struct->viewport_align), GTK_SHADOW_NONE);
-	gtk_container_add( GTK_CONTAINER( right_vertical_box ), img_struct->viewport_align );
+	gtk_container_add( GTK_CONTAINER( vbox ), img_struct->viewport_align );
 	gtk_widget_set_halign(img_struct->viewport_align, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img_struct->viewport_align, GTK_ALIGN_CENTER);
 
@@ -688,15 +772,20 @@ img_window_struct *img_create_window (void)
 	g_signal_connect( G_OBJECT( img_struct->image_area ), "motion-notify-event",  G_CALLBACK( img_image_area_motion ), img_struct );
 	//g_signal_connect( G_OBJECT( img_struct->image_area ), "scroll-event",				G_CALLBACK( img_image_area_scroll ), img_struct);
 
-	//Preview buttons
+	//Timer labels and preview buttons
 	a_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start(GTK_BOX(right_vertical_box), a_hbox, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(vbox), a_hbox, FALSE, FALSE, 10);
 	gtk_widget_set_halign(GTK_WIDGET(a_hbox), GTK_ALIGN_CENTER);
 
-	begining = gtk_button_new();
-	gtk_box_pack_start(GTK_BOX(a_hbox), begining, FALSE, FALSE, 10);
+	img_struct->beginning_timer_label = gtk_label_new("00:00:00");
+	PangoFontDescription *new_size = pango_font_description_from_string("Sans 12");
+	gtk_widget_override_font(img_struct->beginning_timer_label, new_size);
+	
+	gtk_box_pack_start(GTK_BOX(a_hbox), img_struct->beginning_timer_label, FALSE, FALSE, 10);
+	beginning = gtk_button_new();
+	gtk_box_pack_start(GTK_BOX(a_hbox), beginning, FALSE, FALSE, 10);
 	image_buttons = gtk_image_new_from_icon_name ("go-first", GTK_ICON_SIZE_LARGE_TOOLBAR);
-	gtk_button_set_image(GTK_BUTTON(begining), image_buttons);
+	gtk_button_set_image(GTK_BUTTON(beginning), image_buttons);
 
 	img_struct->preview_button = gtk_button_new();
 	gtk_box_pack_start(GTK_BOX(a_hbox), img_struct->preview_button, FALSE, FALSE, 10);
@@ -709,23 +798,11 @@ img_window_struct *img_create_window (void)
 	image_buttons = gtk_image_new_from_icon_name ("go-last", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	gtk_button_set_image(GTK_BUTTON(end), image_buttons);
 
-	/* Slide frame */
-	frame1 = gtk_frame_new (NULL);
-	//gtk_box_pack_start (GTK_BOX (vbox_frames), frame1, TRUE, TRUE, 0);
-	gtk_frame_set_shadow_type (GTK_FRAME (frame1), GTK_SHADOW_IN);
-
-	frame_label = gtk_label_new (_("<b>Slide Settings</b>"));
-	gtk_frame_set_label_widget (GTK_FRAME (frame1), frame_label);
-	gtk_label_set_use_markup (GTK_LABEL (frame_label), TRUE);
-
-	vbox_info_slide = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-	//gtk_container_add(GTK_CONTAINER(frame1), vbox_info_slide);
-	gtk_widget_set_halign(GTK_WIDGET(vbox_info_slide), GTK_ALIGN_FILL);
-	gtk_widget_set_margin_top(GTK_WIDGET(vbox_info_slide), 10);
-	gtk_widget_set_margin_bottom(GTK_WIDGET(vbox_info_slide), 5);
-	gtk_widget_set_margin_start(GTK_WIDGET(vbox_info_slide), 5);
-	gtk_widget_set_margin_end(GTK_WIDGET(vbox_info_slide), 5);
-
+	img_struct->end_timer_label = gtk_label_new("00:00:00");
+	gtk_widget_override_font(img_struct->end_timer_label, new_size);
+	gtk_box_pack_start(GTK_BOX(a_hbox), img_struct->end_timer_label, FALSE, FALSE, 10);
+	
+	
 	/* Transition types label */
 	transition_label = gtk_label_new (_("Transition Type:"));
 	//gtk_box_pack_start (GTK_BOX (vbox_info_slide), transition_label, FALSE, FALSE, 0);
@@ -780,126 +857,13 @@ img_window_struct *img_create_window (void)
 	gtk_label_set_xalign(GTK_LABEL(img_struct->slideshow_duration), 0);
 	gtk_label_set_yalign(GTK_LABEL(img_struct->slideshow_duration), 0.5);
 
-	/* Slide motion frame */
-	frame2 = gtk_frame_new (NULL);
-	//gtk_box_pack_start (GTK_BOX (vbox_frames), frame2, FALSE, FALSE, 0);
-	gtk_frame_set_shadow_type (GTK_FRAME (frame2), GTK_SHADOW_IN);
-
-	frame_label = gtk_label_new (_("<b>Slide Motion</b>"));
-	gtk_frame_set_label_widget (GTK_FRAME (frame2), frame_label);
-	gtk_label_set_use_markup (GTK_LABEL (frame_label), TRUE);
-	gtk_widget_set_margin_start(frame_label, 2);
-	gtk_widget_set_margin_top(frame_label, 2);
-
-	vbox_slide_motion = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-	//gtk_container_add(GTK_CONTAINER(frame2), vbox_slide_motion);
-	gtk_widget_set_halign(GTK_WIDGET(vbox_slide_motion), GTK_ALIGN_FILL);
-	gtk_widget_set_margin_top(GTK_WIDGET(vbox_slide_motion), 2);
-	gtk_widget_set_margin_bottom(GTK_WIDGET(vbox_slide_motion), 2);
-	gtk_widget_set_margin_start(GTK_WIDGET(vbox_slide_motion), 5);
-	gtk_widget_set_margin_end(GTK_WIDGET(vbox_slide_motion), 5);
-
-	hbox_stop_points = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-	//gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_stop_points, TRUE, FALSE, 0);
-	stop_points_label = gtk_label_new(_("Stop Point:"));
-	//gtk_box_pack_start (GTK_BOX (hbox_stop_points), stop_points_label, TRUE, TRUE, 0);
-	gtk_label_set_xalign(GTK_LABEL(stop_points_label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(stop_points_label), 0.5);
-
-	img_struct->ken_left = gtk_button_new();
-	g_signal_connect( G_OBJECT( img_struct->ken_left ), "clicked",
-					  G_CALLBACK( img_goto_prev_point ), img_struct );
-	//gtk_box_pack_start (GTK_BOX (hbox_stop_points), img_struct->ken_left, FALSE, TRUE, 0);
-	image_buttons = gtk_image_new_from_icon_name ("go-previous", GTK_ICON_SIZE_MENU);
-	gtk_button_set_image(GTK_BUTTON(img_struct->ken_left), image_buttons);
-
-	img_struct->ken_entry = gtk_entry_new();
-	gtk_entry_set_max_length(GTK_ENTRY (img_struct->ken_entry), 2);
-	gtk_entry_set_width_chars(GTK_ENTRY (img_struct->ken_entry), 2);
-	{
-		GObject *object = G_OBJECT( img_struct->ken_entry );
 	
-		g_signal_connect( object, "activate",
-						  G_CALLBACK( img_goto_point ), img_struct );
-		g_signal_connect( object, "insert-text",
-						  G_CALLBACK( img_check_numeric_entry ), NULL );
-	}
-	//gtk_box_pack_start (GTK_BOX (hbox_stop_points), img_struct->ken_entry, FALSE, TRUE, 0);
-	label_of = gtk_label_new(_(" of "));
-	gtk_box_pack_start (GTK_BOX (hbox_stop_points), label_of, FALSE, FALSE, 0);
-	img_struct->total_stop_points_label = gtk_label_new(NULL);
-	gtk_box_pack_start (GTK_BOX (hbox_stop_points), img_struct->total_stop_points_label, FALSE, FALSE, 0);
-
-	img_struct->ken_right = gtk_button_new();
-	g_signal_connect( G_OBJECT( img_struct->ken_right ), "clicked",
-					  G_CALLBACK( img_goto_next_point ), img_struct );
-	//gtk_box_pack_start (GTK_BOX (hbox_stop_points), img_struct->ken_right, FALSE, TRUE, 0);
-	image_buttons = gtk_image_new_from_icon_name ("go-next", GTK_ICON_SIZE_MENU);
-	gtk_button_set_image(GTK_BUTTON(img_struct->ken_right), image_buttons);
-
-	img_struct->ken_add = gtk_button_new();
-	g_signal_connect( G_OBJECT( img_struct->ken_add ), "clicked",
-					  G_CALLBACK( img_add_stop_point ), img_struct );
-	//gtk_box_pack_start (GTK_BOX (hbox_stop_points), img_struct->ken_add, FALSE, FALSE, 5);
-	image_buttons = gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image(GTK_BUTTON(img_struct->ken_add), image_buttons);
-	gtk_widget_set_tooltip_text(img_struct->ken_add,_("Add Stop point"));
-
-	hbox_time_offset = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	//gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_time_offset, FALSE, FALSE, 0);
-	time_offset_label = gtk_label_new(_("Motion duration in sec:"));
-	//gtk_box_pack_start (GTK_BOX (hbox_time_offset), time_offset_label, TRUE, TRUE, 0);
-	gtk_label_set_xalign(GTK_LABEL(time_offset_label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(time_offset_label), 0.5);
-	img_struct->ken_duration = gtk_spin_button_new_with_range (1, 60, 1);
-	gtk_entry_set_max_length(GTK_ENTRY(img_struct->ken_duration), 2);
-	//gtk_box_pack_start (GTK_BOX (hbox_time_offset), img_struct->ken_duration, FALSE, FALSE, 0);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->ken_duration),TRUE);
-	g_signal_connect( G_OBJECT( img_struct->ken_duration ), "value-changed",
-					  G_CALLBACK( img_update_stop_point ), img_struct );
 	
-	img_struct->ken_remove = gtk_button_new();
-	g_signal_connect( G_OBJECT( img_struct->ken_remove ), "clicked",
-					  G_CALLBACK( img_delete_stop_point ), img_struct );
-	//gtk_box_pack_start (GTK_BOX (hbox_time_offset), img_struct->ken_remove, FALSE, FALSE, 5);
-	image_buttons = gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image(GTK_BUTTON(img_struct->ken_remove), image_buttons);
-	gtk_widget_set_tooltip_text(img_struct->ken_remove,_("Remove Stop point"));
-
-	GtkWidget *hbox_zoom = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	//gtk_box_pack_start (GTK_BOX (vbox_slide_motion), hbox_zoom, FALSE, FALSE, 0);
-
-	label = gtk_label_new(_("Zoom: "));
-	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
-	gtk_box_pack_start (GTK_BOX (hbox_zoom), label, FALSE, TRUE, 0);
-
-	img_struct->ken_zoom = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-							1, 30,
-							0.10000000000000001);
-	gtk_scale_set_value_pos (GTK_SCALE(img_struct->ken_zoom), GTK_POS_LEFT);
-	//gtk_box_pack_start (GTK_BOX (hbox_zoom), img_struct->ken_zoom, TRUE, TRUE, 0);
-	g_signal_connect( G_OBJECT( img_struct->ken_zoom ), "value-changed",
-					  G_CALLBACK( img_ken_burns_zoom_changed ), img_struct );
 	
-	/* Slide text frame */
-	frame4 = gtk_frame_new (NULL);
-	//gtk_box_pack_start (GTK_BOX (vbox_frames), frame4, FALSE, FALSE, 0);
-	gtk_frame_set_shadow_type (GTK_FRAME (frame4), GTK_SHADOW_OUT);
-
-	frame_label = gtk_label_new (_("<b>Slide Text</b>"));
-	gtk_frame_set_label_widget (GTK_FRAME (frame4), frame_label);
-	gtk_label_set_use_markup (GTK_LABEL (frame_label), TRUE);
-	gtk_widget_set_margin_start(frame_label, 2);
-	gtk_widget_set_margin_top(frame_label, 2);
-
-	vbox_slide_caption = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-	//gtk_container_add(GTK_CONTAINER(frame4), vbox_slide_caption);
-	gtk_widget_set_halign(GTK_WIDGET(vbox_slide_caption), GTK_ALIGN_FILL);
-	gtk_widget_set_margin_top(GTK_WIDGET(vbox_slide_caption), 5);
-	gtk_widget_set_margin_bottom(GTK_WIDGET(vbox_slide_caption), 5);
-	gtk_widget_set_margin_start(GTK_WIDGET(vbox_slide_caption), 5);
-	gtk_widget_set_margin_end(GTK_WIDGET(vbox_slide_caption), 5);
+	
+	
+	
+	
 
 	a_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	//gtk_box_pack_start (GTK_BOX (vbox_slide_caption), a_hbox, FALSE, FALSE, 0);
@@ -924,9 +888,6 @@ img_window_struct *img_create_window (void)
 	//gtk_box_pack_start (GTK_BOX (hbox_textview), img_struct->scrolled_win, TRUE, TRUE, 0);
 	gtk_widget_set_size_request(img_struct->scrolled_win, -1, 70);
 
-	text_animation_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	//gtk_box_pack_start( GTK_BOX( vbox_slide_caption ), text_animation_hbox, FALSE, FALSE, 0 );
-
 	//This is to render the pattern button
 	pixbuf = gtk_icon_theme_load_icon(img_struct->icon_theme,"image", 20, 0, NULL);
 	tmp_image = gtk_image_new_from_pixbuf(pixbuf);
@@ -936,53 +897,8 @@ img_window_struct *img_create_window (void)
 	//gtk_box_pack_start (GTK_BOX (text_animation_hbox), img_struct->pattern_image, FALSE, FALSE, 0);
 	gtk_widget_set_tooltip_text(img_struct->pattern_image, _("Click to choose the text pattern") );
 	g_signal_connect (	G_OBJECT (img_struct->pattern_image), "clicked", G_CALLBACK (img_pattern_clicked), img_struct);
-   
-	frame_label = gtk_label_new (_("<b>Slide Text Position</b>"));
-	gtk_frame_set_label_widget (GTK_FRAME (frame4), frame_label);
-	gtk_label_set_use_markup (GTK_LABEL (frame_label), TRUE);
-	gtk_widget_set_margin_start(frame_label, 2);
-	gtk_widget_set_margin_top(frame_label, 2);
 
-	grid = gtk_grid_new();
-	//gtk_box_pack_start (GTK_BOX (vbox_slide_position), grid, TRUE, TRUE, 0);
-	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-	gtk_grid_set_column_spacing (GTK_GRID (grid), 10);
-
-	label = gtk_label_new(_("Horizontal Position: "));
-	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
-	gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 1, 1);
-
-	label = gtk_label_new(_("Vertical Position: "));
-	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
-	gtk_grid_attach (GTK_GRID (grid), label, 0, 1, 1, 1);
-
-	label = gtk_label_new(_("Angle: "));
-	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
-	gtk_grid_attach (GTK_GRID (grid), label, 0, 2, 1, 1);
-
-	img_struct->sub_angle = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,
-							 -90, 90, 1);
-	gtk_grid_attach (GTK_GRID (grid), img_struct->sub_angle, 1, 2, 1, 1);
-	gtk_scale_set_draw_value( GTK_SCALE(img_struct->sub_angle), FALSE);
-	//g_signal_connect( G_OBJECT( img_struct->sub_angle ), "value-changed",  G_CALLBACK( img_text_pos_changed ), img_struct );
-
-	img_struct->reset_angle = gtk_button_new();
-	g_signal_connect( G_OBJECT( img_struct->reset_angle ), "clicked",
-					  G_CALLBACK( img_align_text_horizontally_vertically ), img_struct );
-	gtk_grid_attach (GTK_GRID (grid), img_struct->reset_angle, 2, 2, 1, 1);
-	image_buttons = gtk_image_new_from_icon_name ("edit-delete", GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image(GTK_BUTTON(img_struct->reset_angle), image_buttons);
-	gtk_widget_set_tooltip_text(img_struct->reset_angle,_("Reset the angle"));
-    
-    
-    
-    
-    
-    
-	/* Create the bottom slides thumbnail model */
+	/* TO BE replaced by the gtk timeline widget -  Create the bottom slides thumbnail model */
 	img_struct->thumbnail_model = gtk_list_store_new( 4,
                                                       GDK_TYPE_PIXBUF,  /* thumbnail */
                                                       G_TYPE_POINTER,   /* slide_info */
@@ -999,7 +915,7 @@ img_window_struct *img_create_window (void)
 	g_signal_connect( G_OBJECT( eventbox ), "drag-data-received",
 					  G_CALLBACK( img_on_drag_data_received), img_struct );
 	
-	gtk_box_pack_start( GTK_BOX( main_vertical_box ), eventbox, FALSE, TRUE, 0 );
+	gtk_paned_add2( GTK_PANED( img_struct->vpaned ), eventbox );
 
 	/* Create the thumbnail viewer */
 	img_struct->thumb_scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
@@ -1973,10 +1889,8 @@ static void img_report_slides_transitions(img_window_struct *img)
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 					"_Close", GTK_RESPONSE_ACCEPT,
 					NULL );
-		gtk_container_set_border_width( GTK_CONTAINER( img->report_dialog ),
-										10 );		
-		gtk_window_set_default_size( GTK_WINDOW( img->report_dialog ),
-									 480, 370 );
+		gtk_container_set_border_width( GTK_CONTAINER( img->report_dialog ), 10 );		
+		gtk_window_set_default_size( GTK_WINDOW( img->report_dialog ), 480, 370 );
 		gtk_window_set_modal( GTK_WINDOW( img->report_dialog ), FALSE );
 
 		g_signal_connect( G_OBJECT( img->report_dialog ), "delete-event",
@@ -1992,8 +1906,7 @@ static void img_report_slides_transitions(img_window_struct *img)
 		gtk_box_pack_start( GTK_BOX( vbox ), swindow, TRUE, TRUE, 0 );
 
 		viewport = gtk_viewport_new( NULL, NULL );
-		gtk_viewport_set_shadow_type( GTK_VIEWPORT( viewport ),
-									  GTK_SHADOW_NONE);
+		gtk_viewport_set_shadow_type( GTK_VIEWPORT( viewport ),  GTK_SHADOW_NONE);
 		gtk_container_add( GTK_CONTAINER( swindow ), viewport );
 	}
 
@@ -2054,8 +1967,7 @@ static void img_report_slides_transitions(img_window_struct *img)
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
 	gtk_label_set_use_markup( GTK_LABEL( label ), TRUE );
-	gtk_box_pack_start( GTK_BOX( img->vbox_slide_report_rows ), label,
-						FALSE, FALSE, 0);
+	gtk_box_pack_start( GTK_BOX( img->vbox_slide_report_rows ), label, FALSE, FALSE, 0);
 
 	/* Get information and free hash table */
 	values = g_hash_table_get_values( trans_hash );
