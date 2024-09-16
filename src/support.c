@@ -396,23 +396,21 @@ img_create_new_slide( void )
 		slide->font_color[1] = 0; /* G */
 		slide->font_color[2] = 0; /* B */
 		slide->font_color[3] = 1; /* A */
-		/* default: no font color border */
-        slide->font_brdr_color[0] = 1; /* R */
-        slide->font_brdr_color[1] = 1; /* G */
-        slide->font_brdr_color[2] = 1; /* B */
-        slide->font_brdr_color[3] = 1; /* A */
+		/* default: no shadow color border */
+        slide->font_shadow_color[0] = 1; /* R */
+        slide->font_shadow_color[1] = 1; /* G */
+        slide->font_shadow_color[2] = 1; /* B */
+        slide->font_shadow_color[3] = 1; /* A */
         /* default: no font background color */
         slide->font_bg_color[0] = 1; /* R */
         slide->font_bg_color[1] = 1; /* G */
         slide->font_bg_color[2] = 1; /* B */
         slide->font_bg_color[3] = 0; /* A */
         /* default: no font border color */
-        slide->border_color[0] = 1; /* R */
-        slide->border_color[1] = 1; /* G */
-        slide->border_color[2] = 1; /* B */
-        slide->border_color[3] = 1; /* A */
-
-		slide->border_width = 1;
+        slide->font_outline_color[0] = 1; /* R */
+        slide->font_outline_color[1] = 1; /* G */
+        slide->font_outline_color[2] = 1; /* B */
+        slide->font_outline_color[3] = 1; /* A */
 
         /* Load error handling */
         slide->load_ok = TRUE;
@@ -1174,90 +1172,6 @@ void str_replace(gchar *str, const gchar *search, const gchar *replace)
         for (gint i = 0; replace[i] != '\0'; i++)
             cursor[i] = replace[i];
         cursor += strlen(replace);
-	}
-}
-
-void img_set_text_buffer_tags(img_window_struct *img)
-{
-	GtkTextTag *tag;
-
-	img->tag_table = gtk_text_buffer_get_tag_table(img->slide_text_buffer);
-	tag = gtk_text_tag_new("bold");
-	g_object_set(tag, "weight", PANGO_WEIGHT_BOLD, NULL);
-	gtk_text_tag_table_add (img->tag_table, tag);
-	
-	tag = gtk_text_tag_new("italic");
-	g_object_set(tag, "style", PANGO_STYLE_ITALIC, NULL);
-	gtk_text_tag_table_add (img->tag_table, tag);
-	
-	tag = gtk_text_tag_new("underline");
-	g_object_set(tag, "underline", PANGO_UNDERLINE_SINGLE, NULL);
-	gtk_text_tag_table_add (img->tag_table, tag);
-	
-	tag = gtk_text_tag_new("foreground");
-	gtk_text_tag_table_add (img->tag_table, tag);
-	
-	tag = gtk_text_tag_new("background");
-	gtk_text_tag_table_add (img->tag_table, tag);
-}
-
-void img_store_rtf_buffer_content(img_window_struct *img)
-{
-	GdkAtom		format;
-	GtkTextIter start, end;
-
-	format = gtk_text_buffer_register_serialize_tagset(img->slide_text_buffer, NULL);
-	gtk_text_buffer_get_bounds(img->slide_text_buffer, &start, &end);
-	img->current_slide->subtitle = gtk_text_buffer_serialize(img->slide_text_buffer,
-																img->slide_text_buffer,
-																format,
-																&start, 
-																&end,
-																&img->current_slide->subtitle_length
-																); 
-	gtk_text_buffer_unregister_serialize_format (img->slide_text_buffer, format); 
-}
-
-void img_check_for_rtf_colors(img_window_struct *img, gchar *subtitle)
-{
-	GtkTextTag	*tag;
-	gchar		*dummy, *dummy2, *rgb;
-	gint		len;
-
-	/* foreground */
-	dummy = strstr(subtitle, "foreground-rgba");
-	if (dummy)
-	{
-		dummy = strstr(dummy, "value=");
-		dummy2 = strstr(dummy+7, "\"");
-		len = strlen(dummy+7) - strlen(dummy2);
-
-		rgb = g_new0(gchar, len + 2);
-		rgb[0] = '#';
-		strncpy(rgb+1, dummy+7, len);
-
-		str_replace(rgb, ":", "");
-
-		tag = gtk_text_tag_table_lookup(img->tag_table, "foreground");
-		g_object_set(tag, "foreground-rgba", rgb, NULL);
-		g_free(rgb);
-	}
-	/* background */
-	dummy = strstr(subtitle, "background-rgba");
-	if (dummy)
-	{
-		dummy = strstr(dummy, "value=");
-		dummy2 = strstr(dummy+7, "\"");
-		len = strlen(dummy+7) - strlen(dummy2);
-
-		rgb = g_new0(gchar, len + 2);
-		rgb[0] = '#';
-		strncpy(rgb+1, dummy+7, len);
-		str_replace(rgb, ":", "");
-		
-		tag = gtk_text_tag_table_lookup(img->tag_table, "background");
-		g_object_set(tag, "background-rgba", rgb, NULL);
-		g_free(rgb);
 	}
 }
 

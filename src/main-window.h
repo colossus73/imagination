@@ -60,18 +60,15 @@ img_subtitle_update_sensitivity( img_window_struct *img,
 								 gint               mode );
 
 void
-img_update_sub_properties( img_window_struct *img,
+img_update_sub_properties( img_window_struct *,
 						   TextAnimationFunc  anim,
 						   gint               anim_id,
 						   gdouble            anim_duration,
-						   const gchar       *desc,
-						   gdouble           *color,
-                           gdouble           *brdr_color,
-                           gdouble           *bg_color,
-                           gdouble           *border_color,
-                           gboolean			 top_border,
-						   gboolean			 bottom_border,
-                           gint		         border_width,
+						   const gchar       *,
+						   gdouble           *,
+                           gdouble           *,
+                           gdouble           *,
+                           gdouble           *,
                            gint		         alignment );
 
 void img_combo_box_transition_type_changed (GtkComboBox *,
@@ -81,10 +78,6 @@ void
 img_combo_box_anim_speed_changed( GtkSpinButton       *spinbutton,
 								  img_window_struct *img );
 								  
-void
-img_sub_border_width_changed( GtkSpinButton       *spinbutton,
-								  img_window_struct *img );
-
 void
 img_text_anim_set( GtkComboBox       *combo,
 				   img_window_struct *img );

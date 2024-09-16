@@ -134,9 +134,6 @@ gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					cairo_surface_t **surface );
 
 void str_replace(gchar *str, const gchar *, const gchar *);
-void img_set_text_buffer_tags(img_window_struct *);
-void img_store_rtf_buffer_content(img_window_struct *);
-void img_check_for_rtf_colors(img_window_struct *, gchar *);
 void img_slide_set_p_filename(slide_struct *, gchar *);
 gboolean img_check_for_recent_file(img_window_struct *, const gchar *);
 gboolean img_find_media_in_list(img_window_struct *, gchar *);

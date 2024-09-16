@@ -151,9 +151,9 @@ struct _slide_struct
 	gdouble duration; /* Duration of still part */ /* NOTE: sub1 */
 
 	/* Transition params */
-	gchar     *path;          /* Transition model path to transition */
-	gint       transition_id; /* Transition id */
-	ImgRender  render;        /* Transition render function */
+	gchar     *path;          			/* Transition model path to transition */
+	gint       transition_id; 		/* Transition id */
+	ImgRender  render;        	/* Transition render function */
 
 	/* Ken Burns effect variables */
 	GList *points;    /* List with stop points */
@@ -161,24 +161,21 @@ struct _slide_struct
 	gint   cur_point; /* Currently active stop point */
 
 	/* Subtitle variables */
-	guint8				 *subtitle;        /* Subtitle text */
-	gsize				 subtitle_length; /* Subtitle length */
-	gchar			 	 *pattern_filename;/* Pattern image file */
-	TextAnimationFunc     anim;            /* Animation functions */
-	gint                  posX;       	   /* subtitle X position */
-	gint                  posY;        	   /* subtitle Y position */
-	gint                  subtitle_angle;  /* subtitle rotation angle */
-	gint                  anim_id;         /* Animation id */
-	gint                  anim_duration;   /* Duration of animation */
-	PangoFontDescription *font_desc;       /* Font description */
-	gdouble               font_color[4];   /* Font color (RGBA format) */
-    gdouble               font_brdr_color[4]; /* Font border color (RGBA format) */
-    gdouble               font_bg_color[4]; /* Font background color (RGBA format) */
-    gdouble               border_color[4]; /* Border on background color (RGBA format) */
-    gboolean           	  top_border;
-    gboolean           	  bottom_border;
-    gint               	  border_width;
-    gint               	  alignment;
+	guint8				 *subtitle;        			/* Subtitle text */
+	gsize				 subtitle_length; 			/* Subtitle length */
+	gchar			 	 *pattern_filename;	/* Pattern image file */
+	TextAnimationFunc     anim;           /* Animation functions */
+	gint                  posX;       	   				/* subtitle X position */
+	gint                  posY;        	   				/* subtitle Y position */
+	gint                  subtitle_angle;  			/* subtitle rotation angle */
+	gint                  anim_id;         				/* Animation id */
+	gint                  anim_duration;   		/* Duration of animation */
+	PangoFontDescription *font_desc;      /* Font description */
+	gdouble            font_color[4];   			/* Font color (RGBA format) */
+	gdouble            font_bg_color[4]; 		/* Font background color (RGBA format) */
+    gdouble            font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
+    gdouble            font_outline_color[4]; 	/* Font outline color (RGBA format) */
+    gint               	 alignment;
 };
 
 typedef struct _img_window_struct img_window_struct;
@@ -211,8 +208,6 @@ struct _img_window_struct
 	GtkWidget	*duration;				// Duration spin button
 	GtkWidget	*slideshow_duration;
 	GtkWidget	*filename_data;
-	GtkTextBuffer 	*slide_text_buffer;
-	GtkTextTagTable	*tag_table;
 	GtkWidget	*scrolled_win;
 	GtkWidget   *text_pos_button;
 	GtkWidget 	*thumb_scrolledwindow;
@@ -241,7 +236,6 @@ struct _img_window_struct
 	GtkWidget *ken_remove;   /* Remove stop point button */
 
 	/* Text related controls */
-	GtkWidget *sub_textview;
 	GtkWidget *sub_font;        			
 	GtkWidget *sub_font_color;    
 	GtkWidget *sub_font_bg_color;

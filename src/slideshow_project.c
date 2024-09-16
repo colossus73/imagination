@@ -168,12 +168,9 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 			g_key_file_set_integer(img_key_file,conf, "subtitle angle",		entry->subtitle_angle);
 			g_key_file_set_string (img_key_file, conf,"font",			font_desc);
 			g_key_file_set_double_list(img_key_file, conf,"font color",entry->font_color,4);
-			g_key_file_set_double_list(img_key_file, conf,"font bgcolor",entry->font_brdr_color,4);
-			g_key_file_set_double_list(img_key_file, conf,"font bgcolor2",entry->font_bg_color,4);
-			g_key_file_set_double_list(img_key_file, conf,"border color",entry->border_color,4);
-			g_key_file_set_boolean(img_key_file, conf,"top border",entry->top_border);
-			g_key_file_set_boolean(img_key_file, conf,"bottom border",entry->bottom_border);
-			g_key_file_set_integer(img_key_file, conf,"border width",entry->border_width);
+			g_key_file_set_double_list(img_key_file, conf,"font bg color",entry->font_bg_color,4);
+			g_key_file_set_double_list(img_key_file, conf,"font shadow color",entry->font_shadow_color,4);
+			g_key_file_set_double_list(img_key_file, conf,"font outline color",entry->font_outline_color,4);
 			g_key_file_set_integer(img_key_file, conf,"alignment",entry->alignment);
 			g_free(font_desc);
 		}
@@ -210,7 +207,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	void (*render);
 	GHashTable *table;
 	gchar      *spath, *conf, *project_current_dir;
-	gdouble    duration, *color, *font_color, *font_brdr_color, *font_bg_color, *border_color;
+	gdouble    duration, *color, *font_color, *font_bg_color, *font_shadow_color, *font_outline_color;
 	gboolean   first_slide = TRUE;
 
 	if (img->no_recent_item_menu)
@@ -442,12 +439,9 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				subtitle_angle= g_key_file_get_integer(img_key_file, conf, "subtitle angle",		NULL);
 				font_desc     = g_key_file_get_string (img_key_file, conf, "font", 			NULL);
 				font_color 	  = g_key_file_get_double_list(img_key_file, conf, "font color", NULL, NULL );
-                font_brdr_color  = g_key_file_get_double_list(img_key_file, conf, "font bgcolor", NULL, NULL );
-                font_bg_color = g_key_file_get_double_list(img_key_file, conf, "font bgcolor2", NULL, NULL );
-                border_color = g_key_file_get_double_list(img_key_file, conf, "border color", NULL, NULL );
-                top_border = g_key_file_get_boolean(img_key_file, conf, "top border", NULL);
-                bottom_border = g_key_file_get_boolean(img_key_file, conf, "bottom border", NULL);
-                border_width = g_key_file_get_integer(img_key_file, conf, "border width", NULL);
+                font_bg_color  = g_key_file_get_double_list(img_key_file, conf, "font bgcolor", NULL, NULL );
+                font_shadow_color = g_key_file_get_double_list(img_key_file, conf, "font shadow color", NULL, NULL );
+                font_outline_color = g_key_file_get_double_list(img_key_file, conf, "font outline color", NULL, NULL );
                 alignment = g_key_file_get_integer(img_key_file, conf, "alignment", NULL);
 
 				/* Get the mem address of the transition */
@@ -519,7 +513,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 							pattern_name = _pattern_filename;
 						}
 						/* Does the slide have a foreground color? */
-						img_check_for_rtf_colors(img, subtitle);
+						//img_check_for_rtf_colors(img, subtitle);
 
 						if (strstr((const gchar*)subtitle, "GTKTEXTBUFFERCONTENTS-0001"))
 						{
@@ -535,8 +529,8 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 						img_set_slide_text_info( slide_info, img->thumbnail_model,
 												 &iter, NULL, pattern_name, anim_id,
 												 anim_duration, posx, posy, subtitle_angle,
-												 font_desc, font_color, font_brdr_color, font_bg_color, border_color, 
-												 top_border, bottom_border, border_width, alignment, img );
+												 font_desc, font_color, font_bg_color, font_shadow_color, font_outline_color, 
+												alignment, img);
 					}
 					/* If we're loading the first slide, apply some of it's
 				 	 * data to final pseudo-slide */

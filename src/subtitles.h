@@ -66,13 +66,10 @@ img_set_slide_text_info( slide_struct      *slide,
 						 gint               angle,
 						 const gchar       *font_desc,
 						 gdouble           *font_color,
-                         gdouble           *font_brdr_color,
-                         gdouble           *font_bgcolor,
-                         gdouble           *border_color,
-                         gboolean			top_border,
-						 gboolean			bottom_border,
+                         gdouble           *font_bg_color,
+                         gdouble           *font_shadow_color,
+                         gdouble           *font_outline_color,
                          gint	           alignment,
-                         gint	           border_width,
 						 img_window_struct *img );
 
 #endif

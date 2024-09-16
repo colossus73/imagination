@@ -1749,22 +1749,22 @@ img_update_subtitles_widgets( img_window_struct *img )
 
 	if (img->current_slide->subtitle)
 	{
-		if (strstr((const gchar*)img->current_slide->subtitle, "GTKTEXTBUFFERCONTENTS-0001"))
-		{
-			format = gtk_text_buffer_register_deserialize_tagset(img->slide_text_buffer, NULL);
-			gtk_text_buffer_get_start_iter(img->slide_text_buffer, &start);
+		//~ if (strstr((const gchar*)img->current_slide->subtitle, "GTKTEXTBUFFERCONTENTS-0001"))
+		//~ {
+			//~ format = gtk_text_buffer_register_deserialize_tagset(img->slide_text_buffer, NULL);
+			//~ gtk_text_buffer_get_start_iter(img->slide_text_buffer, &start);
 
-			gtk_text_buffer_deserialize(img->slide_text_buffer,
-										img->slide_text_buffer,
-										format,
-										&start,
-										img->current_slide->subtitle,
-										img->current_slide->subtitle_length,
-										NULL);
-			gtk_text_buffer_unregister_deserialize_format(img->slide_text_buffer, format); 
-		}
-		else
-			g_object_set( G_OBJECT( img->slide_text_buffer ), "text", img->current_slide->subtitle, NULL );
+			//~ gtk_text_buffer_deserialize(img->slide_text_buffer,
+										//~ img->slide_text_buffer,
+										//~ format,
+										//~ &start,
+										//~ img->current_slide->subtitle,
+										//~ img->current_slide->subtitle_length,
+										//~ NULL);
+			//~ gtk_text_buffer_unregister_deserialize_format(img->slide_text_buffer, format); 
+		//~ }
+		//~ else
+			//~ g_object_set( G_OBJECT( img->slide_text_buffer ), "text", img->current_slide->subtitle, NULL );
 	}	
 
 	/* Update text pattern */
@@ -2308,10 +2308,6 @@ void img_subtitle_style_changed(GtkButton *button, img_window_struct *img)
 	GtkTextTag 	*tag;
 	gchar *string;
 
-	selection = gtk_text_buffer_get_selection_bounds(img->slide_text_buffer, &start, &end);
-	if (selection == 0)
-		return;
-
 	img_taint_project(img);
 
 	/* Which button did the user press? */
@@ -2321,22 +2317,20 @@ void img_subtitle_style_changed(GtkButton *button, img_window_struct *img)
 		string = "italic";
 	else if (GTK_WIDGET(button) == img->underline_style)
 		string = "underline";
-	else {
-		gtk_text_buffer_remove_all_tags(img->slide_text_buffer, &start, &end);
-		img_store_rtf_buffer_content(img);
+	//~ else {
+		//~ gtk_text_buffer_remove_all_tags(img->slide_text_buffer, &start, &end);
+		//~ img_store_rtf_buffer_content(img);
 
-		gtk_widget_queue_draw(img->image_area);
-		return;
-	}
-	tag = gtk_text_tag_table_lookup(img->tag_table, string);
+		//~ gtk_widget_queue_draw(img->image_area);
+		//~ return;
+	//~ }
+	//~ tag = gtk_text_tag_table_lookup(img->tag_table, string);
 
-	/* Was the style already applied? */
-	if (gtk_text_iter_starts_tag( &start, tag))
-		gtk_text_buffer_remove_tag(img->slide_text_buffer, tag, &start, &end);
-	else
-		gtk_text_buffer_apply_tag(img->slide_text_buffer, tag, &start, &end);
-
-	img_store_rtf_buffer_content(img);
+	//~ /* Was the style already applied? */
+	//~ if (gtk_text_iter_starts_tag( &start, tag))
+		//~ gtk_text_buffer_remove_tag(img->slide_text_buffer, tag, &start, &end);
+	//~ else
+		//~ gtk_text_buffer_apply_tag(img->slide_text_buffer, tag, &start, &end);
 
 	gtk_widget_queue_draw(img->image_area);
 }
