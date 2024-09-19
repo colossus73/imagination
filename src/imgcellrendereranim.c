@@ -178,9 +178,9 @@ static void
 img_cell_renderer_anim_render( GtkCellRenderer      *cell,
 							   cairo_t            *cr,
 							   GtkWidget            *widget,
-							   const GdkRectangle         * UNUSED(background_a),
+							   const GdkRectangle         *background_a,
 							   const GdkRectangle         *cell_a,
-							   GtkCellRendererState UNUSED(state) )
+							   GtkCellRendererState state )
 {
 	ImgCellRendererAnimPrivate *priv;
 	GdkPixbufAnimationIter     *iter;

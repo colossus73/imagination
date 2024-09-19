@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2018 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,15 +49,6 @@ img_font_bg_color_changed( GtkColorChooser    *button,
                           
 void
 img_disable_videotab (img_window_struct *img);
-
-void
-img_ken_burns_update_sensitivity( img_window_struct *img,
-								  gboolean           slide_selected,
-								  gint               no_points );
-
-void
-img_subtitle_update_sensitivity( img_window_struct *img,
-								 gint               mode );
 
 void
 img_update_sub_properties( img_window_struct *,

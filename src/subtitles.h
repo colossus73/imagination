@@ -1,4 +1,5 @@
 /*
+** Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
 ** Copyright (C) 2009 Tadej Borovšak <tadeboro@gmail.com>
 **  
 ** This program is free software; you can redistribute it and/or modify
@@ -30,9 +31,11 @@ struct _TextAnimation
 	gint               id;   /* Unique id (for save and load operations) */
 };
 
+gboolean blink_cursor(img_window_struct *);
+void img_draw_textbox(cairo_t *, img_window_struct *);
+void img_textbox_button_pressed(GdkEventButton *, img_window_struct *);
 
-gint
-img_get_text_animation_list( TextAnimation **animations );
+gint img_get_text_animation_list( TextAnimation **animations );
 
 void
 img_free_text_animation_list( gint           no_animations,

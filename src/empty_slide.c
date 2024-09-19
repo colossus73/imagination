@@ -287,7 +287,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 								&thumb, NULL );
 
 			/* If a slide is selected, add the empty slide after it */
-			where_to_insert	= gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->active_icon));
+			where_to_insert	= gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->thumbnail_iconview));
 			if (where_to_insert)
 			{
 				pos = gtk_tree_path_get_indices(where_to_insert->data)[0]+1;
@@ -502,7 +502,7 @@ static void img_gradient_color_set( GtkColorChooser *button, ImgEmptySlide  *sli
 	gtk_widget_queue_draw( slide->preview );
 }
 
-gboolean img_gradient_draw( GtkWidget  *UNUSED(widget), cairo_t *cr, ImgEmptySlide  *slide )
+gboolean img_gradient_draw( GtkWidget  *widget, cairo_t *cr, ImgEmptySlide  *slide )
 {
 	cairo_pattern_t *pattern;
 	gdouble          radius, diffx, diffy;
@@ -677,7 +677,7 @@ gboolean img_gradient_draw( GtkWidget  *UNUSED(widget), cairo_t *cr, ImgEmptySli
 	return( TRUE );
 }
 
-static gboolean img_gradient_press( GtkWidget      * UNUSED(widget),
+static gboolean img_gradient_press( GtkWidget      *widget,
 					GdkEventButton *button,
 					ImgEmptySlide  *slide )
 {
@@ -724,8 +724,8 @@ static gboolean img_gradient_press( GtkWidget      * UNUSED(widget),
 	return( TRUE );
 }
 
-static gboolean img_gradient_release( GtkWidget      * UNUSED(widget),
-					  GdkEventButton * UNUSED(button),
+static gboolean img_gradient_release( GtkWidget      *widget,
+					  GdkEventButton *button,
 					  ImgEmptySlide  *slide )
 {
 	slide->drag = 0;
@@ -733,7 +733,7 @@ static gboolean img_gradient_release( GtkWidget      * UNUSED(widget),
 	return( TRUE );
 }
 
-static gboolean img_gradient_move( GtkWidget      * UNUSED(widget),
+static gboolean img_gradient_move( GtkWidget      *widget,
 				   GdkEventMotion *motion,
 				   ImgEmptySlide  *slide )
 {

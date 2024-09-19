@@ -30,6 +30,7 @@
 
 #include <gtk/gtk.h>
 #include <string.h>
+#include <ctype.h>
 #include "imagination.h"
 #include "imgcellrendereranim.h"
 
@@ -137,5 +138,7 @@ void str_replace(gchar *str, const gchar *, const gchar *);
 void img_slide_set_p_filename(slide_struct *, gchar *);
 gboolean img_check_for_recent_file(img_window_struct *, const gchar *);
 gboolean img_find_media_in_list(img_window_struct *, gchar *);
-
+void rotate_point(double , double , double , double , double , double *, double *);
+void transform_coords(img_textbox *, double , double , double *, double *);
+void select_word_at_position(img_textbox *, int );
 #endif

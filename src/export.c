@@ -246,7 +246,7 @@ static gboolean img_start_export( img_window_struct *img)
 }
 
 gboolean
-on_close_export_dialog(GtkWidget * UNUSED(widget), GdkEvent * UNUSED(event), img_window_struct *img)
+on_close_export_dialog(GtkWidget * widget, GdkEvent * event,  img_window_struct *img)
 {
     img_close_export_dialog(img);
     return TRUE;

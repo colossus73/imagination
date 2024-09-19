@@ -312,24 +312,25 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				conf = g_strdup_printf("media %d", i);
 				slide_filename = g_key_file_get_string(img_key_file,conf,"filename", NULL);
 				file = g_file_new_for_path (slide_filename);
-				
 				file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
-				content_type = g_file_info_get_content_type (file_info);
-				if (content_type == NULL)
+				if (file_info == NULL)
 				{
 					gchar *string;
-					string = g_strconcat(_("Can't load media %s\n"), slide_filename, NULL);
+					string = g_strconcat(_("Can't load media: \n"), slide_filename, NULL);
 					n_invalid++;
 					img_message(img, string);
 					g_free(string);
 				}
 				else
 				{
+					content_type = g_file_info_get_content_type (file_info);
 					mime_type = g_content_type_get_mime_type (content_type);
 					if (strstr(mime_type, "image"))
 						img_add_thumbnail_widget_area(0, slide_filename, img);
 					else if (strstr(mime_type, "audio"))
 						img_add_thumbnail_widget_area(1, slide_filename, img);
+					
+					g_object_unref(file_info);
 				}
 				g_free(conf);
 				g_free(slide_filename);

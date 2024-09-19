@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+** Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
 ** Copyright (C) 2009 Tadej Borovšak <tadeboro@gmail.com>
 **  
 ** This program is free software; you can redistribute it and/or modify
@@ -20,9 +20,256 @@
 #include "subtitles.h"
 #include "support.h"
 
-/* ****************************************************************************
- * Local declarations
- * ************************************************************************* */
+gboolean blink_cursor(img_window_struct *img)
+{
+	if ( ! img->textbox->draw_rect)
+		return TRUE;
+
+    img->textbox->cursor_visible = ! img->textbox->cursor_visible;
+    gtk_widget_queue_draw(img->image_area);
+    return TRUE;
+}
+
+void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
+{
+	double x, y;
+	int index, trailing;
+	
+    transform_coords(img->textbox, event->x, event->y, &x, &y);
+
+    if (img->textbox->draw_rect && 
+        x >= img->textbox->x + (img->textbox->width / 2) - 5 && 
+        x <= (img->textbox->x + (img->textbox->width / 2)) + 5 && 
+        y >= img->textbox->y + img->textbox->height + 10 && 
+        y <= img->textbox->y + img->textbox->height + 20)
+    {
+        img->textbox->button_pressed = TRUE;
+        img->textbox->action = IS_ROTATING;
+    }
+    //If the left mouse click occurred inside the img->textbox set to true its boolean value
+    else if (x >= img->textbox->x && x <= img->textbox->x + img->textbox->width &&
+             y >= img->textbox->y && y <= img->textbox->y + img->textbox->height)
+    {
+        img->textbox->button_pressed = TRUE;
+        img->textbox->draw_rect = TRUE;
+        img->textbox->cursor_visible = TRUE;
+        if (!img->textbox->cursor_source_id)
+            img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
+    }
+    else
+    {
+        img->textbox->cursor_visible = FALSE;
+         img->textbox->selection_start = img->textbox->selection_end = 0;
+        if (img->textbox->cursor_source_id)
+        {
+            g_source_remove(img->textbox->cursor_source_id);
+            img->textbox->cursor_source_id = 0;
+        }
+        if (img->textbox->action != IS_ROTATING)
+            img->textbox->draw_rect = FALSE;
+    }
+
+    img->textbox->orig_x = x;
+    img->textbox->orig_y = y;
+    img->textbox->orig_width = img->textbox->width;
+    img->textbox->orig_height = img->textbox->height;
+    img->textbox->dragx = x - img->textbox->x;
+    img->textbox->dragy = y - img->textbox->y;
+
+   transform_coords(img->textbox, event->x, event->y, &x, &y);
+    x -= img->textbox->x;
+    y -= img->textbox->y;
+
+    pango_layout_xy_to_index(img->textbox->layout, 
+                             (int)(x * PANGO_SCALE), 
+                             (int)(y * PANGO_SCALE), 
+                             &index, &trailing);
+                         
+	// Double-click: select word
+	if (event->type == GDK_2BUTTON_PRESS)
+		select_word_at_position(img->textbox, index); 
+    else
+		img->textbox->cursor_pos = index + trailing;
+		        
+	gtk_widget_queue_draw(img->image_area);
+}
+
+void img_draw_textbox(cairo_t *cr, img_window_struct *img)
+{
+	int width, height;
+	
+	width  = gtk_widget_get_allocated_width(img->image_area);
+	height = gtk_widget_get_allocated_height(img->image_area);
+
+	//cairo_save(cr);
+    // Apply rotation for the entire textbox
+    cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+    cairo_rotate(cr, img->textbox->angle);
+    cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+
+    if (img->textbox->draw_rect)
+    {
+        // Draw the angle
+        if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
+        {
+            cairo_save(cr);
+            // Reset the transformation for angle text
+            cairo_identity_matrix(cr);
+            gchar buf[4];
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+            cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_font_size(cr, 12.0);
+            g_snprintf(buf, sizeof(buf), "%2.0f", round(img->textbox->angle * (180.0 / G_PI)));
+            cairo_move_to(cr, 10, 20);
+            cairo_show_text(cr, buf);
+            cairo_restore(cr);
+        }
+
+        // Set the color to white for the outline effect
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_set_line_width(cr, 3.5);
+		
+		// Draw the L shape
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
+
+		// Draw the arc
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
+
+		// Draw the vertical line under the rotate circle
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+		// Now draw the black lines on top
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		cairo_set_line_width(cr, 1.5);  // Original line width
+
+		// Draw the L shape again
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
+
+		// Draw the arc again
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
+
+		// Draw the vertical line under the rotate circle again
+		cairo_set_line_width(cr, 1);
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+        // Draw the rectangle
+        cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
+		cairo_stroke(cr);
+        cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
+        cairo_stroke_preserve(cr);
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_fill(cr);
+
+		//Draw the horizontal centering line
+		if (img->textbox->draw_horizontal_line)
+		{
+			cairo_save(cr);
+			cairo_matrix_t identity;
+			cairo_matrix_init_identity(&identity);
+			cairo_set_matrix(cr, &identity);
+
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_set_line_width(cr, 1.0);
+			cairo_move_to(cr, 0, height - 2);
+			cairo_line_to(cr, width*2, height - 2);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+			cairo_move_to(cr, 0, height);
+			cairo_line_to(cr, width*2, height);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_move_to(cr, 0, height + 2);
+			cairo_line_to(cr, width*2, height + 2);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		}
+		
+		//~ // Draw the vertical centering line
+		//~ if (img->textbox->draw_vertical_line)
+		//~ {
+			//~ cairo_save(cr);
+			//~ cairo_matrix_t identity;
+			//~ cairo_matrix_init_identity(&identity);
+			//~ cairo_set_matrix(cr, &identity);
+			
+			//~ cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			//~ cairo_set_line_width(cr, 1.0);
+			//~ cairo_move_to(cr, width-2, 0);
+			//~ cairo_line_to(cr, width-2, height*2);
+			//~ cairo_stroke(cr);
+			//~ cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+			//~ cairo_move_to(cr, width, 0);
+			//~ cairo_line_to(cr, width, height*2);
+			//~ cairo_stroke(cr);
+			//~ cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			//~ cairo_move_to(cr, width+2, 0);
+			//~ cairo_line_to(cr, width+2, height*2);
+			//~ cairo_stroke(cr);
+			//~ cairo_restore(cr);
+		//~ }
+        cairo_set_line_width(cr, 2.5);
+        
+        // Draw the bottom right handle
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
+        cairo_stroke_preserve(cr);
+        cairo_set_source_rgb(cr, 1, 1, 1);
+        cairo_fill(cr);
+    
+		// Draw selection highlight
+        if (img->textbox->selection_start != img->textbox->selection_end)
+        {
+            int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+            int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
+            
+            PangoRectangle start_pos, end_pos;
+            pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
+            pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
+
+            cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
+            cairo_rectangle(cr, 
+                img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
+                img->textbox->y + start_pos.y / PANGO_SCALE,
+                (end_pos.x - start_pos.x) / PANGO_SCALE, 
+                (end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
+            cairo_fill(cr);
+        }
+
+		// Draw the cursor
+		if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
+		{
+			PangoRectangle strong_pos;
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
+			pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
+			cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE + 5 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE + 5 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_stroke(cr);
+		}
+	}
+	// Draw the text
+	cairo_set_source_rgb(cr, 0, 0, 0);
+		
+	pango_layout_set_markup(img->textbox->layout, img->textbox->text->str, -1);	
+	cairo_move_to(cr, img->textbox->x + 3, img->textbox->y + 3);
+	pango_cairo_show_layout(cr, img->textbox->layout);
+	
+	//cairo_restore(cr);
+	//gtk_widget_queue_draw(img->image_area);
+}
+
 static void
 img_text_ani_fade( cairo_t     *cr,
 				   PangoLayout *layout,
@@ -279,9 +526,9 @@ img_render_subtitle( img_window_struct 	  *img,
 					 gint				posy,
 					 gint				angle,
 					 gint				alignment,
-					 gdouble			UNUSED(factor),
-					 gdouble			UNUSED(offx),
-					 gdouble			UNUSED(offy),
+					 gdouble			factor,
+					 gdouble			offx,
+					 gdouble			offy,
                      gboolean			centerX,
                      gboolean			centerY,
 					 gdouble			progress)
@@ -333,10 +580,10 @@ img_render_subtitle( img_window_struct 	  *img,
 static void
 img_text_ani_fade( cairo_t     *cr,
 				   PangoLayout *layout,
-				   gint         UNUSED(sw),
-				   gint         UNUSED(sh),
-				   gint         UNUSED(lw),
-				   gint         UNUSED(lh),
+				   gint         sw,
+				   gint         sh,
+				   gint         lw,
+				   gint         lh,
 				   gint         posx,
 				   gint         posy,
 				   gint         angle,
@@ -373,9 +620,9 @@ img_text_ani_fade( cairo_t     *cr,
 
 void
 img_set_slide_text_info( slide_struct      *slide,
-						 GtkListStore      * UNUSED(store),
-						 GtkTreeIter       * UNUSED(iter),
-						 guint8		       * UNUSED(subtitle),
+						 GtkListStore      *store,
+						 GtkTreeIter       *iter,
+						 guint8		       *subtitle,
 						 gchar				*pattern_filename,
 						 gint	            anim_id,
 						 gint               anim_duration,
@@ -527,10 +774,10 @@ img_text_draw_layout( cairo_t     *cr,
 static void
 img_text_from_left( cairo_t     *cr,
 					PangoLayout *layout,
- 					gint         UNUSED(sw),
- 					gint         UNUSED(sh),
+ 					gint         sw,
+ 					gint         sh,
  					gint         lw,
- 					gint         UNUSED(lh),
+ 					gint         lh,
  					gint         posx,
  					gint         posy,
  					gint         angle,
@@ -548,9 +795,9 @@ static void
 img_text_from_right( cairo_t     *cr,
 					 PangoLayout *layout,
  					 gint         sw,
- 					 gint         UNUSED(sh),
- 					 gint         UNUSED(lw),
- 					 gint         UNUSED(lh),
+ 					 gint         sh,
+ 					 gint         lw,
+ 					 gint         lh,
  					 gint         posx,
  					 gint         posy,
  					 gint         angle,
@@ -567,9 +814,9 @@ img_text_from_right( cairo_t     *cr,
 static void
 img_text_from_top( cairo_t     *cr,
 				   PangoLayout *layout,
-				   gint         UNUSED(sw),
-				   gint         UNUSED(sh),
-				   gint         UNUSED(lw),
+				   gint         sw,
+				   gint         sh,
+				   gint         lw,
 				   gint         lh,
 				   gint         posx,
 				   gint         posy,
@@ -587,10 +834,10 @@ img_text_from_top( cairo_t     *cr,
 static void
 img_text_from_bottom( cairo_t     *cr,
 					  PangoLayout *layout,
-					  gint         UNUSED(sw),
+					  gint         sw,
 					  gint         sh,
-  					  gint         UNUSED(lw),
-  					  gint         UNUSED(lh),
+  					  gint         lw,
+  					  gint         lh,
   					  gint         posx,
   					  gint         posy,
   					  gint         angle,
@@ -607,8 +854,8 @@ img_text_from_bottom( cairo_t     *cr,
 static void
 img_text_grow( cairo_t     *cr,
 			   PangoLayout *layout,
-			   gint         UNUSED(sw),
-			   gint         UNUSED(sh),
+			   gint         sw,
+			   gint         sh,
 			   gint         lw,
 			   gint         lh,
 			   gint         posx,
@@ -630,12 +877,12 @@ img_text_grow( cairo_t     *cr,
 static void
 img_text_bottom_to_top( cairo_t     *cr,
 				   PangoLayout *layout,
-				   gint         UNUSED(sw),
+				   gint         sw,
 				   gint         sh,
-				   gint         UNUSED(lw),
+				   gint         lw,
 				   gint         lh,
 				   gint         posx,
-				   gint         UNUSED(posy),
+				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
 				   slide_struct *current_slide)
@@ -651,10 +898,10 @@ static void
 img_text_right_to_left( cairo_t     *cr,
 				   PangoLayout *layout,
 				   gint         sw,
-				   gint         UNUSED(sh),
+				   gint         sh,
 				   gint         lw,
-				   gint         UNUSED(lh),
-				   gint         UNUSED(posx),
+				   gint         lh,
+				   gint         posx,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
@@ -669,8 +916,8 @@ img_text_right_to_left( cairo_t     *cr,
 static void
 img_text_spin_grow( cairo_t     *cr,
 				   PangoLayout *layout,
-				   gint         UNUSED(sw),
-				   gint         UNUSED(sh),
+				   gint         sw,
+				   gint         sh,
 				   gint         lw,
 				   gint         lh,
 				   gint         posx,

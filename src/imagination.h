@@ -31,12 +31,6 @@
 #define comment_string \
 	"Imagination 2.0 Slideshow Project - http://imagination.sf.net" //The version number is left to 2.0 to allow compatibility of project files generated with older versions
 
-#ifdef __GNUC__
-#  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
-#else
-#  define UNUSED(x) UNUSED_ ## x
-#endif
-
 /* ****************************************************************************
  * Subtitles related definitions
  * ************************************************************************* */
@@ -178,6 +172,40 @@ struct _slide_struct
     gint               	 alignment;
 };
 
+/* img_struct->textbox related variables */
+	enum action
+{
+    NONE = 0,
+    IS_ROTATING,
+    IS_DRAGGING,
+    IS_RESIZING
+};
+
+typedef struct _img_textbox img_textbox;
+struct _img_textbox
+{
+    GtkWidget *drawing_area;
+    GString *text;
+    gdouble angle;
+    gdouble x, y, width, height;
+    gdouble orig_x, orig_y, orig_width, orig_height;
+    gdouble dragx, dragy;
+    gint corner, action, lw, lh;
+    guint cursor_source_id;
+    gboolean button_pressed;
+    gboolean cursor_visible;
+    gboolean draw_rect;
+    gboolean draw_horizontal_line;
+    gboolean draw_vertical_line;
+    gint cursor_pos;
+    PangoLayout *layout;
+    PangoFontDescription *font_desc;
+    gint selection_start;
+    gint selection_end;
+    gboolean is_x_snapped;
+    gboolean is_y_snapped;
+};
+
 typedef struct _img_window_struct img_window_struct;
 struct _img_window_struct
 {
@@ -186,6 +214,7 @@ struct _img_window_struct
 	GtkWidget 	*menubar;
 	GtkWidget *sidebar;
 	GtkWidget *side_notebook;
+	GtkWidget *toggle_button_text;
 	GtkAccelGroup *accel_group;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
@@ -212,7 +241,6 @@ struct _img_window_struct
 	GtkWidget   *text_pos_button;
 	GtkWidget 	*thumb_scrolledwindow;
   	GtkWidget	*thumbnail_iconview;
-  	GtkWidget 	*viewport_align;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
   	GtkListStore *thumbnail_model;
@@ -224,7 +252,6 @@ struct _img_window_struct
   	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
 	GtkWidget   *main_horizontal_box;
 	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
-	GtkWidget *active_icon;								/* Currently active icon view */
 
 	/* Ken Burns related controls */
 	GtkWidget *ken_left;     /* Go to left stop point button */
@@ -271,8 +298,9 @@ struct _img_window_struct
 	gdouble       maxoffx;       /* Maximal offsets for current zoom */
 	gdouble       maxoffy;
 	ImgStopPoint  current_point; /* Data for rendering current image */
-  	slide_struct *current_slide;
-	
+  	slide_struct 		*current_slide;
+	img_textbox 	*textbox;
+
 	/* Update ids */
 	gint subtitle_update_id; /* Update subtitle display */
 

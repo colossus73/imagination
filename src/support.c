@@ -53,11 +53,11 @@ gchar *img_convert_seconds_to_time(gint total_secs)
 }
 
 static void
-sens_cell_func( GtkCellLayout   * UNUSED(layout),
+sens_cell_func( GtkCellLayout   * layout,
 				GtkCellRenderer *cell,
 				GtkTreeModel    *model,
 				GtkTreeIter     *iter,
-				gpointer         UNUSED(data) )
+				gpointer         data )
 {
 	gboolean sensitive = ! gtk_tree_model_iter_has_child( model, iter );
 	g_object_set( cell, "sensitive", sensitive, NULL );
@@ -267,7 +267,7 @@ static gboolean img_plugin_is_loaded(img_window_struct *img, GModule *module)
 	return (g_slist_find(img->plugin_list,module) != NULL);
 }
 
-void img_show_file_chooser(GtkWidget *entry, GtkEntryIconPosition UNUSED(icon_pos),int UNUSED(button),img_window_struct *img)
+void img_show_file_chooser(GtkWidget *entry, GtkEntryIconPosition icon_pos,int button, img_window_struct *img)
 {
 	GtkWidget		*file_selector;
 	gchar			*dest_dir,
@@ -925,11 +925,11 @@ void img_select_nth_slide(img_window_struct *img, gint slide_to_select)
 {
 	GtkTreePath *path;
 
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->active_icon));
+	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->thumbnail_iconview));
 	path = gtk_tree_path_new_from_indices(slide_to_select, -1);
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->active_icon), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->active_icon), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->active_icon), path, FALSE, 0, 0);
+	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->thumbnail_iconview), path, NULL, FALSE);
+	gtk_icon_view_select_path (GTK_ICON_VIEW (img->thumbnail_iconview), path);
+	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->thumbnail_iconview), path, FALSE, 0, 0);
 	gtk_tree_path_free (path);
 }
 
@@ -1325,3 +1325,55 @@ gchar * img_get_audio_duration(gchar * filename)
 	time = g_strdup_printf("%02d:%02d:%02d\n", hours, minutes, seconds);
 	return time;
 }
+
+void rotate_point(double x, double y, double cx, double cy, double angle, double *rx, double *ry)
+{
+    double cos_angle = cos(angle);
+    double sin_angle = sin(angle);
+    *rx = (x - cx) * cos_angle - (y - cy) * sin_angle + cx;
+    *ry = (x - cx) * sin_angle + (y - cy) * cos_angle + cy;
+}
+
+void transform_coords(img_textbox *textbox, double x, double y, double *tx, double *ty)
+{
+    double cx = textbox->x + textbox->width / 2;
+    double cy = textbox->y + textbox->height / 2;
+    
+    // Translate to origin
+    x -= cx;
+    y -= cy;
+    
+    // Rotate
+    double rx = x * cos(-textbox->angle) - y * sin(-textbox->angle);
+    double ry = x * sin(-textbox->angle) + y * cos(-textbox->angle);
+    
+    // Translate back
+    *tx = rx + cx;
+    *ty = ry + cy;
+}
+
+void select_word_at_position(img_textbox *textbox, int position)
+{
+    if (!textbox->text || position < 0 || position >= textbox->text->len)
+        return;
+
+    int start = position;
+    int end = position;
+
+    // Find start of word
+    while (start > 0 && ! isspace(textbox->text->str[start - 1]))
+    {
+        start--;
+    }
+
+    // Find end of word
+    while (end < textbox->text->len && ! isspace(textbox->text->str[end]))
+    {
+        end++;
+    }
+
+    textbox->selection_start = start;
+    textbox->selection_end = end;
+    textbox->cursor_pos = end;
+}
+
