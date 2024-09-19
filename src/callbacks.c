@@ -85,11 +85,10 @@ void img_taint_project(img_window_struct *img)
 void img_refresh_window_title(img_window_struct *img)
 {
 	gchar *title = NULL;
-	gchar *rev =  strcmp(REVISION, "-1") == 0 ? VERSION : VERSION "-" REVISION;
 
 	if (img->project_filename == NULL)
 	{
-		title = g_strconcat("Imagination ", rev, NULL);
+		title = g_strconcat("Imagination ", VERSION , NULL);
 	}
 	else
 	{
@@ -98,7 +97,7 @@ void img_refresh_window_title(img_window_struct *img)
 			img->project_is_modified ? "*" : "",
 			name,
 			" - Imagination ",
-			rev,
+			VERSION,
 			NULL);
 		g_free(name);
 	}
@@ -773,7 +772,7 @@ static GdkPixbuf *img_rotate_pixbuf( GdkPixbuf *original, ImgAngle  angle )
 void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 {
 	static GtkWidget *about = NULL;
-	static gchar version[] = VERSION "-" REVISION;
+	static gchar version[] = VERSION;
     const char *authors[] = {"\nDevelopers:\nGiuseppe Torelli <colossus73@gmail.com>",
 								"Tadej Borovšak <tadeboro@gmail.com>",
 								"Symphorien Gibol <symphorien.gibol@gmail.com>",
@@ -788,8 +787,8 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 		gtk_window_set_destroy_with_parent (GTK_WINDOW (about),TRUE);
 		g_object_set (about,
 			"name", "Imagination",
-			"version", strcmp(REVISION, "-1") == 0 ? VERSION : version,
-			"copyright","Copyright \xC2\xA9 2009-2020 Giuseppe Torelli",
+			"version", VERSION,
+			"copyright","Copyright \xC2\xA9 2009-2024 Giuseppe Torelli",
 			"comments","A simple and lightweight slideshow maker",
 			"authors",authors,
 			"documenters",NULL,

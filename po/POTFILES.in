@@ -1,7 +1,7 @@
 # List of source files containing translatable strings.
 
 imagination.desktop.in
-src/audio.c
+src/empty_slide.c
 src/imagination.c
 src/main-window.c
 src/callbacks.c
