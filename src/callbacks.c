@@ -371,8 +371,13 @@ void img_free_allocated_memory(img_window_struct *img_struct)
 	}
 }
 
-gboolean img_key_pressed(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
+gboolean img_window_key_pressed(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
 {
+	//This hack to give image area key events as when the toplevel window contains other widgets due
+	//to focus reasons the drawing area doesn't get any keyboard events despite mask and focus are set
+	if (img->textbox->draw_rect)
+		 return gtk_widget_event(img->image_area, (GdkEvent*)event);
+
 	if (event->keyval == GDK_KEY_Tab)
 	{
 		if (gtk_widget_get_visible(img->sidebar))
@@ -389,19 +394,181 @@ gboolean img_key_pressed(GtkWidget *widget, GdkEventKey *event, img_window_struc
 		}
 	}
 		
-	if ( img->window_is_fullscreen )
-	{
-		if (event->keyval == GDK_KEY_F11 || event->keyval == GDK_KEY_Escape)
-			img_exit_fullscreen(img);
-		else if (event->keyval == GDK_KEY_space)
-			img_start_stop_preview(NULL, img);
-
-	}
+	if ( img->window_is_fullscreen && (event->keyval == GDK_KEY_F11 || event->keyval == GDK_KEY_Escape))
+		img_exit_fullscreen(img);
+	else if (event->keyval == GDK_KEY_space)
+		img_start_stop_preview(NULL, img);
 	else
 			if (event->keyval == GDK_KEY_F11)
 				img_go_fullscreen(NULL, img);
 
-	return FALSE;
+	return TRUE;
+}
+
+gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
+{
+	gboolean shift_pressed;
+	gboolean ctrl_pressed;
+	
+	if (!img->textbox->draw_rect)
+        return FALSE;
+
+	shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
+	ctrl_pressed = (event->state & GDK_CONTROL_MASK) != 0;
+
+	
+	switch (event->keyval)
+    {
+		case GDK_KEY_a:
+		case GDK_KEY_A:
+         if (ctrl_pressed)
+         {
+			img->textbox->selection_start = 0;
+			img->textbox->selection_end = img->textbox->text->len;
+         }
+        else
+			goto handle;
+		break;
+	
+		case GDK_KEY_v:
+		case GDK_KEY_V:
+		if (ctrl_pressed)
+		{
+			GtkClipboard *clipboard;
+			gchar *text;
+		
+			clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+			text = gtk_clipboard_wait_for_text(clipboard);
+			if (text)
+			{
+				g_string_insert(img->textbox->text, img->textbox->cursor_pos, text);
+				g_free(text);
+			}
+		}
+		else
+			goto handle;
+		break;
+	 
+		case GDK_KEY_Left:
+		 if (img->textbox->cursor_pos > 0)
+		 {
+			 img->textbox->cursor_pos--;
+			 if (shift_pressed)
+			 {
+				 if (img->textbox->selection_start == -1) img->textbox->selection_start = img->textbox->cursor_pos + 1;
+				 img->textbox->selection_end = img->textbox->cursor_pos;
+			 }
+			 else 
+				img->textbox->selection_start = img->textbox->selection_end = -1;
+		 }
+		 break;
+		 
+		case GDK_KEY_Right:
+		if (img->textbox->text->str && img->textbox->cursor_pos < img->textbox->text->len)
+		{
+			img->textbox->cursor_pos++;
+			if (shift_pressed)
+			{
+				 if (img->textbox->selection_start == -1) img->textbox->selection_start = img->textbox->cursor_pos - 1;
+				 img->textbox->selection_end = img->textbox->cursor_pos;
+			}
+			else
+				 img->textbox->selection_start = img->textbox->selection_end = -1; 
+		}
+		break;
+   		
+   		case GDK_KEY_Up:
+		case GDK_KEY_Down:
+            int index, trailing;
+            PangoRectangle pos;
+            
+            pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &pos, NULL);
+            int line = pango_layout_xy_to_index(img->textbox->layout, 
+                pos.x, 
+                pos.y + (event->keyval == GDK_KEY_Down ? pos.height : -pos.height),
+                &index, &trailing);
+            if (line != -1)
+            {
+                img->textbox->cursor_pos = index + trailing;
+                if (shift_pressed)
+                {
+                    if (img->textbox->selection_start == -1)
+						img->textbox->selection_start = img->textbox->cursor_pos;
+                    
+                    img->textbox->selection_end = img->textbox->cursor_pos;
+                }
+                else
+					img->textbox->selection_start = img->textbox->selection_end = -1;
+            }
+		break;
+
+		case GDK_KEY_BackSpace:
+		if (img->textbox->text->len > 0)
+		{
+			// Text is selected
+			if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
+			{
+				int start = MIN(img->textbox->selection_start, img->textbox->selection_end);
+				int end = MAX(img->textbox->selection_start, img->textbox->selection_end);
+				
+				// User pressed CTRL+A
+				if(img->textbox->selection_start == 0 && img->textbox->selection_end == img->textbox->text->len)
+					g_string_erase(img->textbox->text,  0, img->textbox->selection_end);
+				else
+					g_string_erase(img->textbox->text,  start,  end - start);
+
+				img->textbox->cursor_pos = start;
+				img->textbox->selection_start = img->textbox->selection_end = -1;
+			}
+			else
+			{
+				if (img->textbox->cursor_pos > 0)
+				{
+					g_string_erase(img->textbox->text, img->textbox->cursor_pos-1, 1);
+					img->textbox->cursor_pos--;
+				}
+			}
+		}
+		break;
+
+		case GDK_KEY_Return:
+			g_string_insert_c(img->textbox->text, img->textbox->cursor_pos, '\n');
+			img->textbox->cursor_pos++;
+		break;
+
+handle:
+		default:
+			if (g_ascii_isprint(event->keyval))
+			{
+				// Text is selected
+				if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
+				{
+					int start = MIN(img->textbox->selection_start, img->textbox->selection_end);
+					int end = MAX(img->textbox->selection_start, img->textbox->selection_end);
+					g_string_erase(img->textbox->text,  start,  end - start);
+					g_string_insert_unichar(img->textbox->text, start, event->string[0]);
+					img->textbox->cursor_pos = start+1;
+					img->textbox->selection_start = img->textbox->selection_end = -1;
+				}
+				else
+				{
+					g_string_insert_unichar(img->textbox->text, img->textbox->cursor_pos, event->string[0]);
+					img->textbox->cursor_pos++;
+				}
+			}
+	}
+
+	pango_layout_set_text(img->textbox->layout, img->textbox->text->str, -1);
+	img->textbox->cursor_visible = TRUE;
+    if (img->textbox->cursor_source_id != 0)
+		g_source_remove(img->textbox->cursor_source_id);
+
+	img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
+ 
+	img_update_textbox_boundaries(img);
+	
+    gtk_widget_queue_draw(widget);
+    return TRUE;
 }
 
 void img_exit_fullscreen(img_window_struct *img)
@@ -411,8 +578,13 @@ void img_exit_fullscreen(img_window_struct *img)
 	gtk_widget_show(img->thumb_scrolledwindow);
 	gtk_widget_show (img->main_horizontal_box);
 	gtk_widget_show(img->menubar);
+	gtk_widget_show(img->side_notebook);
 	gtk_widget_show(img->sidebar);
-
+	gtk_widget_show(img->preview_hbox);
+	
+	gtk_widget_set_halign(img->image_area, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(img->image_area, GTK_ALIGN_CENTER);
+	
 	gtk_window_unfullscreen(GTK_WINDOW(img->imagination_window));
 	//gtk_widget_add_accelerator (img->fullscreen, "activate", img->accel_group, GDK_KEY_F11, 0, GTK_ACCEL_VISIBLE);
 	img->window_is_fullscreen = FALSE;
@@ -420,6 +592,34 @@ void img_exit_fullscreen(img_window_struct *img)
 	/* Restore the cursor */
 	win = gtk_widget_get_window(img->imagination_window);
 	gdk_window_set_cursor(win, img->cursor);
+}
+
+void img_go_fullscreen(GtkMenuItem *item, img_window_struct *img)
+{
+	/* Hide the cursor */
+	GdkCursor *cursor;
+	GdkWindow *win;
+	GdkDisplay *display1;
+
+	win = gtk_widget_get_window(img->imagination_window);
+	img->cursor = gdk_window_get_cursor(win);
+	display1 = gdk_display_get_default();
+	cursor = gdk_cursor_new_for_display(display1, GDK_BLANK_CURSOR);
+	gdk_window_set_cursor(win, cursor);
+	//gtk_widget_remove_accelerator (img->fullscreen, img->accel_group, GDK_KEY_F11, 0);
+
+	gtk_widget_hide (img->thumb_scrolledwindow);
+	gtk_widget_hide (img->menubar);
+	gtk_widget_hide (img->side_notebook);
+	gtk_widget_hide (img->sidebar);
+	gtk_widget_set_halign(img->image_area, GTK_ALIGN_FILL);
+	gtk_widget_set_valign(img->image_area, GTK_ALIGN_FILL);
+	gtk_widget_hide (img->preview_hbox);
+	
+	gtk_window_fullscreen(GTK_WINDOW(img->imagination_window));
+	img->window_is_fullscreen =TRUE;
+
+	gtk_widget_queue_draw(img->image_area);
 }
 
 gboolean img_quit_application(GtkWidget *widget, GdkEvent * event, img_window_struct *img_struct)
@@ -814,32 +1014,6 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 	}
 	gtk_dialog_run ( GTK_DIALOG(about));
 	gtk_widget_hide (about);
-}
-
-void img_go_fullscreen(GtkMenuItem *item, img_window_struct *img)
-{
-	/* Hide the cursor */
-	GdkCursor *cursor;
-	GdkWindow *win;
-	GdkDisplay *display1;
-
-	win = gtk_widget_get_window(img->imagination_window);
-	img->cursor = gdk_window_get_cursor(win);
-	display1 = gdk_display_get_default();
-	cursor = gdk_cursor_new_for_display(display1, GDK_BLANK_CURSOR);
-	gdk_window_set_cursor(win, cursor);
-
-	//gtk_widget_remove_accelerator (img->fullscreen, img->accel_group, GDK_KEY_F11, 0);
-
-	gtk_widget_hide (img->thumb_scrolledwindow);
-	//gtk_widget_hide (img->main_horizontal_box);
-	gtk_widget_hide (img->menubar);
-	gtk_widget_hide (img->sidebar);
-
-	gtk_window_fullscreen(GTK_WINDOW(img->imagination_window));
-	img->window_is_fullscreen =TRUE;
-
-	gtk_widget_queue_draw(img->image_area);
 }
 
 void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
@@ -1884,172 +2058,6 @@ gboolean img_image_area_motion( GtkWidget * widget,  GdkEventMotion *event,  img
 	return TRUE;
 }
 
-gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
-{
-	gboolean shift_pressed;
-	gboolean ctrl_pressed;
-	
-	g_print("Hello\n");
-	shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
-	ctrl_pressed = (event->state & GDK_CONTROL_MASK) != 0;
-
-	if (!img->textbox->draw_rect)
-        return FALSE;
-
-	switch (event->keyval)
-    {
-		case GDK_KEY_a:
-		case GDK_KEY_A:
-         if (ctrl_pressed)
-         {
-			img->textbox->selection_start = 0;
-			img->textbox->selection_end = img->textbox->text->len;
-         }
-        else
-			goto handle;
-		break;
-	
-		case GDK_KEY_v:
-		case GDK_KEY_V:
-		if (ctrl_pressed)
-		{
-			GtkClipboard *clipboard;
-			gchar *text;
-		
-			clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-			text = gtk_clipboard_wait_for_text(clipboard);
-			if (text)
-			{
-				g_string_append(img->textbox->text, text);
-				g_free(text);
-			}
-		}
-		else
-			goto handle;
-		break;
-	 
-		case GDK_KEY_Left:
-		 if (img->textbox->cursor_pos > 0)
-		 {
-			 img->textbox->cursor_pos--;
-			 if (shift_pressed)
-			 {
-				 if (img->textbox->selection_start == -1) img->textbox->selection_start = img->textbox->cursor_pos + 1;
-				 img->textbox->selection_end = img->textbox->cursor_pos;
-			 }
-			 else 
-				img->textbox->selection_start = img->textbox->selection_end = -1;
-		 }
-		 break;
-		 
-		case GDK_KEY_Right:
-		if (img->textbox->text->str && img->textbox->cursor_pos < img->textbox->text->len)
-		{
-			img->textbox->cursor_pos++;
-			if (shift_pressed)
-			{
-				 if (img->textbox->selection_start == -1) img->textbox->selection_start = img->textbox->cursor_pos - 1;
-				 img->textbox->selection_end = img->textbox->cursor_pos;
-			}
-			else
-				 img->textbox->selection_start = img->textbox->selection_end = -1; 
-		}
-		break;
-   		
-   		case GDK_KEY_Up:
-		case GDK_KEY_Down:
-            int index, trailing;
-            PangoRectangle pos;
-            
-            pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &pos, NULL);
-            int line = pango_layout_xy_to_index(img->textbox->layout, 
-                pos.x, 
-                pos.y + (event->keyval == GDK_KEY_Down ? pos.height : -pos.height),
-                &index, &trailing);
-            if (line != -1)
-            {
-                img->textbox->cursor_pos = index + trailing;
-                if (shift_pressed)
-                {
-                    if (img->textbox->selection_start == -1)
-						img->textbox->selection_start = img->textbox->cursor_pos;
-                    
-                    img->textbox->selection_end = img->textbox->cursor_pos;
-                }
-                else
-					img->textbox->selection_start = img->textbox->selection_end = -1;
-            }
-		break;
-
-		case GDK_KEY_BackSpace:
-		if (img->textbox->text->len > 0)
-		{
-			// Text is selected
-			if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
-			{
-				int start = MIN(img->textbox->selection_start, img->textbox->selection_end);
-				int end = MAX(img->textbox->selection_start, img->textbox->selection_end);
-				
-				// User pressed CTRL+A
-				if(img->textbox->selection_start == 0 && img->textbox->selection_end == img->textbox->text->len)
-					g_string_erase(img->textbox->text,  0, img->textbox->selection_end);
-				else
-					g_string_erase(img->textbox->text,  start,  end - start);
-
-				img->textbox->cursor_pos = start;
-				img->textbox->selection_start = img->textbox->selection_end = -1;
-			}
-			else
-			{
-				if (img->textbox->cursor_pos > 0)
-				{
-					g_string_erase(img->textbox->text, img->textbox->cursor_pos-1, 1);
-					img->textbox->cursor_pos--;
-				}
-			}
-		}
-		break;
-
-		case GDK_KEY_Return:
-			g_string_insert_c(img->textbox->text, img->textbox->cursor_pos, '\n');
-			img->textbox->cursor_pos++;
-		break;
-
-handle:
-		default:
-			if (g_ascii_isprint(event->keyval))
-			{
-				// Text is selected
-				if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
-				{
-					int start = MIN(img->textbox->selection_start, img->textbox->selection_end);
-					int end = MAX(img->textbox->selection_start, img->textbox->selection_end);
-					g_string_erase(img->textbox->text,  start,  end - start);
-					g_string_insert_unichar(img->textbox->text, start, event->string[0]);
-					img->textbox->cursor_pos = start+1;
-					img->textbox->selection_start = img->textbox->selection_end = -1;
-				}
-				else
-				{
-					g_string_insert_unichar(img->textbox->text, img->textbox->cursor_pos, event->string[0]);
-					img->textbox->cursor_pos++;
-				}
-			}
-	}
-
-	pango_layout_set_text(img->textbox->layout, img->textbox->text->str, -1);
-	img->textbox->cursor_visible = TRUE;
-    if (img->textbox->cursor_source_id != 0)
-		g_source_remove(img->textbox->cursor_source_id);
-
-	img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
- 
-	img_update_textbox_boundaries(img);
-	
-    gtk_widget_queue_draw(widget);
-    return FALSE;
-}
-
 void img_add_stop_point( GtkButton  *button, img_window_struct *img )
 {
 	ImgStopPoint *point;
@@ -2419,7 +2427,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 	}
 
 	gtk_window_get_size( GTK_WINDOW( img->imagination_window ), &w, &h );
-	//g = gtk_paned_get_position( GTK_PANED( img->main_horizontal_box ) );
+	g = gtk_paned_get_position( GTK_PANED( img->vpaned));
 	f = gdk_window_get_state( gtk_widget_get_window( img->imagination_window ) );
 	max = f & GDK_WINDOW_STATE_MAXIMIZED;
 
@@ -2434,14 +2442,13 @@ gboolean img_save_window_settings( img_window_struct *img )
 	kf = g_key_file_new();
 	g_key_file_set_integer( kf, group, "width",   w );
 	g_key_file_set_integer( kf, group, "height",  h );
-	g_key_file_set_integer( kf, group, "gutter",  g );
+	g_key_file_set_integer( kf, group, "paned",  g );
 	g_key_file_set_double(  kf, group, "zoom_p",  img->image_area_zoom );
 	g_key_file_set_boolean( kf, group, "max",     max );
 	g_key_file_set_integer( kf, group, "preview", img->preview_fps );
 	g_key_file_set_string_list(kf, group, "recent_files", (const gchar * const *)recent_files->pdata, recent_files->len);
 
-	rc_path = g_build_filename( g_get_home_dir(), ".config",
-								"imagination", NULL );
+	rc_path = g_build_filename( g_get_home_dir(), ".config", "imagination", NULL );
 	rc_file = g_build_filename( rc_path, "imaginationrc", NULL );
 	contents = g_key_file_to_data( kf, NULL, NULL );
 	g_key_file_free( kf );
@@ -2458,8 +2465,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 	return( FALSE );
 }
 
-gboolean
-img_load_window_settings( img_window_struct *img )
+gboolean img_load_window_settings( img_window_struct *img )
 {
 	GtkWidget *menu;
 	GKeyFile  *kf;
@@ -2480,7 +2486,7 @@ img_load_window_settings( img_window_struct *img )
 
 	w                    = g_key_file_get_integer( kf, group, "width",   NULL );
 	h                    = g_key_file_get_integer( kf, group, "height",  NULL );
-	g                    = g_key_file_get_integer( kf, group, "gutter",  NULL );
+	g                    = g_key_file_get_integer( kf, group, "paned",  NULL );
 	m                    = g_key_file_get_integer( kf, group, "mode",    NULL );
 	img->image_area_zoom = g_key_file_get_double(  kf, group, "zoom_p",  NULL );
 	max                  = g_key_file_get_boolean( kf, group, "max",     NULL );
@@ -2521,21 +2527,22 @@ img_load_window_settings( img_window_struct *img )
 
 	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
-	//gtk_paned_set_position( GTK_PANED( img->main_horizontal_box ), g );
+	
+	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
+	gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
+	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
+	
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
-	/* Update zoom display 
-	gtk_widget_set_size_request( img->image_area,
-								 img->video_size[0] * img->image_area_zoom,
-								 img->video_size[1] * img->image_area_zoom );*/
+	gtk_widget_set_size_request( img->image_area, img->video_size[0] * img->image_area_zoom,  img->video_size[1] * img->image_area_zoom );
 
-	return( TRUE );
+	return TRUE;
 }
 
 void img_set_window_default_settings( img_window_struct *img )
 {
-	//img->image_area_zoom = 1.0;
+	img->image_area_zoom = 1.0;
 	img->preview_fps = 25;
 
 	/* Update window size and gutter position */

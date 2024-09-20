@@ -59,17 +59,17 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* */
-#undef LIBAVCODEC_VERSION
+/* Version of libavcodec used */
+#undef IMG_LIBAVCODEC_VERSION
 
-/* */
-#undef LIBAVFORMAT_VERSION
+/* Version of libavformat used */
+#undef IMG_LIBAVFORMAT_VERSION
 
-/* */
-#undef LIBAVUTIL_VERSION
+/* Version of libavutil used */
+#undef IMG_LIBAVUTIL_VERSION
 
-/* */
-#undef LIBSWSCALE_VERSION
+/* Version of libswscale used */
+#undef IMG_LIBSWSCALE_VERSION
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR

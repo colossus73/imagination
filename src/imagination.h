@@ -227,14 +227,13 @@ struct _img_window_struct
 	GtkWidget	*edit_empty_slide;
 	GtkWidget	*remove_menu;
 	GtkWidget	*select_all_menu;
-	GtkWidget	*report_menu;
-	GtkWidget 	*fullscreen_loop_preview;
+	GtkWidget 	*preview_hbox;
 	GtkWidget	*beginning_timer_label;
 	GtkWidget	*preview_button;
 	GtkWidget	*end_timer_label;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
-	GtkWidget	*duration;				// Duration spin button
+	GtkWidget	*duration;
 	GtkWidget	*slideshow_duration;
 	GtkWidget	*filename_data;
 	GtkWidget	*scrolled_win;

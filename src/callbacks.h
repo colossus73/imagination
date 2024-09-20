@@ -35,13 +35,8 @@ void img_new_slideshow(GtkMenuItem *,img_window_struct *);
 void img_add_slides(GSList *slides, img_window_struct *img);
 void img_add_slides_thumbnails(GtkMenuItem *,img_window_struct *);
 void img_delete_selected_slides(GtkMenuItem *,img_window_struct *);
-void
-img_rotate_slides_left( GtkWidget         *widget,
-						img_window_struct *img );
-
-void
-img_rotate_slides_right( GtkWidget         *widget,
-						 img_window_struct *img );
+void img_rotate_slides_left( GtkWidget  *widget, img_window_struct *img );
+void img_rotate_slides_right( GtkWidget  *widget,  img_window_struct *img );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
@@ -54,7 +49,7 @@ void img_close_slideshow(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
 GSList *img_import_slides_file_chooser(img_window_struct *);
 void img_free_allocated_memory(img_window_struct *);
-gboolean img_key_pressed(GtkWidget *, GdkEventKey *, img_window_struct *);
+gboolean img_window_key_pressed(GtkWidget *, GdkEventKey *, img_window_struct *);
 void img_exit_fullscreen(img_window_struct *img);
 gboolean img_quit_application(GtkWidget *, GdkEvent *, img_window_struct *);
 gboolean img_on_draw_event(GtkWidget *,cairo_t *,img_window_struct *);
