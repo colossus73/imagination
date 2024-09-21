@@ -8,5 +8,5 @@ src/callbacks.c
 src/new_slideshow.c
 src/slideshow_project.c
 src/support.c
-src/subtitles.c
+src/text.c
 src/export.c

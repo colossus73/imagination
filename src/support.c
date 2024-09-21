@@ -895,6 +895,14 @@ img_scale_image( const gchar      *filename,
 	return( TRUE );
 }
 
+void img_taint_project(img_window_struct *img)
+{
+    if (!img->project_is_modified) {
+	img->project_is_modified = TRUE;
+	img_refresh_window_title(img);
+    }
+}
+
 void
 img_sync_timings( slide_struct  *slide, img_window_struct *img )
 {
@@ -1289,7 +1297,7 @@ gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filenam
 	{
 		do
 		{
-			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 2, &filename, -1);
+			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 1, &filename, -1);
 			if (strcmp(filename, full_path_filename) == 0)
 			{
 				g_free(filename);

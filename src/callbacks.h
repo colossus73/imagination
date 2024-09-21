@@ -1,6 +1,5 @@
 /*
  *  Copyright (c) 2009-2018 Giuseppe Torelli <colossus73@gmail.com>
- *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,10 +24,9 @@
 #include "main-window.h"
 #include "new_slideshow.h"
 #include "slideshow_project.h"
-#include "subtitles.h"
+#include "text.h"
 
 gboolean img_can_discard_unsaved_project(img_window_struct *img);
-void img_taint_project(img_window_struct *img);
 void img_project_properties(GtkMenuItem *item, img_window_struct *);
 void img_refresh_window_title(img_window_struct *);
 void img_new_slideshow(GtkMenuItem *,img_window_struct *);
@@ -59,10 +57,7 @@ gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
 gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *, img_window_struct *);
-void img_add_thumbnail_widget_area(gint type, gchar *filename, img_window_struct *img);
-void
-img_quality_toggled( GtkCheckMenuItem  *item,
-					 img_window_struct *img );
+void img_add_media_widget_area(gint type, gchar *filename, img_window_struct *img);
 void
 img_draw_image_on_surface( cairo_t           *cr,
 						   gint               width,
@@ -128,8 +123,7 @@ void img_subtitle_top_border_toggled (GtkToggleButton *button, img_window_struct
 void img_subtitle_bottom_border_toggled (GtkToggleButton *button, img_window_struct *img);
 void img_spinbutton_value_changed (GtkSpinButton *spinbutton, img_window_struct *img);
 void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct *img);
-void img_subtitle_style_changed(GtkButton *button, img_window_struct *img);
-void img_set_slide_text_align(GtkButton *button, img_window_struct *img);
+
 void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img);
 gboolean img_transition_timeout(img_window_struct *);
 #endif

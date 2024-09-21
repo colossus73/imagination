@@ -23,8 +23,7 @@ imagination_SOURCES = \
 	new_slideshow.c new_slideshow.h \
 	slideshow_project.c slideshow_project.h \
 	export.c export.h \
-	subtitles.c subtitles.h \
-	imgcellrendererpixbuf.c imgcellrendererpixbuf.h
+	text.c text.h
 
 imagination_CFLAGS = \
 	-DDATADIR=\"$(datadir)\"

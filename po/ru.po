@@ -7,8 +7,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: imagination 1.5\n"
-"Report-Msgid-Bugs-To: https://github.com/ib/xarchiver/issues\n"
-"POT-Creation-Date: 2024-09-19 17:19+0100\n"
+"Report-Msgid-Bugs-To: https://github.com/colossus73/imagination/issues\n"
+"POT-Creation-Date: 2024-09-20 19:55+0100\n"
 "PO-Revision-Date: 2019-07-08 18:23MSK\n"
 "Last-Translator: Olesya Gerasimenko <gammaray@basealt.ru>\n"
 "Language-Team: Basealt Translation Team\n"
@@ -61,308 +61,286 @@ msgstr ""
 msgid "Welcome to Imagination "
 msgstr "Добро пожаловать в Imagination. Загружено переходов — %d."
 
-#: ../src/main-window.c:241
+#: ../src/main-window.c:236
 msgid "_Slideshow"
 msgstr "_Слайд-шоу"
 
-#: ../src/main-window.c:247
+#: ../src/main-window.c:242
 msgid "_New"
 msgstr ""
 
-#: ../src/main-window.c:252
+#: ../src/main-window.c:247
 msgid "_Open"
 msgstr ""
 
-#: ../src/main-window.c:257
+#: ../src/main-window.c:252
 msgid "Open recent"
 msgstr ""
 
-#: ../src/main-window.c:263
+#: ../src/main-window.c:258
 msgid "Import slideshow"
 msgstr "Импорт слайд-шоу"
 
-#: ../src/main-window.c:267
+#: ../src/main-window.c:262
 msgid "_Save"
 msgstr ""
 
-#: ../src/main-window.c:272
+#: ../src/main-window.c:267
 msgid "Save _As"
 msgstr ""
 
-#: ../src/main-window.c:276
+#: ../src/main-window.c:271
 #, fuzzy
 msgid "_Close"
 msgstr "Закрыть"
 
-#: ../src/main-window.c:284
+#: ../src/main-window.c:279
 #, fuzzy
 msgid "Import any med_ia"
 msgstr "Импорт музыкального файла"
 
-#: ../src/main-window.c:289
+#: ../src/main-window.c:284
 #, fuzzy
 msgid "_Properties"
 msgstr "Свойства проекта"
 
-#: ../src/main-window.c:297
+#: ../src/main-window.c:292
 msgid "Preview"
 msgstr "Предварительный просмотр"
 
-#: ../src/main-window.c:302
+#: ../src/main-window.c:297
 msgid "Ex_port"
 msgstr "_Экспорт"
 
-#: ../src/main-window.c:310
+#: ../src/main-window.c:305
 msgid "_Quit"
 msgstr ""
 
 #. Media menu
-#: ../src/main-window.c:316
+#: ../src/main-window.c:311
 #, fuzzy
 msgid "Media"
 msgstr "Среднее"
 
-#: ../src/main-window.c:322
+#: ../src/main-window.c:317
 msgid "Add empt_y slide"
 msgstr "Добавить пуст_ой слайд"
 
-#: ../src/main-window.c:327
+#: ../src/main-window.c:322
 msgid "Edit _empty slide"
 msgstr "Изменить _пустой слайд"
 
-#: ../src/main-window.c:333
+#: ../src/main-window.c:328
 msgid "Dele_te"
 msgstr "_Удалить"
 
-#: ../src/main-window.c:338
-msgid "Repor_t"
-msgstr "Отчё_т"
-
-#: ../src/main-window.c:343
+#: ../src/main-window.c:333
 msgid "_Flip horizontally"
 msgstr ""
 
-#: ../src/main-window.c:348
+#: ../src/main-window.c:338
 msgid "Rotate co_unter-clockwise"
 msgstr "Повернуть п_ротив часовой стрелки"
 
-#: ../src/main-window.c:353
+#: ../src/main-window.c:343
 msgid "_Rotate clockwise"
 msgstr "Повернуть _по часовой стрелке"
 
-#: ../src/main-window.c:358
+#: ../src/main-window.c:348
 #, fuzzy
 msgid "Select All"
 msgstr "_Снять выделение"
 
-#: ../src/main-window.c:363
+#: ../src/main-window.c:353
 msgid "Un_select all"
 msgstr "_Снять выделение"
 
 #. Help menu
-#: ../src/main-window.c:369
+#: ../src/main-window.c:359
 msgid "_Help"
 msgstr "_Справка"
 
-#: ../src/main-window.c:374
+#: ../src/main-window.c:364
 msgid "Contents"
 msgstr "Содержимое"
 
-#: ../src/main-window.c:379
+#: ../src/main-window.c:369
 msgid "About"
 msgstr ""
 
-#: ../src/main-window.c:398
+#: ../src/main-window.c:389
 #, fuzzy
 msgid "Import any media"
 msgstr "Импорт музыкального файла"
 
-#: ../src/main-window.c:403
+#: ../src/main-window.c:395
 msgid "Lists all the imported media"
 msgstr ""
 
-#: ../src/main-window.c:413
+#: ../src/main-window.c:406
 msgid "Insert text"
 msgstr ""
 
-#: ../src/main-window.c:418
+#: ../src/main-window.c:412
 msgid "Ken Burns effect"
 msgstr ""
 
-#: ../src/main-window.c:481
+#: ../src/main-window.c:473
 msgid "<span size='large'><b>Text:</b></span>"
 msgstr ""
 
-#: ../src/main-window.c:497
+#: ../src/main-window.c:489
 #, fuzzy
 msgid "Font color"
 msgstr "_Сплошной цвет"
 
-#: ../src/main-window.c:537
+#: ../src/main-window.c:529
 msgid "Align left"
 msgstr ""
 
-#: ../src/main-window.c:545
+#: ../src/main-window.c:537
 msgid "Align center"
 msgstr ""
 
-#: ../src/main-window.c:553
+#: ../src/main-window.c:545
 msgid "Align right"
 msgstr ""
 
-#: ../src/main-window.c:559
+#: ../src/main-window.c:551
 #, fuzzy
 msgid "Font pattern:"
 msgstr "Шаблон текста:"
 
-#: ../src/main-window.c:568
+#: ../src/main-window.c:560
 #, fuzzy
 msgid "Click to choose the font pattern"
 msgstr "Нажмите, чтобы выбрать шаблон текста"
 
-#: ../src/main-window.c:575
+#: ../src/main-window.c:567
 msgid "Animation:"
 msgstr "Анимация:"
 
-#: ../src/main-window.c:586
+#: ../src/main-window.c:578
 msgid "Animation Speed:"
 msgstr "Скорость анимации:"
 
-#: ../src/main-window.c:601
+#: ../src/main-window.c:594
 msgid "<span size='large'><b>Background:</b></span>"
 msgstr ""
 
-#: ../src/main-window.c:609 ../src/main-window.c:659 ../src/main-window.c:705
+#: ../src/main-window.c:602 ../src/main-window.c:652 ../src/main-window.c:698
 msgid "Color"
 msgstr ""
 
-#: ../src/main-window.c:622
+#: ../src/main-window.c:615
 msgid "Padding:"
 msgstr ""
 
-#: ../src/main-window.c:637
+#: ../src/main-window.c:630
 msgid "Corner radius:"
 msgstr ""
 
-#: ../src/main-window.c:651
+#: ../src/main-window.c:644
 msgid "<span size='large'><b>Shadow:</b></span>"
 msgstr ""
 
-#: ../src/main-window.c:670
+#: ../src/main-window.c:663
 msgid "Distance"
 msgstr ""
 
-#: ../src/main-window.c:683
+#: ../src/main-window.c:676
 #, fuzzy
 msgid "Angle"
 msgstr "Угол:"
 
-#: ../src/main-window.c:697
+#: ../src/main-window.c:690
 msgid "<span size='large'><b>Outline:</b></span>"
 msgstr ""
 
-#: ../src/main-window.c:717
+#: ../src/main-window.c:710
 msgid "Size"
 msgstr ""
 
-#: ../src/main-window.c:733
+#: ../src/main-window.c:726
 msgid "<span size='large'><b>Slide Motion:</b></span>"
 msgstr ""
 
-#: ../src/main-window.c:740
+#: ../src/main-window.c:733
 msgid "Stop Point:"
 msgstr "Точка остановки:"
 
-#: ../src/main-window.c:758
+#: ../src/main-window.c:751
 msgid " of "
 msgstr " из "
 
-#: ../src/main-window.c:774
+#: ../src/main-window.c:767
 msgid "Add Stop point"
 msgstr "Добавить точку остановки"
 
-#: ../src/main-window.c:778
+#: ../src/main-window.c:771
 #, fuzzy
 msgid "Duration in sec:"
 msgstr "Длительность показа слайда в секундах:"
 
-#: ../src/main-window.c:793
+#: ../src/main-window.c:786
 msgid "Remove Stop point"
 msgstr "Удалить точку остановки"
 
-#: ../src/main-window.c:798
+#: ../src/main-window.c:791
 msgid "Zoom: "
 msgstr "Масштаб: "
 
 #. TO BE REMOVED WHEN THE TIMELINE WIDGET IS READY
 #. Transition types label
-#: ../src/main-window.c:873
+#: ../src/main-window.c:861
 msgid "Transition Type:"
 msgstr "Тип перехода:"
 
-#: ../src/main-window.c:888
+#: ../src/main-window.c:876
 #, fuzzy
 msgid "Transition type"
 msgstr "Тип перехода:"
 
-#: ../src/main-window.c:897
+#: ../src/main-window.c:885
 msgid "Random"
 msgstr "Произвольный"
 
-#: ../src/main-window.c:898
+#: ../src/main-window.c:886
 msgid "Imagination randomly decides which transition to apply"
 msgstr "Imagination применит произвольный переход"
 
 #. Slide duration
-#: ../src/main-window.c:904
+#: ../src/main-window.c:892
 #, fuzzy
 msgid "Still slide duration in sec:"
 msgstr "Длительность показа слайда в секундах:"
 
 #. Slide Total Duration
-#: ../src/main-window.c:916
+#: ../src/main-window.c:904
 #, fuzzy
 msgid "Slideshow length:"
 msgstr "Продолжительность слайд-шоу:"
 
-#: ../src/main-window.c:1261
+#: ../src/main-window.c:1248
 msgid "_Cancel"
 msgstr ""
 
-#: ../src/main-window.c:1261
+#: ../src/main-window.c:1248
 msgid "_OK"
 msgstr ""
 
 #. No animation function (id = 0)
-#: ../src/main-window.c:1359 ../src/main-window.c:1361 ../src/support.c:136
-#: ../src/subtitles.c:450
+#: ../src/main-window.c:1345 ../src/main-window.c:1347 ../src/support.c:136
+#: ../src/text.c:274
 msgid "None"
 msgstr "Нет"
 
-#: ../src/main-window.c:1692
-msgid "Slides Transitions Report Dialog"
-msgstr "Диалог отчётов о переходах между слайдами"
-
-#: ../src/main-window.c:1767
-msgid ""
-"\n"
-"<span weight='bold'>Note:</span>\n"
-"\n"
-"Slides whose transition is applied only once are not shown here.\n"
-"Click on the slide to have Imagination automatically select it."
-msgstr ""
-"\n"
-"<span weight='bold'>Примечание:</span>\n"
-"\n"
-"Слайды, для которых переходы применены только один раз, здесь не показаны.\n"
-"Нажмите на слайд, чтобы программа Imagination автоматически выбрала его."
-
-#: ../src/main-window.c:1918
+#: ../src/main-window.c:1696
 #, fuzzy
 msgid "Delete"
 msgstr "_Удалить"
 
-#: ../src/main-window.c:1922
+#: ../src/main-window.c:1700
 #, fuzzy
 msgid "Properties"
 msgstr "Свойства проекта"
@@ -394,11 +372,11 @@ msgstr "Все файлы изображений"
 msgid "All sound files"
 msgstr "Все аудиофайлы"
 
-#: ../src/callbacks.c:298 ../src/callbacks.c:1520 ../src/support.c:345
+#: ../src/callbacks.c:298 ../src/callbacks.c:1694 ../src/support.c:345
 msgid "All files"
 msgstr "Все файлы"
 
-#: ../src/callbacks.c:496
+#: ../src/callbacks.c:696
 #, c-format
 msgid "%d x %d pixels"
 msgid_plural "%d x %d pixels"
@@ -406,48 +384,48 @@ msgstr[0] "%d x %d (пикс.)"
 msgstr[1] "%d x %d (пикс.)"
 msgstr[2] "%d x %d (пикс.)"
 
-#: ../src/callbacks.c:795
+#: ../src/callbacks.c:995
 msgid "translator-credits"
 msgstr "Переводчики"
 
-#: ../src/callbacks.c:1051
+#: ../src/callbacks.c:1225
 msgid "Sorry, I could not perform the operation!"
 msgstr "Не удалось выполнить данное действие!"
 
-#: ../src/callbacks.c:1078 ../src/callbacks.c:2933
+#: ../src/callbacks.c:1252 ../src/callbacks.c:2940
 msgid "Can't recognize file type of media\n"
 msgstr ""
 
-#: ../src/callbacks.c:1434
+#: ../src/callbacks.c:1608
 #, fuzzy
 msgid "Starts the preview"
 msgstr "Остановить предварительный просмотр"
 
-#: ../src/callbacks.c:1441
+#: ../src/callbacks.c:1615
 msgid "Stops the preview"
 msgstr "Остановить предварительный просмотр"
 
-#: ../src/callbacks.c:1485
+#: ../src/callbacks.c:1659
 msgid "I do not know what to do with this slideshow filename."
 msgstr ""
 
-#: ../src/callbacks.c:1503
+#: ../src/callbacks.c:1677
 msgid "Load an Imagination slideshow project"
 msgstr "Загрузить проект слайд-шоу Imagination"
 
-#: ../src/callbacks.c:1504
+#: ../src/callbacks.c:1678
 msgid "Save an Imagination slideshow project"
 msgstr "Сохранить проект слайд-шоу Imagination"
 
-#: ../src/callbacks.c:1514
+#: ../src/callbacks.c:1688
 msgid "Imagination projects (*.img)"
 msgstr "Проекты Imagination (*.img)"
 
-#: ../src/callbacks.c:1531
+#: ../src/callbacks.c:1705
 msgid "Don't include folder names in the filenames"
 msgstr "Не включать имена папок в имена файлов"
 
-#: ../src/callbacks.c:1532
+#: ../src/callbacks.c:1706
 msgid ""
 "If you check this button, be sure to include ALL the project files in the "
 "SAME folder before attempting to open it again."
@@ -455,19 +433,19 @@ msgstr ""
 "Если этот флажок установлен, обязательно поместите ВСЕ файлы проекта в ОДНУ "
 "папку, прежде чем открыть проект снова."
 
-#: ../src/callbacks.c:2509
+#: ../src/callbacks.c:2515
 msgid "No recent items found"
 msgstr ""
 
-#: ../src/callbacks.c:2680
+#: ../src/callbacks.c:2687
 msgid "Please choose a PNG file"
 msgstr "Пожалуйста, выберите файл PNG"
 
-#: ../src/callbacks.c:2694
+#: ../src/callbacks.c:2701
 msgid "PNG files"
 msgstr "Файлы PNG"
 
-#: ../src/callbacks.c:2702
+#: ../src/callbacks.c:2709
 msgid "Delete current pattern"
 msgstr "Удалить текущий шаблон"
 
@@ -542,39 +520,39 @@ msgstr "Нажмите, чтобы выбрать цвет шрифта"
 msgid "Close"
 msgstr "Закрыть"
 
-#: ../src/subtitles.c:454
+#: ../src/text.c:278
 msgid "Fade"
 msgstr "Исчезание"
 
-#: ../src/subtitles.c:458
+#: ../src/text.c:282
 msgid "Slide from left"
 msgstr "Скольжение слева"
 
-#: ../src/subtitles.c:462
+#: ../src/text.c:286
 msgid "Slide from right"
 msgstr "Скольжение справа"
 
-#: ../src/subtitles.c:466
+#: ../src/text.c:290
 msgid "Slide from top"
 msgstr "Скольжение сверху"
 
-#: ../src/subtitles.c:470
+#: ../src/text.c:294
 msgid "Slide from bottom"
 msgstr "Скольжение снизу"
 
-#: ../src/subtitles.c:474
+#: ../src/text.c:298
 msgid "Grow"
 msgstr "Увеличение"
 
-#: ../src/subtitles.c:478
+#: ../src/text.c:302
 msgid "Spin & Grow"
 msgstr ""
 
-#: ../src/subtitles.c:482
+#: ../src/text.c:306
 msgid "Slide bottom to top"
 msgstr "Скольжение снизу вверх"
 
-#: ../src/subtitles.c:486
+#: ../src/text.c:310
 msgid "Slide right to left"
 msgstr "Скольжение справа налево"
 
@@ -739,6 +717,26 @@ msgstr ""
 #: ../src/export.c:1553
 msgid "Could not allocate the video frame data\n"
 msgstr ""
+
+#~ msgid "Repor_t"
+#~ msgstr "Отчё_т"
+
+#~ msgid "Slides Transitions Report Dialog"
+#~ msgstr "Диалог отчётов о переходах между слайдами"
+
+#~ msgid ""
+#~ "\n"
+#~ "<span weight='bold'>Note:</span>\n"
+#~ "\n"
+#~ "Slides whose transition is applied only once are not shown here.\n"
+#~ "Click on the slide to have Imagination automatically select it."
+#~ msgstr ""
+#~ "\n"
+#~ "<span weight='bold'>Примечание:</span>\n"
+#~ "\n"
+#~ "Слайды, для которых переходы применены только один раз, здесь не "
+#~ "показаны.\n"
+#~ "Нажмите на слайд, чтобы программа Imagination автоматически выбрала его."
 
 #~ msgid "Imagination"
 #~ msgstr "Imagination"

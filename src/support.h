@@ -117,8 +117,8 @@ gboolean img_scale_image( const gchar      *filename,
 				 GdkPixbuf       **pixbuf,
 				 cairo_surface_t **surface );
 
-void img_set_project_mod_state( img_window_struct *img, gboolean           modified );
-void img_sync_timings( slide_struct      *slide, img_window_struct *img );
+void img_taint_project(img_window_struct *);
+void img_sync_timings( slide_struct  *, img_window_struct * );
 GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 
 gboolean img_scale_empty_slide( gint gradient, gint countdown,

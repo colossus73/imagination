@@ -64,6 +64,7 @@ int main (int argc, char *argv[])
 	pango_font_description_free(img_window->textbox->font_desc);
 	g_string_free(img_window->textbox->text, FALSE);
     g_free(img_window->textbox);
+    
 	g_free(img_window);
 	return 0;
 }

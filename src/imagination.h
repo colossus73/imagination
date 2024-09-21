@@ -1,6 +1,5 @@
 /*
  *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
- *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -172,7 +171,7 @@ struct _slide_struct
     gint               	 alignment;
 };
 
-/* img_struct->textbox related variables */
+/* Textbox related variables */
 	enum action
 {
     NONE = 0,
@@ -194,12 +193,14 @@ struct _img_textbox
     guint cursor_source_id;
     gboolean button_pressed;
     gboolean cursor_visible;
-    gboolean draw_rect;
+    gboolean visible;
     gboolean draw_horizontal_line;
     gboolean draw_vertical_line;
     gint cursor_pos;
     PangoLayout *layout;
     PangoFontDescription *font_desc;
+	PangoAttrList *attr_list;
+	PangoAttribute *attr;
     gint selection_start;
     gint selection_end;
     gboolean is_x_snapped;
@@ -299,9 +300,6 @@ struct _img_window_struct
 	ImgStopPoint  current_point; /* Data for rendering current image */
   	slide_struct 		*current_slide;
 	img_textbox 	*textbox;
-
-	/* Update ids */
-	gint subtitle_update_id; /* Update subtitle display */
 
 	/* Renderers and module stuff */
   	gint		nr_transitions_loaded;

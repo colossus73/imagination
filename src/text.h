@@ -1,6 +1,5 @@
 /*
 ** Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
-** Copyright (C) 2009 Tadej Borovšak <tadeboro@gmail.com>
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -34,15 +33,16 @@ struct _TextAnimation
 gboolean blink_cursor(img_window_struct *);
 void img_draw_textbox(cairo_t *, img_window_struct *);
 void img_textbox_button_pressed(GdkEventButton *, img_window_struct *);
-
+void img_text_color_clicked(GtkWidget *, img_window_struct *);
+void img_text_style_changed(GtkButton *button, img_window_struct *);
+void img_text_align_changed(GtkButton *button, img_window_struct *);
+gboolean img_is_style_applied(PangoLayout *, PangoAttrType , int , int );
 gint img_get_text_animation_list( TextAnimation **animations );
 
-void
-img_free_text_animation_list( gint           no_animations,
+void img_free_text_animation_list( gint no_animations,
 							  TextAnimation *animations );
 
-void
-img_render_subtitle( img_window_struct	  *img,
+void img_render_subtitle( img_window_struct	  *img,
 					 cairo_t              *cr,
 					 gdouble               zoom,
 					 gint					posx,
@@ -56,8 +56,7 @@ img_render_subtitle( img_window_struct	  *img,
 					 gboolean				centerY,
 					 gdouble               progress );
 
-void
-img_set_slide_text_info( slide_struct      *slide,
+void img_set_slide_text_info( slide_struct      *slide,
 						 GtkListStore      *store,
 						 GtkTreeIter       *iter,
 						 guint8		       *subtitle,

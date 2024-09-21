@@ -1,6 +1,5 @@
 /*
  *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
- *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,8 +25,7 @@
 #include "main-window.h"
 #include "callbacks.h"
 #include "export.h"
-#include "subtitles.h"
-#include "imgcellrendererpixbuf.h"
+#include "text.h"
 
 static const GtkTargetEntry drop_targets[] =
 {
@@ -38,7 +36,6 @@ static const GtkTargetEntry drop_targets[] =
  * Local function declarations
  * ************************************************************************* */
 static void img_random_button_clicked(GtkButton *, img_window_struct *);
-static void img_button_color_clicked(GtkWidget *, img_window_struct *);
 static GdkPixbuf *img_set_random_transition(img_window_struct *, slide_struct *);
 static void img_transition_speed_changed (GtkRange *,  img_window_struct *);
 static void img_clear_audio_files(GtkButton *, img_window_struct *);
@@ -102,8 +99,6 @@ static gboolean img_iconview_selection_button_press( GtkWidget         *widget,
 static gboolean img_scroll_thumb( GtkWidget         *widget,
 				  GdkEventScroll    *scroll,
 				  img_window_struct *img );
-
-static gboolean img_subtitle_update( img_window_struct *img );
 
 static GtkWidget *img_create_subtitle_animation_combo( void );
 static GtkWidget *img_load_icon_from_theme(GtkIconTheme *icon_theme, gchar *name, gint size);
@@ -182,25 +177,24 @@ img_window_struct *img_create_window (void)
 
 	img_struct->textbox = g_new0(img_textbox, 1);
     img_struct->textbox->angle = 0;
-    img_struct->textbox->text = g_string_new("Amelia\nOld Scrooge");
+    img_struct->textbox->text = g_string_new("");
     img_struct->textbox->x = 275;
     img_struct->textbox->y = 162.5;
     img_struct->textbox->width = 250;
     img_struct->textbox->height = 125;
     img_struct->textbox->corner = GDK_LEFT_PTR;
     img_struct->textbox->action = NONE;
-    img_struct->textbox->draw_rect = FALSE;
+    img_struct->textbox->visible = FALSE;
     img_struct->textbox->cursor_visible = FALSE;
     img_struct->textbox->cursor_pos = 0;
 	img_struct->textbox->cursor_source_id = 0;
-    img_struct->textbox->layout = NULL;
-    img_struct->textbox->font_desc = NULL;
 	img_struct->textbox->selection_start = -1;
 	img_struct->textbox->selection_end = -1;
 	img_struct->textbox->is_x_snapped = FALSE;
 	img_struct->textbox->is_y_snapped = FALSE;
 	img_struct->textbox->layout = pango_cairo_create_layout(cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1)));
-    img_struct->textbox->font_desc = pango_font_description_from_string("Noto 18");
+    img_struct->textbox->font_desc = pango_font_description_from_string("Noto 15");
+    img_struct->textbox->attr_list = pango_attr_list_new();
     
     pango_layout_set_wrap(img_struct->textbox->layout, PANGO_WRAP_CHAR);
     pango_layout_set_ellipsize(img_struct->textbox->layout, PANGO_ELLIPSIZE_NONE);
@@ -431,7 +425,7 @@ img_window_struct *img_create_window (void)
 	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 
 	//Create the list media widget
-	img_struct->media_model = gtk_list_store_new (4, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT);
+	img_struct->media_model = gtk_list_store_new (3, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
 	media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
 	gtk_widget_set_can_focus(media_iconview, FALSE);
 	g_object_unref (img_struct->media_model);
@@ -484,11 +478,13 @@ img_window_struct *img_create_window (void)
 	img_struct->sub_font_color = gtk_button_new();
 	gtk_widget_set_name(img_struct->sub_font_color , "font_color_button");
 	gtk_widget_set_valign(img_struct->sub_font_color, GTK_ALIGN_CENTER);
-	g_signal_connect(img_struct->sub_font_color, "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
+	g_signal_connect(img_struct->sub_font_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_color, FALSE, FALSE, 5);
 	gtk_widget_set_tooltip_text(img_struct->sub_font_color, _("Font color"));
 	GtkCssProvider *css = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(css, "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} #font_button {padding: 0px;} button {padding: 5px}",  -1, NULL);
+	gtk_css_provider_load_from_data(css, "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} \
+																	#nav_button {padding:0px;margin:0px} \
+																	#font_button {padding: 0px;} button {padding: 5px}",  -1, NULL);
 	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	g_object_unref(css);
 
@@ -501,7 +497,7 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_size_request(img_struct->bold_style, 26, -1);
 	label = gtk_bin_get_child(GTK_BIN(img_struct->bold_style));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-	g_signal_connect(img_struct->bold_style, "clicked",	  G_CALLBACK( img_subtitle_style_changed ), img_struct );
+	g_signal_connect(img_struct->bold_style, "clicked",	  G_CALLBACK( img_text_style_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->bold_style, FALSE, FALSE, 5);
 
 	img_struct->italic_style = gtk_button_new_with_label("<span size='x-large'><i>I</i></span>");
@@ -509,7 +505,7 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_size_request(img_struct->italic_style, 26, -1);
 	label = gtk_bin_get_child(GTK_BIN(img_struct->italic_style));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-	g_signal_connect(img_struct->italic_style, "clicked",	  G_CALLBACK( img_subtitle_style_changed ), img_struct );
+	g_signal_connect(img_struct->italic_style, "clicked",	  G_CALLBACK( img_text_style_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->italic_style, FALSE, FALSE, 5);
 
 	img_struct->underline_style = gtk_button_new_with_label("<span size='x-large'><u>U</u></span>");
@@ -517,12 +513,12 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_size_request(img_struct->underline_style, 26, -1);
 	label = gtk_bin_get_child(GTK_BIN(img_struct->underline_style));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-	g_signal_connect(img_struct->underline_style, "clicked", G_CALLBACK( img_subtitle_style_changed ), img_struct );
+	g_signal_connect(img_struct->underline_style, "clicked", G_CALLBACK( img_text_style_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->underline_style, FALSE, FALSE, 5);
 
 	img_struct->left_justify = gtk_button_new();
 	gtk_widget_set_name(img_struct->left_justify , "font_button");
-	g_signal_connect( img_struct->left_justify, "clicked",		  G_CALLBACK( img_set_slide_text_align ), img_struct );
+	g_signal_connect( img_struct->left_justify, "clicked",		  G_CALLBACK( img_text_align_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->left_justify, FALSE, FALSE, 5);
 	image_buttons = gtk_image_new_from_icon_name ("format-justify-left", GTK_ICON_SIZE_BUTTON);
 	gtk_button_set_image(GTK_BUTTON(img_struct->left_justify), image_buttons);
@@ -530,7 +526,7 @@ img_window_struct *img_create_window (void)
 
 	img_struct->fill_justify = gtk_button_new();
 	gtk_widget_set_name(img_struct->fill_justify , "font_button");
-	g_signal_connect(img_struct->fill_justify, "clicked",			  G_CALLBACK( img_set_slide_text_align ), img_struct );
+	g_signal_connect(img_struct->fill_justify, "clicked",			  G_CALLBACK( img_text_align_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->fill_justify, FALSE, FALSE, 5);
 	image_buttons = gtk_image_new_from_icon_name ("format-justify-center", GTK_ICON_SIZE_BUTTON);
 	gtk_button_set_image(GTK_BUTTON(img_struct->fill_justify), image_buttons);
@@ -538,7 +534,7 @@ img_window_struct *img_create_window (void)
 
 	img_struct->right_justify = gtk_button_new();
 	gtk_widget_set_name(img_struct->right_justify , "font_button");
-	g_signal_connect( img_struct->right_justify, "clicked",		  G_CALLBACK( img_set_slide_text_align ), img_struct );
+	g_signal_connect( img_struct->right_justify, "clicked",		  G_CALLBACK( img_text_align_changed ), img_struct );
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->right_justify, FALSE, FALSE, 5);
 	image_buttons = gtk_image_new_from_icon_name ("format-justify-right", GTK_ICON_SIZE_BUTTON);
 	gtk_button_set_image(GTK_BUTTON(img_struct->right_justify), image_buttons);
@@ -605,7 +601,7 @@ img_window_struct *img_create_window (void)
 	img_struct->sub_font_bg_color = gtk_button_new();
 	gtk_widget_set_name(img_struct->sub_font_bg_color , "font_color_button");
 	gtk_widget_set_valign(img_struct->sub_font_bg_color, GTK_ALIGN_CENTER);
-	g_signal_connect( img_struct->sub_font_bg_color, "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
+	g_signal_connect( img_struct->sub_font_bg_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_bg_color, FALSE, FALSE, 5);
 	
 	//6th row: background padding
@@ -655,7 +651,7 @@ img_window_struct *img_create_window (void)
 	img_struct->sub_font_shadow_color = gtk_button_new();
 	gtk_widget_set_name(img_struct->sub_font_shadow_color , "font_color_button");
 	gtk_widget_set_valign(img_struct->sub_font_shadow_color, GTK_ALIGN_CENTER);
-	g_signal_connect( img_struct->sub_font_shadow_color, "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
+	g_signal_connect( img_struct->sub_font_shadow_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_shadow_color, FALSE, FALSE, 5);
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -701,7 +697,7 @@ img_window_struct *img_create_window (void)
 	img_struct->sub_font_outline_color = gtk_button_new();
 	gtk_widget_set_name(img_struct->sub_font_outline_color , "font_color_button");
 	gtk_widget_set_valign(img_struct->sub_font_outline_color, GTK_ALIGN_CENTER);
-	g_signal_connect(img_struct->sub_font_outline_color, "clicked", G_CALLBACK( img_button_color_clicked ), img_struct );
+	g_signal_connect(img_struct->sub_font_outline_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_outline_color, FALSE, FALSE, 5);
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -834,18 +830,21 @@ img_window_struct *img_create_window (void)
 	gtk_widget_override_font(img_struct->beginning_timer_label, new_size);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->beginning_timer_label, FALSE, FALSE, 10);
 	
-	beginning = gtk_button_new_from_icon_name("go-first", GTK_ICON_SIZE_MENU);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), beginning, FALSE, FALSE, 10);
+	beginning = gtk_button_new_from_icon_name("go-first", GTK_ICON_SIZE_BUTTON);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), beginning, FALSE, FALSE, 5);
 	gtk_widget_set_can_focus(beginning, FALSE);
+	gtk_widget_set_name(beginning, "nav_button");
 	
-	img_struct->preview_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_MENU);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->preview_button, FALSE, FALSE, 10);
+	img_struct->preview_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_BUTTON);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->preview_button, FALSE, FALSE, 5);
 	g_signal_connect (img_struct->preview_button,"clicked",G_CALLBACK (img_start_stop_preview),img_struct);
 	gtk_widget_set_can_focus(img_struct->preview_button, FALSE);
+	gtk_widget_set_name(img_struct->preview_button, "nav_button");
 	
-	end = gtk_button_new_from_icon_name("go-last", GTK_ICON_SIZE_MENU);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), end, FALSE, FALSE, 10);
+	end = gtk_button_new_from_icon_name("go-last", GTK_ICON_SIZE_BUTTON);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), end, FALSE, FALSE, 5);
 	gtk_widget_set_can_focus(end, FALSE);
+	gtk_widget_set_name(end, "nav_button");
 	
 	img_struct->end_timer_label = gtk_label_new("00:00:00");
 	gtk_widget_override_font(img_struct->end_timer_label, new_size);
@@ -930,37 +929,8 @@ img_window_struct *img_create_window (void)
 	img_struct->thumbnail_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL (img_struct->thumbnail_model));
 	gtk_widget_set_can_focus(img_struct->thumbnail_iconview, FALSE);
 	gtk_container_add( GTK_CONTAINER( img_struct->thumb_scrolledwindow ), img_struct->thumbnail_iconview );
-	
-	/* Create the cell layout */
-	pixbuf_cell = img_cell_renderer_pixbuf_new();
-	gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (img_struct->thumbnail_iconview), pixbuf_cell, FALSE);
-	{
-		gchar     *path;
-		GdkPixbuf *text;
+	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (img_struct->thumbnail_iconview), 0);
 
-#if PLUGINS_INSTALLED
-		path = g_strconcat( DATADIR,
-							"/imagination/pixmaps/imagination-text.png",
-							NULL );
-#else
-		path = g_strdup( "pixmaps/imagination-text.png" );
-#endif
-		text = gdk_pixbuf_new_from_file( path, NULL );
-		g_free( path );
-		g_object_set( G_OBJECT( pixbuf_cell ), "width", 110,
-											   "ypad", 2,
-											   "text-ico", text,
-											   NULL );
-		g_object_unref( G_OBJECT( text ) );
-	}
-	gtk_cell_layout_set_attributes(
-			GTK_CELL_LAYOUT( img_struct->thumbnail_iconview ), pixbuf_cell,
-			"pixbuf", 0,
-			"transition", 2,
-			"has-text", 3,
-			NULL );
-
-	/* Set some iconview properties */
 	gtk_icon_view_set_text_column( GTK_ICON_VIEW( img_struct->thumbnail_iconview ), -1 );
 	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (img_struct->thumbnail_iconview), GTK_ORIENTATION_HORIZONTAL);
 	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (img_struct->thumbnail_iconview),0);
@@ -1238,25 +1208,6 @@ static void img_random_button_clicked(GtkButton *button, img_window_struct *img)
 	img_iconview_selection_changed(GTK_ICON_VIEW(img->thumbnail_iconview), img );
 }
 
-static void img_button_color_clicked(GtkWidget *widget, img_window_struct *img)
-{
-	GtkWidget *chooser, *dialog;
-	
-	chooser = gtk_color_chooser_widget_new();
-	g_object_set(G_OBJECT(chooser), "show-editor", TRUE, NULL);
-	gtk_widget_show_all(chooser);
-	dialog = gtk_dialog_new_with_buttons("Choose custom color", GTK_WINDOW (img->imagination_window),	GTK_DIALOG_MODAL, _("_Cancel"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
-	gtk_box_pack_start(GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), chooser, TRUE, TRUE, 5);
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
-	{
-		GdkRGBA color;
-
-		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (chooser), &color);
-		gtk_widget_override_background_color(widget, GTK_STATE_FLAG_NORMAL, &color);
-	}
-	gtk_widget_destroy (dialog);
-}
-
 static GdkPixbuf *img_set_random_transition( img_window_struct *img,  slide_struct  *info_slide )
 {
 	gint          nr;
@@ -1423,20 +1374,6 @@ static void img_show_uri(GtkMenuItem *menuitem , img_window_struct *img)
 	g_free(file);
 }
 
-void
-img_queue_subtitle_update( GtkTextBuffer  *buffer, img_window_struct *img )
-{
-	/* This queue enables us to avoid sensless copying and redrawing when typing
-	 * relatively fast (limit is cca. 3 keypresses per second) */
-	if( img->subtitle_update_id )
-		g_source_remove( img->subtitle_update_id );
-
-	//img_taint_project(img);
-
-	img->subtitle_update_id =
-			g_timeout_add( 300, (GSourceFunc)img_subtitle_update, img );
-}
-
 static GtkWidget *
 img_create_subtitle_animation_combo( void )
 {
@@ -1471,41 +1408,7 @@ img_create_subtitle_animation_combo( void )
 	return( combo );
 }
 
-static gboolean img_subtitle_update( img_window_struct *img )
-{
-	gboolean     has_subtitle;
-	GtkTreeIter	 iter;  
-	GList       *list;
-
-	if( img->current_slide->subtitle )
-	{
-		g_free( img->current_slide->subtitle );
-		img->current_slide->subtitle = NULL;
-	}
-
-	list = gtk_icon_view_get_selected_items(
-				GTK_ICON_VIEW( img->thumbnail_iconview ) );
-	gtk_tree_model_get_iter( GTK_TREE_MODEL( img->thumbnail_model ),
-							 &iter, list->data );
-	GList *node8;
-	for(node8 = list;node8 != NULL;node8 = node8->next) {
-		gtk_tree_path_free(node8->data);
-	}
-	g_list_free( list );
-	gtk_list_store_set( GTK_LIST_STORE( img->thumbnail_model ), &iter,
-						3, has_subtitle, -1 );
-
-	/* Queue redraw */
-	gtk_widget_queue_draw( img->image_area );
-
-	/* Set source id to zero and remove itself from main context */
-	img->subtitle_update_id = 0;
-
-	return( FALSE );
-}
-
-void
-img_text_font_set( GtkFontChooser     *button,
+void img_text_font_set( GtkFontChooser     *button,
 				   img_window_struct *img )
 {
 	const gchar *string;

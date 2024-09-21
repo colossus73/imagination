@@ -27,12 +27,7 @@
 img_window_struct *img_create_window(void);
 void img_iconview_selection_changed (GtkIconView *, img_window_struct *);
 gboolean img_change_image_area_size (GtkPaned *, GtkScrollType ,  img_window_struct *);
-void
-img_queue_subtitle_update( GtkTextBuffer     *buffer,
-						   img_window_struct *img );
-
-void
-img_text_font_set( GtkFontChooser     *button,
+void img_text_font_set( GtkFontChooser     *button,
 				   img_window_struct *img );
 
 void

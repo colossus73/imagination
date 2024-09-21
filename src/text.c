@@ -1,6 +1,5 @@
 /*
 ** Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
-** Copyright (C) 2009 Tadej Borovšak <tadeboro@gmail.com>
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -17,12 +16,12 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include "subtitles.h"
+#include "text.h"
 #include "support.h"
 
 gboolean blink_cursor(img_window_struct *img)
 {
-	if ( ! img->textbox->draw_rect)
+	if ( ! img->textbox->visible)
 		return TRUE;
 
     img->textbox->cursor_visible = ! img->textbox->cursor_visible;
@@ -37,7 +36,7 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
 	
     transform_coords(img->textbox, event->x, event->y, &x, &y);
 
-    if (img->textbox->draw_rect && 
+    if (img->textbox->visible && 
         x >= img->textbox->x + (img->textbox->width / 2) - 5 && 
         x <= (img->textbox->x + (img->textbox->width / 2)) + 5 && 
         y >= img->textbox->y + img->textbox->height + 10 && 
@@ -51,7 +50,7 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
              y >= img->textbox->y && y <= img->textbox->y + img->textbox->height)
     {
         img->textbox->button_pressed = TRUE;
-        img->textbox->draw_rect = TRUE;
+        img->textbox->visible = TRUE;
         img->textbox->cursor_visible = TRUE;
         if (!img->textbox->cursor_source_id)
             img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
@@ -66,7 +65,7 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
             img->textbox->cursor_source_id = 0;
         }
         if (img->textbox->action != IS_ROTATING)
-            img->textbox->draw_rect = FALSE;
+            img->textbox->visible = FALSE;
     }
 
     img->textbox->orig_x = x;
@@ -89,9 +88,137 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
 	if (event->type == GDK_2BUTTON_PRESS)
 		select_word_at_position(img->textbox, index); 
     else
+	{	
+			if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
+				img->textbox->selection_start = img->textbox->selection_end = -1;
 		img->textbox->cursor_pos = index + trailing;
-		        
+	 }      
 	gtk_widget_queue_draw(img->image_area);
+}
+
+void img_text_color_clicked(GtkWidget *widget, img_window_struct *img)
+{
+	GtkWidget *chooser, *dialog;
+	GdkRGBA color;
+
+	chooser = gtk_color_chooser_widget_new();
+	g_object_set(G_OBJECT(chooser), "show-editor", TRUE, NULL);
+	gtk_widget_show_all(chooser);
+	dialog = gtk_dialog_new_with_buttons(_("Choose custom color"), GTK_WINDOW (img->imagination_window),	GTK_DIALOG_MODAL, _("_Cancel"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
+	gtk_box_pack_start(GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), chooser, TRUE, TRUE, 5);
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+	{
+		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (chooser), &color);
+		gtk_widget_override_background_color(widget, GTK_STATE_FLAG_NORMAL, &color);
+	}
+	gtk_widget_destroy (dialog);
+
+	if (GTK_WIDGET(widget) == img->sub_font_color)
+		img->textbox->attr = pango_attr_foreground_new(color.red * 65535, color.green * 65535, color.blue * 65535);
+  //~ else if (GTK_WIDGET(button) == img->italic_style)
+		//~ choice = 1;
+
+	if (img->textbox->selection_start == -1 && img->textbox->selection_end == -1)
+	{
+		img->textbox->attr->start_index = 0;
+		img->textbox->attr->end_index = -1;
+	}
+	else
+	{
+		img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+		img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+	}
+	pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+}
+
+void img_text_style_changed(GtkButton *button, img_window_struct *img)
+{
+	gint choice;
+
+	img_taint_project(img);
+
+	/* Which button did the user press? */
+	if (GTK_WIDGET(button) == img->bold_style)
+		choice = 0;
+	else if (GTK_WIDGET(button) == img->italic_style)
+		choice = 1;
+	else if (GTK_WIDGET(button) == img->underline_style)
+		choice = 2;
+	else if (GTK_WIDGET(button) == img->left_justify)
+		choice = 3;
+	else if (GTK_WIDGET(button) == img->fill_justify)
+		choice = 4;
+	else if (GTK_WIDGET(button) == img->right_justify)
+		choice = 5;
+	
+	switch (choice)
+	{
+		case 0:
+		img->textbox->attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+		break;
+		
+		case 1:
+		img->textbox->attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
+		break;
+
+		case 2:
+		img->textbox->attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+		break;
+	}
+	
+	img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+	img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+
+    pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+}
+
+void img_text_align_changed(GtkButton *button, img_window_struct *img)
+{
+	gint alignment = 0;
+
+	if (img->current_slide == NULL)
+		return;
+
+	if (GTK_WIDGET(button) == img->left_justify)
+		alignment = PANGO_ALIGN_LEFT;
+	else if (GTK_WIDGET(button) == img->fill_justify)
+		alignment = PANGO_ALIGN_CENTER;
+	else if (GTK_WIDGET(button) == img->right_justify)
+		alignment = PANGO_ALIGN_RIGHT;
+
+	pango_layout_set_alignment (img->textbox->layout, alignment);
+	
+	img_taint_project(img);
+}
+
+gboolean img_is_style_applied(PangoLayout *layout, PangoAttrType attr_type, int start, int end)
+{
+    PangoAttrList *attr_list = pango_layout_get_attributes(layout);
+    if (!attr_list) return FALSE;
+    
+    PangoAttrIterator *iter = pango_attr_list_get_iterator(attr_list);
+    gboolean style_applied = FALSE;
+    
+    do
+    {
+        int iter_start, iter_end;
+        pango_attr_iterator_range(iter, &iter_start, &iter_end);
+        
+        if ((iter_start >= start && iter_start < end) ||
+            (iter_end > start && iter_end <= end) ||
+            (iter_start <= start && iter_end >= end))
+            {
+				PangoAttribute *attr = pango_attr_iterator_get(iter, attr_type);
+				if (attr)
+				{
+					style_applied = TRUE;
+					break;
+				}
+			}
+    } while (pango_attr_iterator_next(iter));
+    
+    pango_attr_iterator_destroy(iter);
+    return style_applied;
 }
 
 static void
@@ -237,27 +364,7 @@ img_text_right_to_left( cairo_t     *cr,
  					slide_struct *slide);
 
                       
-/* ****************************************************************************
- * Function definitions
- * ************************************************************************* */
-
-/*
- * img_get_text_animation_list:
- * @animations: location to put list of available text animations
- *
- * This function is here to simplify accessing all available animations.
- *
- * Any newly added exporters should be listed in array returned by this function
- * or Imagination WILL NOT create combo box entries for them.
- *
- * List that is placed in exporters parameter should be considered read-only and
- * freed after usage with img_free_text_animation_list. If @animations is NULL,
- * only number of available animations is returned.
- *
- * Return value: Size of list in animations.
- */
-gint
-img_get_text_animation_list( TextAnimation **animations )
+gint img_get_text_animation_list( TextAnimation **animations )
 {
 	TextAnimation *list;              /* List of all animations */
 	gint           no_animations = 10; /* Number of animations */
@@ -322,16 +429,7 @@ img_get_text_animation_list( TextAnimation **animations )
 	return( no_animations );
 }
 
-/*
- * img_free_text_animation_list:
- * @no_animations: number of animations in @animations
- * @animations: array of TextAnimation structs
- *
- * This function takes care of freeing any memory allocated by
- * img_get_text_animation_list function.
- */
-void
-img_free_text_animation_list( gint           no_animations,
+void img_free_text_animation_list( gint           no_animations,
 							  TextAnimation *animations )
 {
 	register gint i;
@@ -342,8 +440,7 @@ img_free_text_animation_list( gint           no_animations,
 	g_slice_free1( sizeof( TextAnimation ) * no_animations, animations );
 }
 
-void
-img_render_subtitle( img_window_struct 	  *img,
+void img_render_subtitle( img_window_struct 	  *img,
 					 cairo_t			*cr,
 					 gdouble			zoom,
 					 gint				posx,
@@ -398,9 +495,6 @@ img_render_subtitle( img_window_struct 	  *img,
 	cairo_restore( cr );
 }
 
-/* ****************************************************************************
- * Text animation renderers
- * ************************************************************************* */
 static void
 img_text_ani_fade( cairo_t     *cr,
 				   PangoLayout *layout,
@@ -542,8 +636,7 @@ img_set_slide_text_info( slide_struct      *slide,
 		slide->alignment = alignment;
 }								
 
-static void
-img_text_draw_layout( cairo_t     *cr,
+static void img_text_draw_layout( cairo_t     *cr,
                       PangoLayout *layout,
                       gint         posx,
                       gint         posy,

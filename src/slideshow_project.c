@@ -1,6 +1,5 @@
 /*
  *  Copyright (C) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
- *  Copyright (c) 2009 Tadej Borovšak 	<tadeboro@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -326,9 +325,9 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 					content_type = g_file_info_get_content_type (file_info);
 					mime_type = g_content_type_get_mime_type (content_type);
 					if (strstr(mime_type, "image"))
-						img_add_thumbnail_widget_area(0, slide_filename, img);
+						img_add_media_widget_area(0, slide_filename, img);
 					else if (strstr(mime_type, "audio"))
-						img_add_thumbnail_widget_area(1, slide_filename, img);
+						img_add_media_widget_area(1, slide_filename, img);
 					
 					g_object_unref(file_info);
 				}
