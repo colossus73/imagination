@@ -46,7 +46,7 @@ img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCodecContext 
 static gboolean img_start_export( img_window_struct *img)
 {
 	GtkTreeIter   iter;
-	slide_struct *entry;
+	media_struct *entry;
 	GtkTreeModel *model;
 	GtkWidget    *dialog;
 	GtkWidget	 *image;
@@ -149,14 +149,14 @@ static gboolean img_start_export( img_window_struct *img)
 	cairo_paint( cr );
 	cairo_destroy( cr );
 
-	/* Load first image from model */
-	model = GTK_TREE_MODEL( img->thumbnail_model );
-	gtk_tree_model_get_iter_first( model, &iter );
-	gtk_tree_model_get( model, &iter, 1, &entry, -1 );
+	//~ /* Load first image from model */
+	//~ model = GTK_TREE_MODEL( img->media_model );
+	//~ gtk_tree_model_get_iter_first( model, &iter );
+	//~ gtk_tree_model_get( model, &iter, 1, &entry, -1 );
 
 	gboolean success = FALSE;
 
-	if( ! entry->o_filename )
+	if( ! entry->full_path )
 	{
 		success = img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
 							entry->g_stop_point, entry->g_start_color,
@@ -168,7 +168,7 @@ static gboolean img_start_export( img_window_struct *img)
 	}
 	else
 	{
-		success = img_scale_image( entry->p_filename, img->video_ratio,
+		success = img_scale_image( entry->full_path, img->video_ratio,
 						 0, 0, img->distort_images,
 						 img->background_color, NULL, &img->image2 );
 	}
@@ -222,8 +222,7 @@ static gboolean img_start_export( img_window_struct *img)
 									NULL );
 
 	/* Set first slide */
-	gtk_tree_model_get_iter_first( GTK_TREE_MODEL( img->thumbnail_model ),
-								   &img->cur_ss_iter );
+	//gtk_tree_model_get_iter_first( GTK_TREE_MODEL( img->media_model ), &img->cur_ss_iter );
 
 	img->export_slide = 1;
 
@@ -341,7 +340,7 @@ img_prepare_pixbufs( img_window_struct *img)
 	static gboolean  last_transition = TRUE;
 	gboolean success;
 
-	model = GTK_TREE_MODEL( img->thumbnail_model );
+	model = GTK_TREE_MODEL( img->media_model );
 
 	/* Get last stop point of current slide */
 	img->point1 = (ImgStopPoint *)( img->current_slide->no_points ?
@@ -350,115 +349,6 @@ img_prepare_pixbufs( img_window_struct *img)
 
 	/* save the cur iter in the iconview to unselect the slide before selecting the next one */
 	img->prev_ss_iter = img->cur_ss_iter;
-
-	if( last_transition && gtk_tree_model_iter_next( model, &img->cur_ss_iter ) )
-	{
-		img->cur_nr_of_selected_slide++;
-		path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &img->prev_ss_iter); 
-		if (path)
-		{	
-			gtk_icon_view_unselect_path (GTK_ICON_VIEW(img->thumbnail_iconview), path);
-			gtk_tree_path_free(path);
-		}
-		path = gtk_tree_model_get_path(GTK_TREE_MODEL(model), &img->cur_ss_iter); 
-		gtk_icon_view_select_path (GTK_ICON_VIEW(img->thumbnail_iconview), path);
-		gtk_icon_view_scroll_to_path(GTK_ICON_VIEW(img->thumbnail_iconview), path, FALSE, 0.0, 0.0);
-		gtk_tree_path_free(path);
-		
-		selected_slide_nr = g_strdup_printf("%d",img->cur_nr_of_selected_slide);
-		//gtk_entry_set_text(GTK_ENTRY(img->slide_number_entry),selected_slide_nr);
-		g_free(selected_slide_nr);
-
-		/* We have next iter, so prepare for next round */
-		cairo_surface_destroy( img->image1 );
-		img->image1 = img->image2;
-		gtk_tree_model_get( model, &img->cur_ss_iter, 1, &img->current_slide, -1 );
-
-		if( ! img->current_slide->o_filename )
-		{
-			img_scale_empty_slide( img->current_slide->gradient,
-								img->current_slide->countdown,
-								img->current_slide->g_start_point,
-								img->current_slide->g_stop_point,
-								img->current_slide->g_start_color,
-								img->current_slide->g_stop_color,
-								img->current_slide->countdown_color,
-								0, img->current_slide->countdown_angle,
-								img->video_size[0],
-								img->video_size[1], NULL, &img->image2 );
-		}
-		else
-		{
-			success = img_scale_image( img->current_slide->p_filename, img->video_ratio,
-								0, img->video_size[1], img->distort_images,
-								img->background_color, NULL, &img->image2 );
-
-			if (!success)
-			{
-				img->image2 = NULL;
-				gchar *string;
-				string = g_strconcat(_("Failed to load file %s"), img->current_slide->p_filename, NULL);
-				img_message(img, string);
-				g_free(string);
-				return (FALSE);
-			}
-		}
-		/* Get first stop point */
-		img->point2 = (ImgStopPoint *)( img->current_slide->no_points ?
-										img->current_slide->points->data :
-										NULL );
-
-		return( TRUE );
-	}
-	else if (last_transition)
-	{
-		if( img->bye_bye_transition )
-		{
-			cairo_t *cr;
-
-			/* We displayed last image, but bye-bye transition hasn't
-			 * been displayed. */
-		
-			last_transition = FALSE;
-			cairo_surface_destroy( img->image1 );
-			img->image1 = img->image2;
-
-			img->image2 = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-													  img->video_size[0],
-													  img->video_size[1] );
-			cr = cairo_create( img->image2 );
-			cairo_set_source_rgb( cr, img->background_color[0],
-									  img->background_color[1],
-									  img->background_color[2] );
-			cairo_paint( cr );
-			cairo_destroy( cr );
-
-			img->current_slide = &img->final_transition;
-			img->point2 = NULL;
-			return( TRUE );
-		}
-		
-	}
-	/* Unselect the last selected item during the preview */
-	GList *list;
-	list = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->thumbnail_iconview));
-
-	if (list)
-	{
-		gtk_icon_view_unselect_path (GTK_ICON_VIEW(img->thumbnail_iconview), (GtkTreePath*)list->data);
-		GList *node0;
-		for(node0 = list;node0 != NULL;node0 = node0->next) {
-			gtk_tree_path_free(node0->data);
-		}
-		g_list_free (list);
-	}
-
-	/*  Reselect the first selected slide before the preview if any */
-	if (img->first_selected_path)
-	{
-		gtk_icon_view_select_path (GTK_ICON_VIEW(img->thumbnail_iconview), img->first_selected_path);
-		gtk_icon_view_scroll_to_path(GTK_ICON_VIEW(img->thumbnail_iconview), img->first_selected_path, FALSE, 0.0, 0.0);
-	}
 
 	/* We're done now */
 	last_transition = TRUE;
@@ -692,7 +582,7 @@ img_render_transition_frame( img_window_struct *img )
 	/* Create first image
 	 * this is a dirt hack to have Imagination use the image_from painted
 	 * with the second color set in the empty slide fade gradient */
-	if (img->current_slide->o_filename && img->gradient_slide)
+	if (img->current_slide->full_path && img->gradient_slide)
 	{
 		cr = cairo_create( img->image_from );
 		cairo_set_source_rgb(cr,	img->g_stop_color[0],
@@ -1016,18 +906,10 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 		return;
 
 	/* Abort if no slide is present */
-	model = GTK_TREE_MODEL( img->thumbnail_model );
+	model = GTK_TREE_MODEL( img->media_model );
 	if( ! gtk_tree_model_get_iter_first( model, &iter ) )
 		return;
 
-	/* If there are selected slides get their
-	 * number to set the combo box later */
-	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->thumbnail_iconview));
-	if (selected)
-	{
-		slides_selected = g_list_length(selected);
-		g_list_free(selected);
-	}
 	/* Create dialog */
 	
 	dialog = gtk_dialog_new_with_buttons( _("Export settings"), GTK_WINDOW(img->imagination_window),

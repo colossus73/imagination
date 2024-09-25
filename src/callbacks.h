@@ -26,15 +26,15 @@
 #include "slideshow_project.h"
 #include "text.h"
 
-gboolean img_can_discard_unsaved_project(img_window_struct *img);
+gboolean img_can_discard_unsaved_project(img_window_struct *);
 void img_project_properties(GtkMenuItem *item, img_window_struct *);
 void img_refresh_window_title(img_window_struct *);
 void img_new_slideshow(GtkMenuItem *,img_window_struct *);
-void img_add_slides(GSList *slides, img_window_struct *img);
+void img_add_media(GSList *, img_window_struct *);
 void img_add_slides_thumbnails(GtkMenuItem *,img_window_struct *);
-void img_delete_selected_slides(GtkMenuItem *,img_window_struct *);
-void img_rotate_slides_left( GtkWidget  *widget, img_window_struct *img );
-void img_rotate_slides_right( GtkWidget  *widget,  img_window_struct *img );
+void img_detect_media_orientation_from_pixbuf(GdkPixbuf *, gboolean *, ImgAngle *);
+void img_rotate_slides_left( GtkWidget  *, img_window_struct * );
+void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
@@ -57,66 +57,46 @@ gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
 gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *, img_window_struct *);
-void img_add_media_widget_area(gint type, gchar *filename, img_window_struct *img);
-void
-img_draw_image_on_surface( cairo_t           *cr,
+void img_add_media_widget_area(media_struct *, gchar *filename, img_window_struct *img);
+void img_draw_image_on_surface( cairo_t           *cr,
 						   gint               width,
 						   cairo_surface_t   *surface,
 						   ImgStopPoint      *point,
 						   img_window_struct *img );
-void
-img_add_stop_point( GtkButton         *button,
+void img_add_stop_point( GtkButton         *button,
 					img_window_struct *img );
-void
-img_update_stop_point( GtkSpinButton         *button,
+void img_update_stop_point( GtkSpinButton         *button,
 					   img_window_struct *img );
-void
-img_delete_stop_point( GtkButton         *button,
+void img_delete_stop_point( GtkButton         *button,
 					   img_window_struct *img );
-void
-img_update_stop_display( img_window_struct *img,
-						 gboolean           update_pos );
-						 
-void
-img_update_subtitles_widgets( img_window_struct * );
 
-void
-img_goto_prev_point( GtkButton         *button,
+void img_goto_prev_point( GtkButton         *button,
 					 img_window_struct *img );
-void
-img_goto_next_point( GtkButton         *button,
+void img_goto_next_point( GtkButton         *button,
 					 img_window_struct *img );
-void
-img_goto_point ( GtkEntry          *entry,
+void img_goto_point ( GtkEntry          *entry,
 				 img_window_struct *img );
-void
-img_calc_current_ken_point( ImgStopPoint *res,
+void img_calc_current_ken_point( ImgStopPoint *res,
 							ImgStopPoint *from,
 							ImgStopPoint *to,
 							gdouble       progress,
 							gint          mode );
 
-void
-img_add_empty_slide( GtkMenuItem       *item,
+void img_add_empty_slide( GtkMenuItem       *item,
 					 img_window_struct *img );
 
-gboolean
-img_save_window_settings( img_window_struct *img );
+gboolean  img_save_window_settings( img_window_struct *img );
 
-gboolean
-img_load_window_settings( img_window_struct *img );
+gboolean img_load_window_settings( img_window_struct *img );
 
-void
-img_set_window_default_settings( img_window_struct *img );
+void img_set_window_default_settings( img_window_struct *img );
 
-void
-img_rotate_flip_slide( slide_struct   *slide, ImgAngle        angle,  gboolean        flipped);
+void img_rotate_flip_slide( media_struct   *slide, ImgAngle        angle,  gboolean        flipped);
 
 void img_align_text_horizontally_vertically(GtkMenuItem *item,
 					img_window_struct *img);
 
-void
-img_pattern_clicked(GtkMenuItem *item,
+void img_pattern_clicked(GtkMenuItem *item,
 					img_window_struct *img);
 
 void img_subtitle_top_border_toggled (GtkToggleButton *button, img_window_struct *img);

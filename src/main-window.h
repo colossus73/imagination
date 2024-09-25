@@ -25,38 +25,19 @@
 #include "imagination.h"
 
 img_window_struct *img_create_window(void);
-void img_iconview_selection_changed (GtkIconView *, img_window_struct *);
 gboolean img_change_image_area_size (GtkPaned *, GtkScrollType ,  img_window_struct *);
 void img_text_font_set( GtkFontChooser     *button,
 				   img_window_struct *img );
 
-void
-img_font_color_changed( GtkColorChooser   *button,
+void img_font_color_changed( GtkColorChooser   *button,
 						img_window_struct *img );
 
-void
-img_font_brdr_color_changed( GtkColorChooser    *button,
+void img_font_brdr_color_changed( GtkColorChooser    *button,
                           img_window_struct *img );
 
-void
-img_font_bg_color_changed( GtkColorChooser    *button,
+void img_font_bg_color_changed( GtkColorChooser    *button,
                           img_window_struct *img );
                           
-void
-img_disable_videotab (img_window_struct *img);
-
-void
-img_update_sub_properties( img_window_struct *,
-						   TextAnimationFunc  anim,
-						   gint               anim_id,
-						   gdouble            anim_duration,
-						   const gchar       *,
-						   gdouble           *,
-                           gdouble           *,
-                           gdouble           *,
-                           gdouble           *,
-                           gint		         alignment );
-
 void img_combo_box_transition_type_changed (GtkComboBox *,
 											img_window_struct *);
 

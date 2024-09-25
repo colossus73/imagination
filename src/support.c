@@ -18,7 +18,6 @@
  */
 
 #include "support.h"
-#include <glib/gstdio.h> //This is for g_unlink
 
 static gboolean img_plugin_is_loaded(img_window_struct *, GModule *);
 
@@ -138,8 +137,10 @@ void img_load_available_transitions(img_window_struct *img)
 									   3, -1,
 									   4, NULL,
 									   -1);
+	g_signal_handlers_block_by_func((gpointer)img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);	
 	gtk_combo_box_set_active( GTK_COMBO_BOX( img->transition_type ), 0 );
-
+	g_signal_handlers_unblock_by_func((gpointer)img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);	
+	
 	/* Create NULL terminated array of paths that we'll be looking at */
 #if PLUGINS_INSTALLED
 	search_paths[0] = g_build_path(G_DIR_SEPARATOR_S, PACKAGE_LIB_DIR, "imagination", NULL );
@@ -369,19 +370,18 @@ void img_show_file_chooser(GtkWidget *entry, GtkEntryIconPosition icon_pos,int b
 	gtk_widget_destroy(file_selector);
 }
 
-slide_struct *
-img_create_new_slide( void )
+media_struct *img_create_new_media()
 {
-	slide_struct    *slide = NULL;
+	media_struct  *slide = NULL;
 
-	slide = g_slice_new0( slide_struct );
-	if( slide )
+	slide = g_slice_new0( media_struct );
+	if(slide)
 	{
 		/* Still part */
 		slide->duration = 1.0;
 
 		/* Transition */
-		slide->path = g_strdup( "0" );
+		slide->path = g_strdup("0");
 		slide->transition_id = -1;
 
 		/* Ken Burns */
@@ -391,7 +391,7 @@ img_create_new_slide( void )
 		slide->anim_duration = 1;
 		slide->posX = 0;
 		slide->posY = 1;
-		slide->font_desc = pango_font_description_from_string( "Sans 24" );
+		slide->font_desc = NULL; //pango_font_description_from_string( "Sans 24" );
 		slide->font_color[0] = 0; /* R */
 		slide->font_color[1] = 0; /* G */
 		slide->font_color[2] = 0; /* B */
@@ -406,38 +406,16 @@ img_create_new_slide( void )
         slide->font_bg_color[1] = 1; /* G */
         slide->font_bg_color[2] = 1; /* B */
         slide->font_bg_color[3] = 0; /* A */
-        /* default: no font border color */
+        /* default: no font outline color */
         slide->font_outline_color[0] = 1; /* R */
         slide->font_outline_color[1] = 1; /* G */
         slide->font_outline_color[2] = 1; /* B */
         slide->font_outline_color[3] = 1; /* A */
-
-        /* Load error handling */
-        slide->load_ok = TRUE;
-        slide->original_filename = NULL;
 	}
-
-	return( slide );
+	return slide;
 }
 
-void
-img_set_slide_file_info( slide_struct *slide, const gchar  *filename )
-{
-	GdkPixbufFormat *format;
-	gint  width, height;
-
-	format = gdk_pixbuf_get_file_info( filename, &width, &height );
-
-	slide->o_filename = g_strdup( filename );
-	slide->p_filename = g_strdup( filename );
-	slide->angle = 0;
-
-	slide->resolution = g_strdup_printf( "%d x %d", width, height );
-	slide->type = format ? gdk_pixbuf_format_get_name( format ) : NULL;
-}
-
-void
-img_set_empty_slide_info( slide_struct *slide,
+void img_set_empty_slide_info( media_struct *slide,
 							 gint          gradient,
 							 gint          countdown,
 							 gdouble      *start_color,
@@ -467,7 +445,7 @@ img_set_empty_slide_info( slide_struct *slide,
 	}
 }
 
-GdkPixbuf *img_set_fade_gradient(img_window_struct *img, gint gradient, slide_struct *slide_info)
+GdkPixbuf *img_set_fade_gradient(img_window_struct *img, gint gradient, media_struct *slide_info)
 {
 	GdkPixbuf		*pix = NULL;
 	GtkTreeIter 	iter;
@@ -504,19 +482,18 @@ GdkPixbuf *img_set_fade_gradient(img_window_struct *img, gint gradient, slide_st
 }
 
 void
-img_set_slide_still_info( slide_struct      *slide,
+img_set_slide_still_info( media_struct      *slide,
 						  gdouble           duration,
 						  img_window_struct *img )
 {
 	if( slide->duration != duration )
 	{
 		slide->duration = duration;
-		img_set_total_slideshow_duration(img);
 	}
 }
 
 void
-img_set_slide_transition_info( slide_struct      *slide,
+img_set_slide_transition_info( media_struct      *slide,
 							   GtkListStore      *store,
 							   GtkTreeIter       *iter,
 							   GdkPixbuf         *pix,
@@ -538,11 +515,10 @@ img_set_slide_transition_info( slide_struct      *slide,
 		gtk_list_store_set( store, iter, 2, pix, -1 );
 	}
 
-	img_set_total_slideshow_duration(img);
 }
 
 void
-img_set_slide_ken_burns_info( slide_struct *slide,
+img_set_slide_ken_burns_info( media_struct *slide,
 							  gint          cur_point,
 							  gsize         length,
 							  gdouble      *points )
@@ -579,19 +555,22 @@ img_set_slide_ken_burns_info( slide_struct *slide,
 		slide->duration = full;
 }
 
-void
-img_free_slide_struct( slide_struct *entry )
+void img_free_media_struct( media_struct *entry )
 {
 	GList *tmp;
 
-	img_slide_set_p_filename(entry, NULL);
+	if (entry->full_path)
+		g_free(entry->full_path);
 
-	g_free(entry->o_filename);
-	g_free(entry->resolution);
-	if (entry->type) g_free(entry->type);
-	
+	if (entry->image_type)
+		g_free(entry->image_type);
+
+	if (entry->audio_duration)
+		g_free(entry->audio_duration);
+
 	if (entry->subtitle)
 		g_free(entry->subtitle);
+
 	if (entry->pattern_filename)
 		g_free(entry->pattern_filename);
 	
@@ -600,46 +579,10 @@ img_free_slide_struct( slide_struct *entry )
 		g_slice_free( ImgStopPoint, tmp->data );
 	g_list_free( entry->points );
 
-	g_slice_free( slide_struct, entry );
+	g_slice_free( media_struct, entry );
 }
 
-gboolean
-img_set_total_slideshow_duration( img_window_struct *img )
-{
-	gchar        *time;
-	GtkTreeIter   iter;
-	slide_struct *entry;
-	GtkTreeModel *model;
-
-	img->total_secs = 0;
-
-	model = GTK_TREE_MODEL( img->thumbnail_model );
-	if( gtk_tree_model_get_iter_first( model, &iter ) )
-	{
-		do
-		{
-			gtk_tree_model_get( model, &iter, 1, &entry, -1 );
-			img->total_secs += entry->duration;
-
-			if(entry->render)
-				img->total_secs += 3; //transition speed set to 3 seconds
-		}
-		while( gtk_tree_model_iter_next( model, &iter ) );
-
-		/* Add time of last pseudo slide */
-		if( img->final_transition.render && img->bye_bye_transition)
-			img->total_secs += 3; //transition speed set to 3 seconds
-	}
-	img->total_secs = ceil(img->total_secs);
-	time = img_convert_seconds_to_time((gint)img->total_secs);
-	gtk_label_set_text(GTK_LABEL (img->slideshow_duration),time);
-	g_free(time);
-
-	return( FALSE );
-}
-
-gint
-img_calc_slide_duration_points( GList *list,
+gint img_calc_slide_duration_points( GList *list,
 								gint   length )
 {
 	GList        *tmp;
@@ -714,16 +657,6 @@ img_scale_image( const gchar      *filename,
 	i_ratio = (gdouble)i_width / i_height;
 	skew = ratio / i_ratio;
 
-	/* Calculationg surface dimensions.
-	 *
-	 * In order to be as flexible as possible, this function can load images at
-	 * various sizes, but at aspect ration that matches the aspect ratio of main
-	 * preview area. How size is determined? If width argument is not -1, this
-	 * is taken as a reference dimension from which height is calculated (if
-	 * height argument also present, it's ignored). If width argument is -1,
-	 * height is taken as a reference dimension. If both width and height are
-	 * -1, surface dimensions are calculated to to fit original image.
-	 */
 	if( width > 0 )
 	{
 		/* Calculate height according to width */
@@ -736,17 +669,6 @@ img_scale_image( const gchar      *filename,
 	}
 	else
 	{
-		/* Load image at maximum quality
-		 *
-		 * If the user doesn't want to have distorted images, we create slightly
-		 * bigger surface that will hold borders too.
-		 *
-		 * If images should be distorted, we first check if we're able to fit
-		 * image without distorting it too much. If images would be largely
-		 * distorted, we simply load them undistorted.
-		 *
-		 * If we came all the way to  here, then we're able to distort image.
-		 */
 		if( ( ! distort )       || /* Don't distort */
 			( skew > max_skew ) || /* Image is too wide */
 			( skew < min_skew )  ) /* Image is too tall */
@@ -785,13 +707,6 @@ img_scale_image( const gchar      *filename,
 		}
 	}
 
-	/* Will image be disotrted?
-	 *
-	 * Conditions:
-	 *  - user allows us to do it
-	 *  - skew is in sensible range
-	 *  - image is not smaller than exported wideo size
-	 */
 	transform = distort && skew < max_skew && skew > min_skew &&
 				( i_width >= width || i_height >= height );
 
@@ -904,7 +819,7 @@ void img_taint_project(img_window_struct *img)
 }
 
 void
-img_sync_timings( slide_struct  *slide, img_window_struct *img )
+img_sync_timings( media_struct  *slide, img_window_struct *img )
 {
 	/* If times are already synchronized, return */
 	if( slide->duration >= slide->anim_duration )
@@ -927,18 +842,6 @@ img_sync_timings( slide_struct  *slide, img_window_struct *img )
 		gtk_spin_button_set_value( GTK_SPIN_BUTTON( img->ken_duration ),
 								   point->time );
 	}
-}
-
-void img_select_nth_slide(img_window_struct *img, gint slide_to_select)
-{
-	GtkTreePath *path;
-
-	gtk_icon_view_unselect_all(GTK_ICON_VIEW (img->thumbnail_iconview));
-	path = gtk_tree_path_new_from_indices(slide_to_select, -1);
-	gtk_icon_view_set_cursor (GTK_ICON_VIEW (img->thumbnail_iconview), path, NULL, FALSE);
-	gtk_icon_view_select_path (GTK_ICON_VIEW (img->thumbnail_iconview), path);
-	gtk_icon_view_scroll_to_path (GTK_ICON_VIEW (img->thumbnail_iconview), path, FALSE, 0, 0);
-	gtk_tree_path_free (path);
 }
 
 GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface )
@@ -1139,7 +1042,7 @@ gboolean img_scale_empty_slide( gint gradient,  gint countdown,
 
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 {
-	slide_struct 	*slide = img->current_slide;
+	media_struct 	*slide = img->current_slide;
 	GdkPixbuf 		*pixbuf;
 	GtkWidget		*tmp_image,*fc;
 	GtkIconTheme	*icon_theme;
@@ -1170,17 +1073,6 @@ void img_save_relative_filenames(GtkCheckButton *togglebutton, img_window_struct
 		img->relative_filenames = TRUE;
 	else
 		img->relative_filenames = FALSE;
-}
-
-void str_replace(gchar *str, const gchar *search, const gchar *replace)
-{
-	for (gchar *cursor = str; (cursor = strstr(cursor, search)) != NULL;)
-	{
-		memmove(cursor + strlen(replace), cursor + strlen(search), strlen(cursor) - strlen(search) + 1);
-        for (gint i = 0; replace[i] != '\0'; i++)
-            cursor[i] = replace[i];
-        cursor += strlen(replace);
-	}
 }
 
 void img_message(img_window_struct *img, gchar *message)
@@ -1224,18 +1116,6 @@ gint img_ask_user_confirmation(img_window_struct *img_struct, gchar *msg)
 	response = gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (GTK_WIDGET (dialog));
 	return response;
-}
-
-// Resets info_slide->p_filename to filename and removes the associated temp file if applicable
-void img_slide_set_p_filename(slide_struct *info_slide, gchar *filename)
-{
-    if (!info_slide->p_filename) return;
-    if ( g_strcmp0(info_slide->o_filename, info_slide->p_filename) ) {
-	g_assert(info_slide->flipped || info_slide->angle);
-	g_unlink( info_slide->p_filename );
-    }
-    g_free(info_slide->p_filename);
-    info_slide->p_filename = filename;
 }
 
 void img_update_zoom_variables(img_window_struct *img)
@@ -1298,6 +1178,7 @@ gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filenam
 		do
 		{
 			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 1, &filename, -1);
+			g_print("img_find_media_in_list: %s\n",filename);
 			if (strcmp(filename, full_path_filename) == 0)
 			{
 				g_free(filename);
@@ -1312,7 +1193,7 @@ gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filenam
 
 }
 
-gchar * img_get_audio_duration(gchar * filename)
+gchar * img_get_audio_duration(gchar *filename)
 {
 	 AVFormatContext *fmt_ctx = NULL;
 	 gchar *time = NULL;

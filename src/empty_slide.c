@@ -225,7 +225,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 	if( gtk_dialog_run( GTK_DIALOG( dialog ) ) == GTK_RESPONSE_ACCEPT )
 	{
 		GtkTreeIter   iter;
-		slide_struct *slide_info;
+		media_struct *slide_info;
 		GdkPixbuf    *thumb, *pix;
 		GtkTreeModel *model;
 		gchar		 *path;
@@ -233,7 +233,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 		if (GTK_WIDGET(item) == img->edit_empty_slide)
 			slide_info = img->current_slide;
 		else
-			slide_info = img_create_new_slide();
+			slide_info = img_create_new_media();
 
 		if (slide.gradient == 3)
 			path = "10:0";
@@ -285,70 +285,19 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 								88, 49,
 								&thumb, NULL );
 
-			/* If a slide is selected, add the empty slide after it */
-			where_to_insert	= gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->thumbnail_iconview));
-			if (where_to_insert)
-			{
-				pos = gtk_tree_path_get_indices(where_to_insert->data)[0]+1;
+		
 				/* Add empty slide */
 				if (GTK_WIDGET(item) != img->edit_empty_slide)
 				{
 					pix = img_set_fade_gradient(img, slide.gradient, slide_info);
-					gtk_list_store_insert_with_values(img->thumbnail_model, &iter,
-													pos,
-													0, thumb,
-													1, slide_info,
-													2, pix,
-													3, FALSE,
-													-1 );
+					//gtk_list_store_append( img->thumbnail_model, &iter );
+					//gtk_list_store_set(img->thumbnail_model, &iter, 0, thumb, 1, slide_info, 2, pix, 3, FALSE, -1 );
 				}
-				else
-				{
-					/* Edit empty slide */
-					pix = img_set_fade_gradient(img, slide.gradient, slide_info);
-					model =	GTK_TREE_MODEL( img->thumbnail_model );
-					gtk_tree_model_get_iter(model, &iter, where_to_insert->data);
-					gtk_list_store_set(img->thumbnail_model, &iter,
-													0, thumb,
-													1, slide_info,
-													2, pix,
-													3, slide_info->subtitle ? TRUE : FALSE,
-													-1 );
-					/* Update gradient in image area */
-					img_scale_empty_slide( slide.gradient, gtk_spin_button_get_value(GTK_SPIN_BUTTON(slide.range_countdown)),
-								slide_info->g_start_point,
-								slide_info->g_stop_point,
-								slide_info->g_start_color,
-								slide_info->g_stop_color,
-								slide_info->countdown_color	,
-								0, -1, 
-								img->video_size[0],
-								img->video_size[1],
-								NULL,
-								&img->current_image );
-				}
-				GList *node18;
-				for(node18 = where_to_insert;node18 != NULL;node18 = node18->next) {
-					gtk_tree_path_free(node18->data);
-				}
-				g_list_free (where_to_insert);
-			}
-			else
-			{
-				/* Add empty slide */
-				if (GTK_WIDGET(item) != img->edit_empty_slide)
-				{
-					pix = img_set_fade_gradient(img, slide.gradient, slide_info);
-					gtk_list_store_append( img->thumbnail_model, &iter );
-					gtk_list_store_set(img->thumbnail_model, &iter, 0, thumb, 1, slide_info, 2, pix, 3, FALSE, -1 );
-				}
-			}
+			
 				
 			if (GTK_WIDGET(item) != img->edit_empty_slide)
 			{
-				img->slides_nr++;
-				img_set_total_slideshow_duration( img );
-				img_select_nth_slide( img, img->slides_nr );
+				img->media_nr++;
 			}
 			g_object_unref( G_OBJECT( thumb ) );
 		}
@@ -447,7 +396,7 @@ gboolean img_fade_countdown(ImgEmptySlide *slide)
 
 gboolean img_empty_slide_countdown_preview(img_window_struct *img)
 {
-	slide_struct *slide = img->current_slide;
+	media_struct *slide = img->current_slide;
 	
 	slide->countdown_angle += 0.5;
 	if (slide->countdown_angle > 6.5)

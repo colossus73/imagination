@@ -63,7 +63,7 @@ ImgAngle;
  * scalling.
  */
  
-typedef struct _slide_struct slide_struct;
+typedef struct _media_struct media_struct;
  
 typedef void (*TextAnimationFunc)( cairo_t     *cr,
 								   PangoLayout *layout,
@@ -74,8 +74,8 @@ typedef void (*TextAnimationFunc)( cairo_t     *cr,
 								   gint         posx,
 								   gint         posy,
 								   gint         angle,
-								   gdouble		 progress,
-								   slide_struct * );
+								   gdouble  progress,
+								   media_struct * );
 
 
 /* ****************************************************************************
@@ -99,9 +99,6 @@ struct _ImgStopPoint
 	gdouble zoom; /* Zoom level */
 };
 
-/* ****************************************************************************
- * define for gtk clipboard
- * ************************************************************************* */
 #define IMG_CLIPBOARD (gdk_atom_intern_static_string ("IMAGINATIO_OWN_CLIPBOARD")) 
 #define IMG_INFO_LIST (gdk_atom_intern_static_string ("application/imagination-info-list"))
 
@@ -111,24 +108,30 @@ typedef enum
 	IMG_CLIPBOARD_COPY
 } ImgClipboardMode;
 
-/* ****************************************************************************
- * Common definitions that are used all over the place
- * ************************************************************************* */
-typedef struct _slide_struct slide_struct;
-struct _slide_struct
+typedef struct _media_struct media_struct;
+struct _media_struct
 {
-	/* Common data - always filled */
-	gchar *resolution;        /* Image dimensions */
-	gchar *type;              /* Image type */
+	/* Media type
+	 * 0 - image
+	 * 1 - audio
+	 * 2 - video
+	 * 3 - text
+	 * 4 - transition */
+	
+	gint			media_type;
+	gchar		*full_path;
+	gchar 		*image_type;
+	gchar 		*video_type;
+	gchar 		*audio_type;
+	gchar		*video_duration;
+	gchar		*audio_duration;
+	gint			bitrate;
+	gchar		*metadata;
+	gint			width;
+	gint			height;
 
-	/* Fields that are filled when we load slide from disk */
-	gchar    *o_filename; /* Filename of the image that slide represents */
-	gchar    *p_filename; /* Temp filename of the processed image (flipped, rotated, etc.) */
 	ImgAngle  angle;      /* Angle of rotated image */
-    gboolean  load_ok;    /* handle loading problems (file not found, format unknown...) */
     gboolean  flipped;    /* flag for flipped images */
-    gchar    *original_filename; /* Filename as loaded from the project file */
-
 
 	/* Fields that are filled if we create slide in memory */
 	gint  gradient;         			/* Gradient type */
@@ -153,7 +156,7 @@ struct _slide_struct
 	gint   no_points; /* Number of stop points in list */
 	gint   cur_point; /* Currently active stop point */
 
-	/* Subtitle variables */
+	/* Text related variables */
 	guint8				 *subtitle;        			/* Subtitle text */
 	gsize				 subtitle_length; 			/* Subtitle length */
 	gchar			 	 *pattern_filename;	/* Pattern image file */
@@ -164,11 +167,13 @@ struct _slide_struct
 	gint                  anim_id;         				/* Animation id */
 	gint                  anim_duration;   		/* Duration of animation */
 	PangoFontDescription *font_desc;      /* Font description */
-	gdouble            font_color[4];   			/* Font color (RGBA format) */
-	gdouble            font_bg_color[4]; 		/* Font background color (RGBA format) */
-    gdouble            font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
-    gdouble            font_outline_color[4]; 	/* Font outline color (RGBA format) */
-    gint               	 alignment;
+	gdouble           font_color[4];   			/* Font color (RGBA format) */
+	gdouble           font_bg_color[4]; 		/* Font background color (RGBA format) */
+    gdouble           font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
+    gdouble           font_outline_color[4]; 	/* Font outline color (RGBA format) */
+    gint 					bg_border_radious;			/* text background border radious */
+    gint 					bg_padding;				/* text background padding */
+    gint               	alignment;
 };
 
 /* Textbox related variables */
@@ -239,11 +244,8 @@ struct _img_window_struct
 	GtkWidget	*filename_data;
 	GtkWidget	*scrolled_win;
 	GtkWidget   *text_pos_button;
-	GtkWidget 	*thumb_scrolledwindow;
-  	GtkWidget	*thumbnail_iconview;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
-  	GtkListStore *thumbnail_model;
   	GtkListStore *media_model;
   	GtkWidget 	*media_iconview_swindow;
   	GtkTreeIter popup_iter;
@@ -298,7 +300,7 @@ struct _img_window_struct
 	gdouble       maxoffx;       /* Maximal offsets for current zoom */
 	gdouble       maxoffy;
 	ImgStopPoint  current_point; /* Data for rendering current image */
-  	slide_struct 		*current_slide;
+  	media_struct 		*current_slide;
 	img_textbox 	*textbox;
 
 	/* Renderers and module stuff */
@@ -309,12 +311,10 @@ struct _img_window_struct
 	gchar       *project_filename;		// project name for saving
 	gchar       *slideshow_filename;	// exported slideshow movie
 	gchar       *project_current_dir;
-	gboolean	distort_images;
-	gboolean	bye_bye_transition;
+	gboolean	distort_images; 			//to be removed
 	gboolean	project_is_modified;
 	gboolean	relative_filenames;
-    GtkWidget   *bye_bye_transition_checkbox;
-	gint        video_size[2];
+    gint        video_size[2];
 	gint        frame_rate;
 	//gint        video_quality;
 	gint        sample_rate;
@@ -322,13 +322,8 @@ struct _img_window_struct
 	gdouble     video_ratio;
     gdouble     background_color[3];
   	gdouble		total_secs;
-	gint		total_music_secs;
-  	gint		slides_nr;
+	//gint		total_music_secs;
   	gint		media_nr;
-  	gint		cur_nr_of_selected_slide;
-	slide_struct final_transition;  /* Only speed, render and duration fields
-									   of this structure are used (and duration
-									   is always 0). */
 
 	/* Variables common to export and preview functions */
 	GtkWidget		*container_menu;	/* Container combo box in the export dialog */

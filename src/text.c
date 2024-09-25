@@ -96,6 +96,30 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
 	gtk_widget_queue_draw(img->image_area);
 }
 
+void img_text_font_changed(GtkFontButton *button, img_window_struct *img )
+{
+	gchar *font_name;
+	PangoFontDescription *desc;
+	
+	font_name = gtk_font_chooser_get_font(GTK_FONT_CHOOSER(button));
+	desc = pango_font_description_from_string(font_name);
+	
+	img->textbox->attr = pango_attr_font_desc_new(desc);
+	if (img->textbox->selection_start == -1 && img->textbox->selection_end == -1)
+	{
+		img->textbox->attr->start_index = 0;
+		img->textbox->attr->end_index = -1;
+	}
+	else
+	{
+		img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+		img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+	}
+	pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+	pango_font_description_free(desc);
+	g_free(font_name);
+}
+
 void img_text_color_clicked(GtkWidget *widget, img_window_struct *img)
 {
 	GtkWidget *chooser, *dialog;
@@ -232,7 +256,7 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide);
+				   media_struct *current_slide);
 
 static void
 img_text_draw_layout( cairo_t     *cr,
@@ -240,7 +264,7 @@ img_text_draw_layout( cairo_t     *cr,
                       gint			posx,
                       gint 			posy,
                       gint 			angle,
-                      slide_struct *);
+                      media_struct *);
 
 static void
 img_text_draw_layout_fade( cairo_t     *cr,
@@ -248,7 +272,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      slide_struct *current_slide,
+                      media_struct *current_slide,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_brdr_color,
 					  gdouble	    *progress_font_bgcolor,
@@ -265,7 +289,7 @@ img_text_from_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
 static void
 img_text_from_right( cairo_t     *cr,
@@ -278,7 +302,7 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble	   progress,
-					slide_struct *current_slide);
+					media_struct *current_slide);
 
 static void
 img_text_spin_grow( cairo_t     *cr,
@@ -291,7 +315,7 @@ img_text_spin_grow( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
 
 static void
@@ -305,7 +329,7 @@ img_text_from_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
                 
 static void
@@ -319,7 +343,7 @@ img_text_from_bottom( cairo_t     *cr,
   					  gint         posy,
   					  gint         angle,
   					 gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
 
 static void
@@ -333,7 +357,7 @@ img_text_grow( cairo_t     *cr,
 			   gint         posy,
 			   gint         angle,
 				gdouble	progress,
- 				slide_struct *slide);
+ 				media_struct *slide);
 
 
 static void
@@ -347,7 +371,7 @@ img_text_bottom_to_top( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
 
 static void
@@ -361,7 +385,7 @@ img_text_right_to_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
 					gdouble	progress,
- 					slide_struct *slide);
+ 					media_struct *slide);
 
                       
 gint img_get_text_animation_list( TextAnimation **animations )
@@ -506,7 +530,7 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide)
+				   media_struct *current_slide)
 {
     gdouble  progress_font_color[4], progress_font_bgcolor[4], progress_font_shadow_color[4], progress_font_outline_color[4];
 
@@ -536,112 +560,112 @@ img_text_ani_fade( cairo_t     *cr,
 						progress_font_shadow_color, progress_font_outline_color);
 }
 
-void
-img_set_slide_text_info( slide_struct      *slide,
-						 GtkListStore      *store,
-						 GtkTreeIter       *iter,
-						 guint8		       *subtitle,
-						 gchar				*pattern_filename,
-						 gint	            anim_id,
-						 gint               anim_duration,
-						 gint               posx,
-						 gint               posy,
-						 gint               angle,
-						 const gchar       *font_desc,
-						 gdouble           *font_color,
-                         gdouble           *font_bg_color,
-                         gdouble           *font_shadow_color,
-                         gdouble           *font_outline_color,
-                         gint	           alignment,
-						 img_window_struct *img )
-{
-	if (pattern_filename)
-		slide->pattern_filename = pattern_filename;
+//~ void
+//~ img_set_slide_text_info( media_struct      *slide,
+						 //~ GtkListStore      *store,
+						 //~ GtkTreeIter       *iter,
+						 //~ guint8		       *subtitle,
+						 //~ gchar				*pattern_filename,
+						 //~ gint	            anim_id,
+						 //~ gint               anim_duration,
+						 //~ gint               posx,
+						 //~ gint               posy,
+						 //~ gint               angle,
+						 //~ const gchar       *font_desc,
+						 //~ gdouble           *font_color,
+                         //~ gdouble           *font_bg_color,
+                         //~ gdouble           *font_shadow_color,
+                         //~ gdouble           *font_outline_color,
+                         //~ gint	           alignment,
+						 //~ img_window_struct *img )
+//~ {
+	//~ if (pattern_filename)
+		//~ slide->pattern_filename = pattern_filename;
 
-	/* Set the slide text info parameters */
-	if( ( anim_id > -1 ) && ( anim_id != slide->anim_id ) )
-	{
-		GtkTreeModel *model;
-		gchar        *path;
-		GtkTreeIter   iter;
+	//~ /* Set the slide text info parameters */
+	//~ if( ( anim_id > -1 ) && ( anim_id != slide->anim_id ) )
+	//~ {
+		//~ GtkTreeModel *model;
+		//~ gchar        *path;
+		//~ GtkTreeIter   iter;
 
-		path = g_strdup_printf( "%d", anim_id );
-		model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->sub_anim ) );
-		gtk_tree_model_get_iter_from_string( model, &iter, path );
-		g_free( path );
+		//~ path = g_strdup_printf( "%d", anim_id );
+		//~ model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->sub_anim ) );
+		//~ gtk_tree_model_get_iter_from_string( model, &iter, path );
+		//~ g_free( path );
 
-		slide->anim_id = anim_id;
-		gtk_tree_model_get( model, &iter, 1, &slide->anim, -1 );
+		//~ slide->anim_id = anim_id;
+		//~ gtk_tree_model_get( model, &iter, 1, &slide->anim, -1 );
 
-		/* Sync timings */
-		img_sync_timings( slide, img );
-	}
+		//~ /* Sync timings */
+		//~ img_sync_timings( slide, img );
+	//~ }
 
-	if( ( anim_duration > 0 ) && ( anim_duration != slide->anim_duration ) )
-	{
-		slide->anim_duration = anim_duration;
+	//~ if( ( anim_duration > 0 ) && ( anim_duration != slide->anim_duration ) )
+	//~ {
+		//~ slide->anim_duration = anim_duration;
 
-		/* Synchronize timings */
-		img_sync_timings( slide, img );
-	}
+		//~ /* Synchronize timings */
+		//~ img_sync_timings( slide, img );
+	//~ }
 
-	if (posx > -1 || posy > -1)
-	{
-		slide->posX = posx;
-		slide->posY = posy;
-	}
+	//~ if (posx > -1 || posy > -1)
+	//~ {
+		//~ slide->posX = posx;
+		//~ slide->posY = posy;
+	//~ }
 	
-	slide->subtitle_angle = angle;
+	//~ slide->subtitle_angle = angle;
 
-	if( font_desc )
-	{
-		if( slide->font_desc )
-			pango_font_description_free( slide->font_desc );
-		slide->font_desc = pango_font_description_from_string( font_desc );
-	}
+	//~ if( font_desc )
+	//~ {
+		//~ if( slide->font_desc )
+			//~ pango_font_description_free( slide->font_desc );
+		//~ slide->font_desc = pango_font_description_from_string( font_desc );
+	//~ }
 
-	if( font_color )
-	{
-		slide->font_color[0] = font_color[0];
-		slide->font_color[1] = font_color[1];
-		slide->font_color[2] = font_color[2];
-		slide->font_color[3] = font_color[3];
-	}
+	//~ if( font_color )
+	//~ {
+		//~ slide->font_color[0] = font_color[0];
+		//~ slide->font_color[1] = font_color[1];
+		//~ slide->font_color[2] = font_color[2];
+		//~ slide->font_color[3] = font_color[3];
+	//~ }
 
-    if( font_bg_color )
-    {
-        slide->font_bg_color[0] = font_bg_color[0];
-        slide->font_bg_color[1] = font_bg_color[1];
-        slide->font_bg_color[2] = font_bg_color[2];
-        slide->font_bg_color[3] = font_bg_color[3];
-    }
+    //~ if( font_bg_color )
+    //~ {
+        //~ slide->font_bg_color[0] = font_bg_color[0];
+        //~ slide->font_bg_color[1] = font_bg_color[1];
+        //~ slide->font_bg_color[2] = font_bg_color[2];
+        //~ slide->font_bg_color[3] = font_bg_color[3];
+    //~ }
     
-    if( font_shadow_color )
-    {
-        slide->font_shadow_color[0] = font_shadow_color[0];
-        slide->font_shadow_color[1] = font_shadow_color[1];
-        slide->font_shadow_color[2] = font_shadow_color[2];
-        slide->font_shadow_color[3] = font_shadow_color[3];
-    }
+    //~ if( font_shadow_color )
+    //~ {
+        //~ slide->font_shadow_color[0] = font_shadow_color[0];
+        //~ slide->font_shadow_color[1] = font_shadow_color[1];
+        //~ slide->font_shadow_color[2] = font_shadow_color[2];
+        //~ slide->font_shadow_color[3] = font_shadow_color[3];
+    //~ }
     
-    if( font_outline_color )
-    {
-        slide->font_outline_color[0] = font_outline_color[0];
-        slide->font_outline_color[1] = font_outline_color[1];
-        slide->font_outline_color[2] = font_outline_color[2];
-        slide->font_outline_color[3] = font_outline_color[3];
-    }
+    //~ if( font_outline_color )
+    //~ {
+        //~ slide->font_outline_color[0] = font_outline_color[0];
+        //~ slide->font_outline_color[1] = font_outline_color[1];
+        //~ slide->font_outline_color[2] = font_outline_color[2];
+        //~ slide->font_outline_color[3] = font_outline_color[3];
+    //~ }
     	
-	if (alignment > 0)
-		slide->alignment = alignment;
-}								
+	//~ if (alignment > 0)
+		//~ slide->alignment = alignment;
+//~ }								
 
 static void img_text_draw_layout( cairo_t     *cr,
                       PangoLayout *layout,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      slide_struct *current_slide)
+                      media_struct *current_slide)
 {
 	cairo_pattern_t  *font_pattern = NULL;
     gint x,y,w,h;
@@ -699,7 +723,7 @@ img_text_from_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					slide_struct *current_slide)
+ 					media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress - lw * ( 1 - progress ),
@@ -719,7 +743,7 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble      progress,
-                     slide_struct *current_slide)
+                     media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress + sw * ( 1 - progress ),
@@ -739,7 +763,7 @@ img_text_from_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide)
+				   media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -759,7 +783,7 @@ img_text_from_bottom( cairo_t     *cr,
   					  gint         posy,
   					  gint         angle,
   					  gdouble      progress,
-  					 slide_struct *current_slide)
+  					 media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -779,7 +803,7 @@ img_text_grow( cairo_t     *cr,
 			   gint         posy,
 			   gint         angle,
 			   gdouble      progress,
-			  slide_struct *current_slide)
+			  media_struct *current_slide)
 {
 	cairo_translate( cr, posx + lw * 0.5, posy + lh * 0.5 );
 	cairo_scale( cr, exp(log(progress)), exp(log(progress)) );
@@ -802,7 +826,7 @@ img_text_bottom_to_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide)
+				   media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -822,7 +846,7 @@ img_text_right_to_left( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide)
+				   media_struct *current_slide)
 {
     img_text_draw_layout(cr, layout,
                          sw * (1 - progress) - lw * progress,
@@ -841,7 +865,7 @@ img_text_spin_grow( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   slide_struct *current_slide)
+				   media_struct *current_slide)
 {
 	gint my_angle;
 	my_angle = angle + 360 * exp(log(progress));
@@ -863,7 +887,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      slide_struct *current_slide,
+                      media_struct *current_slide,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_bg_color,
 					  gdouble	    *progress_font_shadow_color,

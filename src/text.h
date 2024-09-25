@@ -33,6 +33,7 @@ struct _TextAnimation
 gboolean blink_cursor(img_window_struct *);
 void img_draw_textbox(cairo_t *, img_window_struct *);
 void img_textbox_button_pressed(GdkEventButton *, img_window_struct *);
+void img_text_font_changed( GtkFontButton *, img_window_struct *);
 void img_text_color_clicked(GtkWidget *, img_window_struct *);
 void img_text_style_changed(GtkButton *button, img_window_struct *);
 void img_text_align_changed(GtkButton *button, img_window_struct *);
@@ -56,7 +57,7 @@ void img_render_subtitle( img_window_struct	  *img,
 					 gboolean				centerY,
 					 gdouble               progress );
 
-void img_set_slide_text_info( slide_struct      *slide,
+void img_set_slide_text_info( media_struct      *slide,
 						 GtkListStore      *store,
 						 GtkTreeIter       *iter,
 						 guint8		       *subtitle,

@@ -32,6 +32,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "imagination.h"
+#include "main-window.h"
 #include "imgcellrendereranim.h"
 
 #ifdef ENABLE_NLS
@@ -54,20 +55,13 @@ gint img_ask_user_confirmation(img_window_struct *, gchar *);
 void img_message(img_window_struct *, gchar *);
 void img_load_available_transitions(img_window_struct *);
 void img_show_file_chooser(GtkWidget *, GtkEntryIconPosition, int, img_window_struct *);
-void img_select_nth_slide(img_window_struct *, gint);
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img);
 void img_update_zoom_variables(img_window_struct *img);
 gchar * img_get_audio_duration(gchar * );
 
-slide_struct *
-img_create_new_slide( void );
+media_struct *img_create_new_media();
 
-void
-img_set_slide_file_info( slide_struct *slide,
-						 const gchar  *filename );
-
-void
-img_set_empty_slide_info( slide_struct *slide,
+void img_set_empty_slide_info( media_struct *slide,
 							 gint          gradient,
 							 gint          countdown,
 							 gdouble      *start_color,
@@ -78,14 +72,12 @@ img_set_empty_slide_info( slide_struct *slide,
 
 GdkPixbuf *img_set_fade_gradient(	img_window_struct *img,
 							gint gradient,
-							slide_struct *slide_info);
-void
-img_set_slide_still_info( slide_struct      *slide,
+							media_struct *slide_info);
+void img_set_slide_still_info( media_struct      *slide,
 						  gdouble           duration,
 						  img_window_struct *img );
 
-void
-img_set_slide_transition_info( slide_struct      *slide,
+void img_set_slide_transition_info( media_struct      *slide,
 							   GtkListStore      *store,
 							   GtkTreeIter       *iter,
 							   GdkPixbuf         *pix,
@@ -94,18 +86,13 @@ img_set_slide_transition_info( slide_struct      *slide,
 							   ImgRender          render,
 							   img_window_struct *img );
 
-void
-img_set_slide_ken_burns_info( slide_struct *slide,
+void img_set_slide_ken_burns_info( media_struct *slide,
 							  gint          cur_point,
 							  gsize         length,
 							  gdouble      *points );
 
-void img_free_slide_struct( slide_struct * );
-
+void img_free_media_struct( media_struct * );
 void img_save_relative_filenames(GtkCheckButton *togglebutton, img_window_struct *img);
-
-gboolean img_set_total_slideshow_duration( img_window_struct *img );
-
 gint img_calc_slide_duration_points( GList *list, gint   length );
 
 gboolean img_scale_image( const gchar      *filename,
@@ -118,7 +105,7 @@ gboolean img_scale_image( const gchar      *filename,
 				 cairo_surface_t **surface );
 
 void img_taint_project(img_window_struct *);
-void img_sync_timings( slide_struct  *, img_window_struct * );
+void img_sync_timings( media_struct  *, img_window_struct * );
 GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 
 gboolean img_scale_empty_slide( gint gradient, gint countdown,
@@ -134,8 +121,6 @@ gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					GdkPixbuf       **pixbuf,
 					cairo_surface_t **surface );
 
-void str_replace(gchar *str, const gchar *, const gchar *);
-void img_slide_set_p_filename(slide_struct *, gchar *);
 gboolean img_check_for_recent_file(img_window_struct *, const gchar *);
 gboolean img_find_media_in_list(img_window_struct *, gchar *);
 void rotate_point(double , double , double , double , double , double *, double *);

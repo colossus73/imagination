@@ -22,12 +22,6 @@
 GtkWidget		*width;
 GtkWidget		*height;
 
-static void
-img_update_thumbs( img_window_struct *img );
-
-static void
-img_update_current_slide( img_window_struct *img );
-
 void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property)
 {
 	GtkListStore	*liststore;
@@ -148,11 +142,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
 	
-	img->bye_bye_transition_checkbox = gtk_switch_new();
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), img->bye_bye_transition_checkbox, FALSE, FALSE, 0 );
-	label = gtk_label_new(_("End slideshow with blank slide") );
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), label, FALSE, FALSE, 0 );
-	
 	color.red   = img->background_color[0];
 	color.green = img->background_color[1];
 	color.blue  = img->background_color[2];
@@ -164,7 +153,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 
 	/* Set parameters */
 	gtk_switch_set_active( GTK_SWITCH( distort_button ), img->distort_images );
-	gtk_switch_set_active( GTK_SWITCH( img->bye_bye_transition_checkbox ), img->bye_bye_transition );
 
 	response = gtk_dialog_run(GTK_DIALOG(dialog1));
 
@@ -182,9 +170,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 		/* Get distorsion settings */
 		img->distort_images = gtk_switch_get_active(GTK_SWITCH(distort_button));
 
-		/* Get bye bye transition settings */
-		img->bye_bye_transition = gtk_switch_get_active(GTK_SWITCH(img->bye_bye_transition_checkbox));
-
 		/* Get color settings */
 		gtk_color_chooser_get_rgba( GTK_COLOR_CHOOSER(bg_button), &new);
 		img->background_color[0] = (gdouble)new.red;
@@ -194,53 +179,17 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 				  ( color.green != new.green ) ||
 				  ( color.blue  != new.blue  );
 
-		/* Update display properly */
-		if( img->distort_images || c_color )
-		{
-			/* Update thumbnails */
-			img_update_thumbs( img );
-
-			/* Update display of currently selected image */
-			img_update_current_slide( img );
-		}
 	}
 	gtk_widget_destroy(dialog1);
 }
 
-static void
-img_update_thumbs( img_window_struct *img )
-{
-	gboolean      next;
-	GtkTreeIter   iter;
-	GtkListStore *store = img->thumbnail_model;
-	GtkTreeModel *model = GTK_TREE_MODEL( store );
-
-	for( next = gtk_tree_model_get_iter_first( model, &iter );
-		 next;
-		 next = gtk_tree_model_iter_next( model, &iter ) )
-	{
-		slide_struct *slide;
-		GdkPixbuf    *pix;
-
-		gtk_tree_model_get( model, &iter, 1, &slide, -1 );
-		if( img_scale_image( slide->p_filename, img->video_ratio, 88, 0,
-							 img->distort_images, img->background_color,
-							 &pix, NULL ) )
-		{
-			gtk_list_store_set( store, &iter, 0, pix, -1 );
-			g_object_unref( G_OBJECT( pix ) );
-		}
-	}
-}
-
-static void
-img_update_current_slide( img_window_struct *img )
+static void img_update_current_slide( img_window_struct *img )
 {
 	if( ! img->current_slide )
 		return;
 
 	cairo_surface_destroy( img->current_image );
-	img_scale_image( img->current_slide->p_filename, img->video_ratio,
+	img_scale_image( img->current_slide->full_path, img->video_ratio,
 					 0, img->video_size[1], img->distort_images,
 					 img->background_color, NULL, &img->current_image );
 	gtk_widget_queue_draw( img->image_area );
