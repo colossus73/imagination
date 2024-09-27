@@ -32,9 +32,6 @@ void img_text_font_set( GtkFontChooser     *button,
 void img_font_color_changed( GtkColorChooser   *button,
 						img_window_struct *img );
 
-void img_font_brdr_color_changed( GtkColorChooser    *button,
-                          img_window_struct *img );
-
 void img_font_bg_color_changed( GtkColorChooser    *button,
                           img_window_struct *img );
                           

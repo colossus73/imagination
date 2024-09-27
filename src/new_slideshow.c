@@ -32,7 +32,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	GtkWidget		*iconview;
 	GtkWidget		*grid;
 	GtkWidget		*ex_hbox;
-	GtkWidget		*distort_button;
 	GtkWidget		*bg_button;
 	GtkWidget		*fourk_button;
 	GtkWidget		*eightk_button;
@@ -130,15 +129,10 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
     g_signal_connect(G_OBJECT (fullhd_button),"clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)2);
     g_signal_connect(G_OBJECT (hd_button),	  "clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)3);
 
-	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 5 );
-	gtk_widget_set_margin_top(GTK_WIDGET(ex_hbox), 15);
+	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
+	//gtk_widget_set_margin_top(GTK_WIDGET(ex_hbox), 15);
 
-	distort_button = gtk_switch_new();
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), distort_button, FALSE, FALSE, 0 );
-	label = gtk_label_new(_("Distort images to fill the whole screen") );
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), label, FALSE, FALSE, 0);
-	
 	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
 	
@@ -147,12 +141,12 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	color.blue  = img->background_color[2];
 	color.alpha = 1.0;
 
+	label = gtk_label_new( _("Background color:") );
+	gtk_box_pack_start( GTK_BOX( ex_hbox ), label, FALSE, FALSE, 0 );
+	
 	bg_button = gtk_color_button_new_with_rgba( &color );
 	gtk_box_pack_start( GTK_BOX( ex_hbox ), bg_button, FALSE, FALSE, 0 );
 	gtk_widget_show_all(dialog_vbox1);
-
-	/* Set parameters */
-	gtk_switch_set_active( GTK_SWITCH( distort_button ), img->distort_images );
 
 	response = gtk_dialog_run(GTK_DIALOG(dialog1));
 
@@ -167,9 +161,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 
 		GdkRGBA new;
 
-		/* Get distorsion settings */
-		img->distort_images = gtk_switch_get_active(GTK_SWITCH(distort_button));
-
 		/* Get color settings */
 		gtk_color_chooser_get_rgba( GTK_COLOR_CHOOSER(bg_button), &new);
 		img->background_color[0] = (gdouble)new.red;
@@ -179,6 +170,8 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 				  ( color.green != new.green ) ||
 				  ( color.blue  != new.blue  );
 
+	if (c_color)
+		img_taint_project(img);
 	}
 	gtk_widget_destroy(dialog1);
 }
@@ -190,7 +183,7 @@ static void img_update_current_slide( img_window_struct *img )
 
 	cairo_surface_destroy( img->current_image );
 	img_scale_image( img->current_slide->full_path, img->video_ratio,
-					 0, img->video_size[1], img->distort_images,
+					 0, img->video_size[1], FALSE,
 					 img->background_color, NULL, &img->current_image );
 	gtk_widget_queue_draw( img->image_area );
 }

@@ -169,7 +169,7 @@ static gboolean img_start_export( img_window_struct *img)
 	else
 	{
 		success = img_scale_image( entry->full_path, img->video_ratio,
-						 0, 0, img->distort_images,
+						 0, 0, FALSE,
 						 img->background_color, NULL, &img->image2 );
 	}
 
@@ -346,9 +346,6 @@ img_prepare_pixbufs( img_window_struct *img)
 	img->point1 = (ImgStopPoint *)( img->current_slide->no_points ?
 									g_list_last( img->current_slide->points )->data :
 									NULL );
-
-	/* save the cur iter in the iconview to unselect the slide before selecting the next one */
-	img->prev_ss_iter = img->cur_ss_iter;
 
 	/* We're done now */
 	last_transition = TRUE;

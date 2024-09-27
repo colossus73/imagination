@@ -126,9 +126,11 @@ struct _media_struct
 	gchar		*video_duration;
 	gchar		*audio_duration;
 	gint			bitrate;
-	gchar		*metadata;
+	gint			sample_rate;
+	gchar		metadata[1024];
 	gint			width;
 	gint			height;
+	guint64	filesize;
 
 	ImgAngle  angle;      /* Angle of rotated image */
     gboolean  flipped;    /* flag for flipped images */
@@ -236,11 +238,10 @@ struct _img_window_struct
 	GtkWidget 	*preview_hbox;
 	GtkWidget	*beginning_timer_label;
 	GtkWidget	*preview_button;
-	GtkWidget	*end_timer_label;
+	GtkWidget	*slideshow_duration;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*duration;
-	GtkWidget	*slideshow_duration;
 	GtkWidget	*filename_data;
 	GtkWidget	*scrolled_win;
 	GtkWidget   *text_pos_button;
@@ -248,6 +249,7 @@ struct _img_window_struct
   	GtkWidget	*image_area;
   	GtkListStore *media_model;
   	GtkWidget 	*media_iconview_swindow;
+  	GtkWidget 	*media_iconview;
   	GtkTreeIter popup_iter;
   	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
@@ -311,7 +313,6 @@ struct _img_window_struct
 	gchar       *project_filename;		// project name for saving
 	gchar       *slideshow_filename;	// exported slideshow movie
 	gchar       *project_current_dir;
-	gboolean	distort_images; 			//to be removed
 	gboolean	project_is_modified;
 	gboolean	relative_filenames;
     gint        video_size[2];
@@ -340,9 +341,6 @@ struct _img_window_struct
 	cairo_surface_t *image_to;
 	ImgStopPoint    *point1;        	/* Last stop point of image1 */
 	ImgStopPoint    *point2;        	/* First stop point of image2 */
-  	GtkTreeIter      cur_ss_iter;
-  	GtkTreeIter      prev_ss_iter;
-  	GtkTreePath 	*first_selected_path;
   	guint		     source_id;
   	gboolean	     gradient_slide; /* Flag to allow the hack when transitioning
 										from an empty slide with fade gradient */
@@ -408,11 +406,6 @@ struct _img_window_struct
 	/* Clipboard related stuff */
 	GList				*selected_paths;
 	ImgClipboardMode	clipboard_mode;
-	
-	/* Report dialog related widgets */
-	GtkWidget	*report_dialog;
-	GtkWidget	*vbox_slide_report_rows;
-	GSList		*report_dialog_row_slist;
 };
 
 #endif

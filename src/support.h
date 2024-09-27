@@ -57,7 +57,7 @@ void img_load_available_transitions(img_window_struct *);
 void img_show_file_chooser(GtkWidget *, GtkEntryIconPosition, int, img_window_struct *);
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img);
 void img_update_zoom_variables(img_window_struct *img);
-gchar * img_get_audio_duration(gchar * );
+void img_get_audio_data(media_struct *);
 
 media_struct *img_create_new_media();
 
@@ -126,4 +126,5 @@ gboolean img_find_media_in_list(img_window_struct *, gchar *);
 void rotate_point(double , double , double , double , double , double *, double *);
 void transform_coords(img_textbox *, double , double , double *, double *);
 void select_word_at_position(img_textbox *, int );
+void to_upper(gchar **);
 #endif

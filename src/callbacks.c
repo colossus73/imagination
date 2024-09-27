@@ -109,7 +109,7 @@ void img_project_properties(GtkMenuItem *item, img_window_struct *img_struct)
 
 void img_detect_media_orientation_from_pixbuf(GdkPixbuf *image, gboolean *flipped, ImgAngle *angle)
 {
-        int transform = 0;
+	int transform = 0;
 	const gchar *orientation_string;
 
 	orientation_string = gdk_pixbuf_get_option(image, "orientation");
@@ -178,18 +178,17 @@ void img_add_media(GSList *slides, img_window_struct *img)
 	media_struct *media_info;
 	GError *error = NULL;
 	gchar *filename;
-	gint slides_cnt = 0, actual_slides = 0;
+	gint slides_cnt , nr_invalid = 0;
 	GFile *file;
 	GFileInfo *file_info;
 	const gchar *content_type;
 	gchar *mime_type;
 
-	actual_slides = img->media_nr;
 	img->media_nr += g_slist_length(slides);
 
 	/* Remove model from thumbnail iconview for efficiency */
 	g_object_ref( G_OBJECT( img->media_model ) );
-	gtk_icon_view_set_model(GTK_ICON_VIEW(gtk_bin_get_child(GTK_BIN(img->media_iconview_swindow))), NULL);
+	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), NULL);
 
 	bak = slides;
 	while (slides)
@@ -203,6 +202,10 @@ void img_add_media(GSList *slides, img_window_struct *img)
 		file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
 		content_type = g_file_info_get_content_type (file_info);
 		mime_type = g_content_type_get_mime_type (content_type);
+
+		//Get the filesize
+		media_info->filesize = g_file_info_get_size(file_info);
+
 		if (strstr(mime_type, "image"))
 			media_info->media_type = 0;
 		else if (strstr(mime_type, "audio"))
@@ -214,6 +217,7 @@ void img_add_media(GSList *slides, img_window_struct *img)
 			gchar *string = g_strconcat( _("Can't recognize file type of media\n"), slides->data, NULL);
 			img_message(img, string);
 			g_free(string);
+			nr_invalid++;
 			goto next_slide;
 		}
 		switch (media_info->media_type)
@@ -221,33 +225,41 @@ void img_add_media(GSList *slides, img_window_struct *img)
 			case 0:
 				format = gdk_pixbuf_get_file_info(filename, &media_info->width, &media_info->height);
 				media_info->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
+				to_upper(&media_info->image_type);
 				/* to get the orientation tag, load a tiny version of the image */
 				thumb = gdk_pixbuf_new_from_file_at_size(filename, 1, 1, NULL);
-	    		img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped),
-		    &(media_info->angle));
+	    		img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
 				g_object_unref(thumb);
 				/* create the associated full_path taking orientation into account */
 				//img_rotate_flip_slide(slide_info, slide_info->angle, slide_info->flipped);
-				img_add_media_widget_area(media_info, filename, img);
+				if ( ! img_add_media_widget_area(media_info, filename, img))
+					nr_invalid++;
 			break;
 
 			case 1:
-				img_add_media_widget_area(media_info, filename, img);
+				img_get_audio_data(media_info);
+				if ( ! img_add_media_widget_area(media_info, filename, img))
+					nr_invalid++;
 			break;
 		}
 next_slide:
 	    g_free(mime_type);
+		g_object_unref(file_info);
 		g_object_unref(file);
 	    g_free(slides->data);
 	    slides = slides->next;
-	} //Closing while curly bracket
+	} //Closing while(slides) curly bracket
 	
 	g_slist_free(bak);
-	img_taint_project(img);
+	if (nr_invalid == 0)
+		img_taint_project(img);
 
 	// Reinstate the model
-	gtk_icon_view_set_model(GTK_ICON_VIEW(gtk_bin_get_child(GTK_BIN(img->media_iconview_swindow))), GTK_TREE_MODEL(img->media_model) );
+	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), GTK_TREE_MODEL(img->media_model) );
 	g_object_unref( G_OBJECT( img->media_model ) );
+	
+	//Update media nr
+	img->media_nr -= nr_invalid;
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(img->side_notebook), 0);
 }
 
@@ -276,7 +288,7 @@ GSList *img_import_slides_file_chooser(img_window_struct *img)
 	
 	/* Sound files filter */
 	sound_filter = gtk_file_filter_new ();
-	gtk_file_filter_set_name(sound_filter,_("All sound files"));
+	gtk_file_filter_set_name(sound_filter,_("All audio files"));
 	gtk_file_filter_add_pattern(sound_filter,"*.aac");
 	gtk_file_filter_add_pattern(sound_filter,"*.aiff");
 	gtk_file_filter_add_pattern(sound_filter,"*.flac");
@@ -328,7 +340,7 @@ void img_free_allocated_memory(img_window_struct *img_struct)
 		while (gtk_tree_model_iter_next (model,&iter));
 		gtk_list_store_clear(GTK_LIST_STORE(img_struct->media_model));
 	}
-	img_struct->media_nr = 0; 
+
 	/* Free gchar pointers */
 	if (img_struct->current_dir)
 	{
@@ -352,12 +364,6 @@ void img_free_allocated_memory(img_window_struct *img_struct)
 		g_free(img_struct->slideshow_filename);
 		img_struct->slideshow_filename = NULL;
 	}
-	if (img_struct->first_selected_path)
-	{
-		gtk_tree_path_free(img_struct->first_selected_path);
-		img_struct->first_selected_path = NULL;
-	}
-
 }
 
 gboolean img_window_key_pressed(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
@@ -699,6 +705,16 @@ static void	img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_win
 	gtk_file_chooser_set_preview_widget_active (file_chooser, has_preview);
 }
 
+void img_select_all_media(GtkWidget *widget, img_window_struct *img)
+{
+	gtk_icon_view_select_all(GTK_ICON_VIEW(img->media_iconview));
+}
+
+void img_unselect_all_media(GtkWidget *widget, img_window_struct *img)
+{
+	gtk_icon_view_unselect_all(GTK_ICON_VIEW(img->media_iconview));
+}
+
 void img_rotate_slides_left( GtkWidget         *widget,
 						img_window_struct *img )
 {
@@ -747,7 +763,7 @@ static void img_rotate_selected_slides( img_window_struct *img,
 
 			//~ /* Display the rotated image in thumbnails iconview */
 			//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
-							 //~ img->distort_images, img->background_color,
+							 //~ FALSE, img->background_color,
 							 //~ &thumb, NULL );
 			//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
 		//~ }
@@ -767,7 +783,7 @@ static void img_rotate_selected_slides( img_window_struct *img,
 	{
 		cairo_surface_destroy( img->current_image );
 		img_scale_image( img->current_slide->full_path, img->video_ratio,
-							 0, img->video_size[1], img->distort_images,
+							 0, img->video_size[1], FALSE,
 							 img->background_color, NULL, &img->current_image );
 		
 		gtk_widget_queue_draw( img->image_area );
@@ -863,6 +879,7 @@ void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
 	const gchar *content_type;
 	gchar *mime_type;
 	int len = 0;
+	gboolean dummy;
 
 	pictures = gtk_selection_data_get_uris(data);
 	if (pictures == NULL)
@@ -878,6 +895,7 @@ void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
 	
 	while(pictures[len])
 	{
+		media = img_create_new_media();
 		filename = g_filename_from_uri (pictures[len],NULL,NULL);
 		//Determine the mime type
 		if (filename == NULL)
@@ -887,9 +905,9 @@ void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
 		content_type = g_file_info_get_content_type (file_info);
 		mime_type = g_content_type_get_mime_type (content_type);
 		if (strstr(mime_type, "image"))
-			img_add_media_widget_area(media, filename, img);
+			dummy = img_add_media_widget_area(media, filename, img);
 		else if (strstr(mime_type, "audio"))
-			img_add_media_widget_area(media, filename, img);
+			dummy = img_add_media_widget_area(media, filename, img);
 		else if (strstr(mime_type, "video"))
 			g_print("Video!");
 		else
@@ -908,33 +926,22 @@ end:
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
 {
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(img->image_area, &allocation);
-
 	/* If we're previewing or exporting, only paint frame that is being
-	 * currently produced. */
+	 * currently produced. 
 	if( img->preview_is_running || img->export_is_running )
 	{
 		gdouble factor;
-
-		/* Do the drawing */
+		
 		factor = (gdouble)allocation.width / img->video_size[0];
 		cairo_scale( cr, factor, factor );
 		cairo_set_source_surface( cr, img->exported_image, 0, 0 );
 		cairo_paint( cr );
-	}
-	else
-	{
-		if( ! img->current_image )
-		{
-			/* Use default handler */
-			return FALSE;
-		}
+	}*/
 
 		/* Do the drawing */
-		img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
+		//img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
 
-		/* Render subtitle if present */
+		/* Render subtitle if present 
 		if( img->current_slide->subtitle )
 			img_render_subtitle( img,
 								 cr,
@@ -948,172 +955,178 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 								 img->current_point.offy,
 								 FALSE,
 								 FALSE,
-								 1.0 );
+								 1.0 ); */
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(img->image_area, &allocation);
 
-		int center_x = allocation.width /2;
-		int center_y = allocation.height /2;
+	//Paint the canvas with the user chosen background color
+	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
+	cairo_paint(cr);
+ 
+	int center_x = allocation.width /2;
+	int center_y = allocation.height /2;
 
-		// Apply rotation for the entire textbox
-		cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-		cairo_rotate(cr, img->textbox->angle);
-		cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+	// Apply rotation for the entire textbox
+	cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+	cairo_rotate(cr, img->textbox->angle);
+	cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
 
-		if (img->textbox->visible)
+	if (img->textbox->visible)
+	{
+		// Draw the angle
+		if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
 		{
-			// Draw the angle
-			if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
-			{
-				cairo_save(cr);
-				// Reset the transformation for angle text
-				cairo_identity_matrix(cr);
-				gchar buf[4];
-				cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-				cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-				cairo_set_font_size(cr, 12.0);
-				g_snprintf(buf, sizeof(buf), "%2.0f", round(img->textbox->angle * (180.0 / G_PI)));
-				cairo_move_to(cr, 10, 20);
-				cairo_show_text(cr, buf);
-				cairo_restore(cr);
-			}
-
-			// Set the color to white for the outline effect
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-			cairo_set_line_width(cr, 3.5);
-			
-			// Draw the L shape
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-			cairo_rel_line_to(cr, 0, 6);
-			cairo_rel_line_to(cr, -6, 0);
-			cairo_stroke(cr);
-
-			// Draw the arc
-			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-			cairo_stroke(cr);
-
-			// Draw the vertical line under the rotate circle
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-			cairo_stroke(cr);
-
-			// Now draw the black lines on top
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_set_line_width(cr, 1.5);  // Original line width
-
-			// Draw the L shape again
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-			cairo_rel_line_to(cr, 0, 6);
-			cairo_rel_line_to(cr, -6, 0);
-			cairo_stroke(cr);
-
-			// Draw the arc again
-			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-			cairo_stroke(cr);
-
-			// Draw the vertical line under the rotate circle again
-			cairo_set_line_width(cr, 1);
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-			cairo_stroke(cr);
-
-			// Draw the rectangle
-			cairo_set_source_rgb(cr, 0, 0, 0);
-			cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
-			cairo_stroke(cr);
-			cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
-			cairo_stroke_preserve(cr);
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-			cairo_fill(cr);
-
-			//Let's translate to origin of the drawing area allocation to avoid
-			//the cross lines to be rotated too
 			cairo_save(cr);
+			// Reset the transformation for angle text
 			cairo_identity_matrix(cr);
-			cairo_translate(cr, allocation.x, allocation.y);
-			
-			//This to compensate the allocation menubar height gap
-			//which prevents the horizontal line to be drawn at the center
-			//I wonder why the coordinates in the drawing area are shifted
-			//when the blessed menubar is hidden by the TAB key, shouldn't
-			//they always be 0,0 at the top left?
-
-			int menubar_height = gtk_widget_get_allocated_height(img->menubar);
-			if (img->textbox->draw_horizontal_line)
-			{
-				if (gtk_widget_is_visible(img->menubar))
-					center_y = menubar_height + center_y;
-				else
-					center_y = allocation.height / 2;
-
-			//Draw the horizontal centering line
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_set_line_width(cr, 1.0);
-				cairo_move_to(cr, 0, center_y - 2);
-				cairo_line_to(cr, allocation.width, center_y - 2);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-				cairo_move_to(cr, 0, center_y);
-				cairo_line_to(cr, allocation.width, center_y);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_move_to(cr, 0, center_y + 2);
-				cairo_line_to(cr, allocation.width, center_y + 2);
-				cairo_stroke(cr);
-			}
-			
-			// Draw the vertical centering line
-			if (img->textbox->draw_vertical_line)
-			{
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_set_line_width(cr, 1.0);
-				cairo_move_to(cr, center_x - 2, 0);
-				cairo_line_to(cr, center_x - 2, allocation.height + menubar_height);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-				cairo_move_to(cr, center_x, 0);
-				cairo_line_to(cr, center_x, allocation.height + menubar_height);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_move_to(cr, center_x + 2, 0);
-				cairo_line_to(cr, center_x + 2, allocation.height + menubar_height);
-				cairo_stroke(cr);
-			}
+			gchar buf[4];
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 12.0);
+			g_snprintf(buf, sizeof(buf), "%2.0f", round(img->textbox->angle * (180.0 / G_PI)));
+			cairo_move_to(cr, 10, 20);
+			cairo_show_text(cr, buf);
 			cairo_restore(cr);
-			cairo_set_line_width(cr, 2.5);
-			
-			// Draw the bottom right handle
-			cairo_set_source_rgb(cr, 0, 0, 0);
-			cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
-			cairo_stroke_preserve(cr);
-			cairo_set_source_rgb(cr, 1, 1, 1);
-			cairo_fill(cr);
-		
-			// Draw selection highlight
-			if (img->textbox->selection_start != img->textbox->selection_end)
-			{
-				int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-				int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
-				
-				PangoRectangle start_pos, end_pos;
-				pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
-				pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
+		}
 
-				cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
-				cairo_rectangle(cr, 
-					img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
-					img->textbox->y + start_pos.y / PANGO_SCALE,
-					(end_pos.x - start_pos.x) / PANGO_SCALE, 
-					(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
-				cairo_fill(cr);
-			}
+		// Set the color to white for the outline effect
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_set_line_width(cr, 3.5);
+		
+		// Draw the L shape
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
+
+		// Draw the arc
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
+
+		// Draw the vertical line under the rotate circle
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+		// Now draw the black lines on top
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		cairo_set_line_width(cr, 1.5);  // Original line width
+
+		// Draw the L shape again
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
+
+		// Draw the arc again
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
+
+		// Draw the vertical line under the rotate circle again
+		cairo_set_line_width(cr, 1);
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+		// Draw the rectangle
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
+		cairo_stroke(cr);
+		cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_fill(cr);
+
+		//Let's translate to origin of the drawing area allocation to avoid
+		//the cross lines to be rotated too
+		cairo_save(cr);
+		cairo_identity_matrix(cr);
+		cairo_translate(cr, allocation.x, allocation.y);
+		
+		//This to compensate the allocation menubar height gap
+		//which prevents the horizontal line to be drawn at the center
+		//I wonder why the coordinates in the drawing area are shifted
+		//when the blessed menubar is hidden by the TAB key, shouldn't
+		//they always be 0,0 at the top left?
+
+		int menubar_height = gtk_widget_get_allocated_height(img->menubar);
+		if (img->textbox->draw_horizontal_line)
+		{
+			if (gtk_widget_is_visible(img->menubar))
+				center_y = menubar_height + center_y;
+			else
+				center_y = allocation.height / 2;
+
+		//Draw the horizontal centering line
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_set_line_width(cr, 1.0);
+			cairo_move_to(cr, 0, center_y - 2);
+			cairo_line_to(cr, allocation.width, center_y - 2);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+			cairo_move_to(cr, 0, center_y);
+			cairo_line_to(cr, allocation.width, center_y);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_move_to(cr, 0, center_y + 2);
+			cairo_line_to(cr, allocation.width, center_y + 2);
+			cairo_stroke(cr);
 		}
 		
-		// Draw the text
+		// Draw the vertical centering line
+		if (img->textbox->draw_vertical_line)
+		{
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_set_line_width(cr, 1.0);
+			cairo_move_to(cr, center_x - 2, 0);
+			cairo_line_to(cr, center_x - 2, allocation.height + menubar_height);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+			cairo_move_to(cr, center_x, 0);
+			cairo_line_to(cr, center_x, allocation.height + menubar_height);
+			cairo_stroke(cr);
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_move_to(cr, center_x + 2, 0);
+			cairo_line_to(cr, center_x + 2, allocation.height + menubar_height);
+			cairo_stroke(cr);
+		}
+		cairo_restore(cr);
+		cairo_set_line_width(cr, 2.5);
+		
+		// Draw the bottom right handle
 		cairo_set_source_rgb(cr, 0, 0, 0);
-		pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
-		cairo_move_to(cr, img->textbox->x, img->textbox->y);
-		pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
-		pango_cairo_show_layout(cr, img->textbox->layout);
+		cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1, 1, 1);
+		cairo_fill(cr);
+	
+		// Draw selection highlight
+		if (img->textbox->selection_start != img->textbox->selection_end)
+		{
+			int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+			int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
+			
+			PangoRectangle start_pos, end_pos;
+			pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
+			pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
+
+			cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
+			cairo_rectangle(cr, 
+				img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
+				img->textbox->y + start_pos.y / PANGO_SCALE,
+				(end_pos.x - start_pos.x) / PANGO_SCALE, 
+				(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
+			cairo_fill(cr);
+		}
 	}
+	
+	// Draw the text
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
+	cairo_move_to(cr, img->textbox->x, img->textbox->y);
+	pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
+	pango_cairo_show_layout(cr, img->textbox->layout);
+
 	// Draw the cursor
 	if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
 	{
@@ -1386,7 +1399,7 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 {
     /* When called from close_menu, ask for confirmation */
-    if (widget && widget == img->close_menu && !img_can_discard_unsaved_project(img))
+    if (widget && widget == img->close_menu && ! img_can_discard_unsaved_project(img))
 		return;
 
 	gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
@@ -1401,7 +1414,6 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	gtk_label_set_text(GTK_LABEL (img->slideshow_duration),"");
 
 	/* Reset slideshow properties */
-	img->distort_images = TRUE;
 	img->background_color[0] = 0;
 	img->background_color[1] = 0;
 	img->background_color[2] = 0;
@@ -2251,7 +2263,7 @@ void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img)
 
 			//~ /* Display the flipped image in thumbnails iconview */
 			//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
-							 //~ img->distort_images, img->background_color,
+							 //~ FALSE, img->background_color,
 							 //~ &thumb, NULL );
 			//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
 		//~ }
@@ -2271,7 +2283,7 @@ void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img)
 	{
 		cairo_surface_destroy( img->current_image );
 		img_scale_image( img->current_slide->full_path, img->video_ratio,
-							 0, img->video_size[1], img->distort_images,
+							 0, img->video_size[1], FALSE,
 							 img->background_color, NULL, &img->current_image );
 		
 		gtk_widget_queue_draw( img->image_area );
@@ -2292,14 +2304,14 @@ void img_add_any_media_callback( GtkButton *button,  img_window_struct *img )
 	img_add_slides_thumbnails(NULL, img);	
 }
 
-void img_add_media_widget_area(media_struct *media, gchar *full_path_filename, img_window_struct *img)
+gboolean img_add_media_widget_area(media_struct *media, gchar *full_path_filename, img_window_struct *img)
 {
 	GdkPixbuf *pb;
 	GtkTreeIter iter;
 	gchar *filename;
 
 	if (img_find_media_in_list(img, full_path_filename))
-		return;
+		return FALSE;
 
 	filename = g_path_get_basename(full_path_filename);
 	
@@ -2317,8 +2329,10 @@ void img_add_media_widget_area(media_struct *media, gchar *full_path_filename, i
 		case 1:
 		pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
 		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media, -1);
+		g_object_unref(pb);
 		break;
 	}
 	g_free(filename);
+	return TRUE;
 }
 

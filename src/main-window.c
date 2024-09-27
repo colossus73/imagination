@@ -47,7 +47,7 @@ static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct 
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
 
-GtkWidget *button1,  *button2, *toggle_button_slide_motion, *button5, *beginning, *end;
+GtkWidget *button1,  *button2, *button3, *toggle_button_slide_motion, *button5, *beginning, *end;
 
 static gboolean img_leave_notify_event(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
 {
@@ -69,8 +69,8 @@ static gboolean img_enter_notify_event(GtkWidget *widget,  GdkEvent  *event, img
 
 static void img_toggle_button_callback(GtkToggleButton *button, img_window_struct *img)
 {
-    GtkWidget *buttons[] = {button2, img->toggle_button_text, toggle_button_slide_motion};
-    for (int i = 0; i < 3; i++)
+    GtkWidget *buttons[] = {button2, button3, img->toggle_button_text, toggle_button_slide_motion};
+    for (int i = 0; i < 4; i++)
     {
         if (buttons[i] != GTK_WIDGET(button))
         {
@@ -89,7 +89,6 @@ static void img_toggle_button_callback(GtkToggleButton *button, img_window_struc
 }
 
 static GtkWidget *img_create_subtitle_animation_combo( void );
-static GtkWidget *img_load_icon_from_theme(GtkIconTheme *icon_theme, gchar *name, gint size);
 
 /* ****************************************************************************
  * Function definitions
@@ -126,7 +125,7 @@ img_window_struct *img_create_window (void)
 	GtkWidget *image_buttons;
 	GtkCellRenderer *pixbuf_cell;
 	GdkPixbuf *icon;
-	GtkWidget *media_iconview, *vbox, *hbox;
+	GtkWidget *vbox, *hbox;
 	GtkWidget *a_hbox;
 	GtkWidget *preview_menu;
 	GtkWidget *import_menu;
@@ -134,8 +133,8 @@ img_window_struct *img_create_window (void)
 	GtkWidget *export_menu;
 	GdkPixbuf *pixbuf;
 	GtkWidget *flip_horizontally_menu;
-	GtkWidget *rotate_left_menu;
-	GtkWidget *rotate_right_menu;
+	GtkWidget *flip_vertically_menu;
+	GtkWidget *rotate_menu;
 	AtkObject *atk;
 
 	img_struct = g_new0(img_window_struct, 1);
@@ -145,9 +144,6 @@ img_window_struct *img_create_window (void)
 	img_struct->background_color[1] = 0;
 	img_struct->background_color[2] = 0;
 	img_struct->media_nr = 0;
-	img_struct->media_nr = 0;
-	img_struct->distort_images = TRUE;
-
 	img_struct->maxoffx = 0;
 	img_struct->maxoffy = 0;
 	img_struct->current_point.offx = 0;
@@ -178,6 +174,7 @@ img_window_struct *img_create_window (void)
 	img_struct->textbox->is_x_snapped = FALSE;
 	img_struct->textbox->is_y_snapped = FALSE;
 	img_struct->textbox->layout = pango_cairo_create_layout(cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1)));
+	//TODO: remove font_desc
     img_struct->textbox->font_desc = pango_font_description_from_string("Noto 15");
     img_struct->textbox->attr_list = pango_attr_list_new();
     
@@ -306,33 +303,33 @@ img_window_struct *img_create_window (void)
 
 	img_struct->remove_menu = gtk_menu_item_new_with_mnemonic (_("Dele_te"));
 	gtk_container_add (GTK_CONTAINER (slide_menu), img_struct->remove_menu);
-	//gtk_widget_add_accelerator (img_struct->remove_menu,"activate",img_struct->accel_group, GDK_KEY_Delete,0,GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator (img_struct->remove_menu,"activate",img_struct->accel_group, GDK_KEY_Delete,0,GTK_ACCEL_VISIBLE);
 	g_signal_connect (img_struct->remove_menu,"activate",G_CALLBACK (img_media_model_remove_media), img_struct);
 
 	flip_horizontally_menu = gtk_menu_item_new_with_mnemonic (_("_Flip horizontally"));
 	gtk_container_add (GTK_CONTAINER (slide_menu),flip_horizontally_menu);
 	gtk_widget_add_accelerator (flip_horizontally_menu,"activate",img_struct->accel_group, GDK_KEY_f,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	g_signal_connect(flip_horizontally_menu, "activate", G_CALLBACK( img_flip_horizontally), img_struct );
+	//g_signal_connect(flip_horizontally_menu, "activate", G_CALLBACK( img_flip_horizontally), img_struct );
 
-	rotate_left_menu = gtk_menu_item_new_with_mnemonic (_("Rotate co_unter-clockwise"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),rotate_left_menu);
-	gtk_widget_add_accelerator (rotate_left_menu,"activate",img_struct->accel_group, GDK_KEY_u,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	g_signal_connect(rotate_left_menu, "activate", G_CALLBACK( img_rotate_slides_left), img_struct );
+	flip_vertically_menu = gtk_menu_item_new_with_mnemonic (_("_Flip vertically"));
+	gtk_container_add (GTK_CONTAINER (slide_menu),flip_vertically_menu);
+	//gtk_widget_add_accelerator (flip_vertically_menu,"activate",img_struct->accel_group, GDK_KEY_f,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
+	//g_signal_connect(flip_vertically_menu, "activate", G_CALLBACK( img_flip_vertically_menu), img_struct );
 
-	rotate_right_menu = gtk_menu_item_new_with_mnemonic (_("_Rotate clockwise"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),rotate_right_menu);
-	gtk_widget_add_accelerator (rotate_right_menu,"activate",img_struct->accel_group, GDK_KEY_r,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	g_signal_connect(rotate_right_menu, "activate", G_CALLBACK ( img_rotate_slides_right ), img_struct );
+	rotate_menu = gtk_menu_item_new_with_mnemonic (_("_Rotate clockwise"));
+	gtk_container_add (GTK_CONTAINER (slide_menu),rotate_menu);
+	gtk_widget_add_accelerator (rotate_menu,"activate",img_struct->accel_group, GDK_KEY_r,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
+	//g_signal_connect(rotate_menu, "activate", G_CALLBACK ( img_rotate_media ), img_struct );
 
 	img_struct->select_all_menu = gtk_menu_item_new_with_mnemonic(_("Select All"));
 	gtk_container_add (GTK_CONTAINER (slide_menu),img_struct->select_all_menu);
 	gtk_widget_add_accelerator (img_struct->select_all_menu,"activate",img_struct->accel_group,GDK_KEY_a,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	//g_signal_connect (img_struct->select_all_menu,"activate",G_CALLBACK (img_select_all_thumbnails),img_struct);
+	g_signal_connect (img_struct->select_all_menu,"activate",G_CALLBACK (img_select_all_media),img_struct);
 
 	deselect_all_menu = gtk_menu_item_new_with_mnemonic (_("Un_select all"));
 	gtk_container_add (GTK_CONTAINER (slide_menu),deselect_all_menu);
 	gtk_widget_add_accelerator (deselect_all_menu,"activate",img_struct->accel_group,GDK_KEY_a,GDK_CONTROL_MASK | GDK_SHIFT_MASK,GTK_ACCEL_VISIBLE);
-	//g_signal_connect (deselect_all_menu,"activate",G_CALLBACK (img_unselect_all_thumbnails),img_struct);
+	g_signal_connect (deselect_all_menu,"activate",G_CALLBACK (img_unselect_all_media),img_struct);
 
 	/* Help menu */
 	menuitem3 = gtk_menu_item_new_with_mnemonic (_("_Help"));
@@ -378,7 +375,15 @@ img_window_struct *img_create_window (void)
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button2, FALSE, FALSE, 5);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button2), TRUE);
     gtk_widget_set_can_focus(button2, FALSE);
-      
+     
+    button3 = gtk_toggle_button_new();
+    gtk_widget_set_tooltip_text(button3, _("Transitions effects"));
+    image1 = gtk_image_new_from_icon_name("emblem-photos", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    gtk_button_set_image(GTK_BUTTON(button3), image1);
+    gtk_button_set_relief(GTK_BUTTON(button3), GTK_RELIEF_NONE);
+    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button3, FALSE, FALSE, 5);
+    gtk_widget_set_can_focus(button3, FALSE);
+    
     img_struct->toggle_button_text = gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
 	GtkWidget *label = gtk_bin_get_child(GTK_BIN(img_struct->toggle_button_text));
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
@@ -406,36 +411,91 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box), img_struct->side_notebook, FALSE, FALSE, 0);
 
 	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
+	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(img_struct->toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 
 	//Create the list media widget
 	img_struct->media_model = gtk_list_store_new (3, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
-	media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
-	gtk_widget_set_can_focus(media_iconview, FALSE);
+	img_struct->media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
+	gtk_widget_set_can_focus(img_struct->media_iconview, FALSE);
 	g_object_unref (img_struct->media_model);
 
 	img_struct->media_iconview_swindow = gtk_scrolled_window_new(NULL, NULL);
 	g_object_set (G_OBJECT (	img_struct->media_iconview_swindow),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
-	gtk_container_add (GTK_CONTAINER (	img_struct->media_iconview_swindow), media_iconview);
+	gtk_container_add (GTK_CONTAINER (	img_struct->media_iconview_swindow), img_struct->media_iconview);
 
-	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (media_iconview), GTK_ORIENTATION_VERTICAL);
-	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (media_iconview), 0);
-	gtk_icon_view_set_columns(GTK_ICON_VIEW (media_iconview), 2);
-	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (media_iconview),0);
-	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (media_iconview),0);
+	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (img_struct->media_iconview), GTK_ORIENTATION_VERTICAL);
+	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (img_struct->media_iconview), 0);
+	gtk_icon_view_set_columns(GTK_ICON_VIEW (img_struct->media_iconview), 2);
+	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
+	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
 	
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
-	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (media_iconview), GTK_SELECTION_MULTIPLE);
-	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(media_iconview), drop_targets, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
-	g_signal_connect(media_iconview, "drag-data-received", G_CALLBACK( img_on_drag_data_received), img_struct );
-	g_signal_connect(media_iconview, "button-press-event", G_CALLBACK( img_iconview_popup), img_struct );
+	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (img_struct->media_iconview), GTK_SELECTION_MULTIPLE);
+	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(img_struct->media_iconview), drop_targets, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
+	g_signal_connect(img_struct->media_iconview, "drag-data-received", G_CALLBACK( img_on_drag_data_received), img_struct );
+	g_signal_connect(img_struct->media_iconview, "button-press-event", G_CALLBACK( img_iconview_popup), img_struct );
 	//gtk_icon_view_set_reorderable(GTK_ICON_VIEW (media_iconview),TRUE);
 	GtkCellRenderer *cell = gtk_cell_renderer_text_new();
-	gtk_cell_layout_pack_start( GTK_CELL_LAYOUT(media_iconview), cell, TRUE );
-	gtk_cell_layout_set_attributes( GTK_CELL_LAYOUT(media_iconview), cell,  "text", 1, NULL);
+	gtk_cell_layout_pack_start( GTK_CELL_LAYOUT(img_struct->media_iconview), cell, TRUE );
+	gtk_cell_layout_set_attributes( GTK_CELL_LAYOUT(img_struct->media_iconview), cell,  "text", 1, NULL);
 	g_object_set(cell, "ellipsize", PANGO_ELLIPSIZE_END, "xalign", 0.5, NULL);
+
+
+	/* Create the transition widget section */
+	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	g_object_set (vbox, "margin-right", 10, NULL);
+	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox);
 	
+	transition_label = gtk_label_new (_("Transition Type:"));
+	gtk_box_pack_start (GTK_BOX (vbox), transition_label, FALSE, FALSE, 0);
+	gtk_label_set_xalign(GTK_LABEL(transition_label), 0);
+	gtk_label_set_yalign(GTK_LABEL(transition_label), -1);
+
+	/* Slide selected, slide resolution, slide type and slide total duration */
+	grid = gtk_grid_new();
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), FALSE);
+	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+	gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+	gtk_box_pack_start (GTK_BOX (vbox), grid, TRUE, FALSE, 0);
+
+	/* Transition type */
+	img_struct->transition_type = _gtk_combo_box_new_text( TRUE );
+	atk = gtk_widget_get_accessible(img_struct->transition_type);
+	atk_object_set_description(atk, _("Transition type"));
+	gtk_grid_attach (GTK_GRID (grid), img_struct->transition_type, 0, 0, 1, 1);
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),
+										1, GTK_SORT_ASCENDING);
+	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),1, img_sort_none_before_other,NULL,NULL);
+
+	gtk_widget_set_sensitive(img_struct->transition_type, FALSE);
+	g_signal_connect (img_struct->transition_type, "changed",G_CALLBACK (img_combo_box_transition_type_changed),img_struct);
+
+	img_struct->random_button = gtk_button_new_with_mnemonic (_("Random"));
+	gtk_widget_set_tooltip_text(img_struct->random_button,_("Imagination randomly decides which transition to apply"));
+	gtk_grid_attach (GTK_GRID (grid), img_struct->random_button, 1, 0, 1, 1);
+	gtk_widget_set_sensitive(img_struct->random_button, FALSE);
+	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
+
+	/* Slide duration */
+	duration_label = gtk_label_new (_("Still slide duration in sec:"));
+	gtk_grid_attach (GTK_GRID (grid), duration_label, 0, 3, 1, 1);
+	gtk_label_set_xalign(GTK_LABEL(duration_label), 0);
+	gtk_label_set_yalign(GTK_LABEL(duration_label), 0.5);
+
+	img_struct->duration = gtk_spin_button_new_with_range (1,60, 1);
+	gtk_grid_attach (GTK_GRID (grid), img_struct->duration, 1, 3, 1, 1);
+	gtk_widget_set_sensitive(img_struct->duration, FALSE);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->duration),TRUE);
+	g_signal_connect (G_OBJECT (img_struct->duration),"value-changed",G_CALLBACK (img_spinbutton_value_changed),img_struct);
+
+	/* Slide Total Duration */
+	total_time = gtk_label_new (_("Slideshow length:"));
+	gtk_grid_attach (GTK_GRID (grid), total_time, 0, 4, 1, 1);
+	gtk_label_set_xalign(GTK_LABEL(total_time), 0);
+	gtk_label_set_yalign(GTK_LABEL(total_time), 0.5);
+
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
 	g_object_set (G_OBJECT (scrollable_window),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
@@ -832,70 +892,9 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_can_focus(end, FALSE);
 	gtk_widget_set_name(end, "nav_button");
 	
-	img_struct->end_timer_label = gtk_label_new("00:00:00");
-	gtk_widget_override_font(img_struct->end_timer_label, new_size);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->end_timer_label, FALSE, FALSE, 10);
-
-
-
-
-
-	/* TO BE REMOVED WHEN THE TIMELINE WIDGET IS READY */
-	
-	/* Transition types label */
-	transition_label = gtk_label_new (_("Transition Type:"));
-	//gtk_box_pack_start (GTK_BOX (vbox_info_slide), transition_label, FALSE, FALSE, 0);
-	gtk_label_set_xalign(GTK_LABEL(transition_label), 0);
-	gtk_label_set_yalign(GTK_LABEL(transition_label), -1);
-
-	/* Slide selected, slide resolution, slide type and slide total duration */
-	grid = gtk_grid_new();
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid), FALSE);
-	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-	gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
-	//gtk_box_pack_start (GTK_BOX (vbox_info_slide), grid, TRUE, FALSE, 0);
-
-	/* Transition type */
-	img_struct->transition_type = _gtk_combo_box_new_text( TRUE );
-	atk = gtk_widget_get_accessible(img_struct->transition_type);
-	atk_object_set_description(atk, _("Transition type"));
-	gtk_grid_attach (GTK_GRID (grid), img_struct->transition_type, 0, 0, 1, 1);
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),
-										1, GTK_SORT_ASCENDING);
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),1, img_sort_none_before_other,NULL,NULL);
-
-	gtk_widget_set_sensitive(img_struct->transition_type, FALSE);
-	g_signal_connect (img_struct->transition_type, "changed",G_CALLBACK (img_combo_box_transition_type_changed),img_struct);
-
-	img_struct->random_button = gtk_button_new_with_mnemonic (_("Random"));
-	gtk_widget_set_tooltip_text(img_struct->random_button,_("Imagination randomly decides which transition to apply"));
-	gtk_grid_attach (GTK_GRID (grid), img_struct->random_button, 1, 0, 1, 1);
-	gtk_widget_set_sensitive(img_struct->random_button, FALSE);
-	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
-
-	/* Slide duration */
-	duration_label = gtk_label_new (_("Still slide duration in sec:"));
-	gtk_grid_attach (GTK_GRID (grid), duration_label, 0, 3, 1, 1);
-	gtk_label_set_xalign(GTK_LABEL(duration_label), 0);
-	gtk_label_set_yalign(GTK_LABEL(duration_label), 0.5);
-
-	img_struct->duration = gtk_spin_button_new_with_range (1,60, 1);
-	gtk_grid_attach (GTK_GRID (grid), img_struct->duration, 1, 3, 1, 1);
-	gtk_widget_set_sensitive(img_struct->duration, FALSE);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->duration),TRUE);
-	g_signal_connect (G_OBJECT (img_struct->duration),"value-changed",G_CALLBACK (img_spinbutton_value_changed),img_struct);
-
-	/* Slide Total Duration */
-	total_time = gtk_label_new (_("Slideshow length:"));
-	gtk_grid_attach (GTK_GRID (grid), total_time, 0, 4, 1, 1);
-	gtk_label_set_xalign(GTK_LABEL(total_time), 0);
-	gtk_label_set_yalign(GTK_LABEL(total_time), 0.5);
-
-	img_struct->slideshow_duration = gtk_label_new ("");
-	gtk_grid_attach (GTK_GRID (grid), img_struct->slideshow_duration, 1, 4, 1, 1);
-	gtk_label_set_xalign(GTK_LABEL(img_struct->slideshow_duration), 0);
-	gtk_label_set_yalign(GTK_LABEL(img_struct->slideshow_duration), 0.5);
-
+	img_struct->slideshow_duration = gtk_label_new("00:00:00");
+	gtk_widget_override_font(img_struct->slideshow_duration, new_size);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->slideshow_duration, FALSE, FALSE, 10);
 
 	/* ADD HERE the gtk timeline widget */
 	
@@ -906,15 +905,6 @@ img_window_struct *img_create_window (void)
 		img_set_window_default_settings( img_struct );
 
 	return img_struct;
-}
-
-static GtkWidget *img_load_icon_from_theme(GtkIconTheme* icon_theme, gchar *name, gint size) {
-	GdkPixbuf *pixbuf = gtk_icon_theme_load_icon(icon_theme, name, size,0,NULL);
-	if (!pixbuf) 
-	    pixbuf = gtk_icon_theme_load_icon(icon_theme, "image-missing", size, 0, NULL);
-	GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
-	g_object_unref(pixbuf);
-	return image;
 }
 
 static void img_quit_menu(GtkMenuItem *menuitem, img_window_struct *img)
@@ -1191,27 +1181,7 @@ img_font_color_changed( GtkColorChooser    *button, img_window_struct *img )
 	img_taint_project(img);
 }
 
-void
-img_font_brdr_color_changed( GtkColorChooser    *button,
-                          img_window_struct *img )
-{
-    GdkRGBA color;
-    gdouble  font_brdr_color[4];
-
-    gtk_color_chooser_get_rgba( button, &color );
-    
-	font_brdr_color[0] = (gdouble)color.red;
-	font_brdr_color[1] = (gdouble)color.green;
-	font_brdr_color[2] = (gdouble)color.blue;
-	font_brdr_color[3] = (gdouble)color.alpha;
-   	//img_update_sub_properties( img, NULL, -1, -1, NULL, NULL, font_brdr_color, NULL, NULL, img->current_slide->alignment);
-
-	gtk_widget_queue_draw( img->image_area );
-	img_taint_project(img);
-}
-
-void
-img_font_bg_color_changed( GtkColorChooser    *button,
+void img_font_bg_color_changed( GtkColorChooser    *button,
                           img_window_struct *img )
 {
     GdkRGBA color;
@@ -1291,36 +1261,172 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 	media_struct *media;
 
 	model = GTK_TREE_MODEL(img->media_model);
-	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(gtk_bin_get_child(GTK_BIN(img->media_iconview_swindow))));
-	nr_selected = g_list_length(selected);
+	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
+	
+	if (selected == NULL || img->preview_is_running)
+		return;
 
-	if (nr_selected > 1)
+	while (selected)
 	{
-		while (selected)
-		{
-			gtk_tree_model_get_iter(model, &iter, selected->data);
-			gtk_tree_model_get(model, &iter,2 ,&media, -1);
-			//img_free_media_struct(media);
-			img->media_nr--;
-			gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
-			selected = selected->next;
-		}
-	}
-	else
-	{
-		gtk_list_store_remove(GTK_LIST_STORE(img->media_model),&img->popup_iter);
+		gtk_tree_model_get_iter(model, &iter, selected->data);
+		gtk_tree_model_get(model, &iter,2 ,&media, -1);
+		img_free_media_struct(media);
 		img->media_nr--;
+		gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
+		selected = selected->next;
 	}
+
 	g_list_free(selected);
-	img_taint_project(img);
+	if (img->media_nr > 0)
+		img_taint_project(img);
 }
 
 static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 {
-	gchar *filename;
-	gtk_tree_model_get( GTK_TREE_MODEL(img->media_model), &img->popup_iter, 2, &filename, -1 );
-	g_print("%s\n",filename);
-	g_free(filename);
+	media_struct *media;
+	gchar *string, *_string;
+	GtkWidget *media_property_dialog, *table1, *label, *textview;
+	GtkTextBuffer *buffer;
+	
+	//Get the media address the user clicked on
+	gtk_tree_model_get( GTK_TREE_MODEL(img->media_model), &img->popup_iter, 2, &media, -1 );
+	
+	media_property_dialog = gtk_dialog_new_with_buttons (_("Media Properties"),
+									GTK_WINDOW (img->imagination_window),  GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL, NULL);
+
+	g_signal_connect(media_property_dialog,"response",G_CALLBACK(gtk_widget_destroy), 	  NULL);
+	g_signal_connect(media_property_dialog,"delete-event",G_CALLBACK(gtk_widget_destroy), NULL);
+
+	gtk_container_set_border_width (GTK_CONTAINER (media_property_dialog), 5);
+	gtk_window_set_position (GTK_WINDOW (media_property_dialog),GTK_WIN_POS_CENTER_ON_PARENT);
+	gtk_window_set_type_hint (GTK_WINDOW (media_property_dialog),GDK_WINDOW_TYPE_HINT_DIALOG);
+	gtk_window_set_resizable (GTK_WINDOW (media_property_dialog),FALSE);
+	gtk_window_set_modal (GTK_WINDOW (media_property_dialog),TRUE);
+
+	table1 = gtk_grid_new();
+	gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (media_property_dialog))), table1, TRUE, TRUE, 0);
+	gtk_container_set_border_width (GTK_CONTAINER (table1), 6);
+	gtk_grid_set_row_spacing (GTK_GRID (table1), 6);
+	gtk_grid_set_column_spacing (GTK_GRID (table1), 12);
+
+	label = gtk_label_new (NULL);
+	gtk_label_set_markup(GTK_LABEL(label), _("<b>Filename:</b>"));
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_grid_attach (GTK_GRID(table1), label, 0 , 0 , 1 ,1);
+	
+	label = gtk_label_new(NULL);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	if (media->media_type == 0)
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Size:</b>"));
+	else if (media->media_type == 1 || media->media_type == 2)
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Duration:</b>"));
+
+	gtk_grid_attach (GTK_GRID(table1), label, 0 , 1 , 1 ,1);
+	
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), _("<b>Type:</b>"));
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_grid_attach (GTK_GRID(table1), label, 0 , 2 , 1 ,1);
+	
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), _("<b>File size:</b>"));
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_grid_attach (GTK_GRID(table1), label, 0 , 3 , 1 ,1);
+	
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), _("<b>Folder:</b>"));
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	gtk_grid_attach (GTK_GRID(table1), label, 0 , 4 , 1 ,1);
+
+	if (media->media_type == 1)
+	{
+		label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Bitrate:</b>"));
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		gtk_grid_attach (GTK_GRID(table1), label, 0 , 5 , 1 ,1);
+		
+		label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Sample rate:</b>"));
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		gtk_grid_attach (GTK_GRID(table1), label, 0 , 6 , 1 ,1);
+	}
+	if (media->media_type == 1 || media->media_type == 2)
+	{
+		label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Metadata:</b>"));
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		gtk_label_set_yalign(GTK_LABEL(label), 0.0);
+		gtk_grid_attach (GTK_GRID(table1), label, 0 , 7 , 1 ,1);
+	}
+	
+	//Set the values
+	string = g_path_get_basename(media->full_path);
+	label = gtk_label_new (string);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	g_free(string);
+	gtk_grid_attach (GTK_GRID(table1), label, 1 , 0 , 1 ,1);
+	
+	if (media->media_type == 0)
+		string = g_strdup_printf("%d x %d", media->width, media->height);
+	else
+		string = g_strdup(media->audio_duration);
+	label = gtk_label_new (string);
+	gtk_grid_attach (GTK_GRID(table1), label, 1 , 1 , 1 ,1);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	g_free(string);
+	
+	if (media->media_type == 0)
+		label = gtk_label_new (media->image_type);
+	else
+		label = gtk_label_new (media->audio_type);
+	gtk_grid_attach (GTK_GRID(table1), label, 1 , 2 , 1 ,1);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	
+	string = g_format_size(media->filesize);
+	label = gtk_label_new (string);
+	gtk_grid_attach (GTK_GRID(table1), label, 1 , 3 , 1 ,1);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	g_free(string);	
+
+	//Folder
+	string = g_path_get_dirname(media->full_path);
+	_string = g_strconcat("<a href=\"file://", string, "\">", string, "</a>", NULL);
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), _string);
+    gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
+    gtk_label_set_track_visited_links (GTK_LABEL(label), FALSE);
+	g_free(string);
+	g_free(_string);
+	gtk_grid_attach (GTK_GRID(table1), label, 1 , 4 , 1 ,1);
+	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+	
+	//Bitrate amd sample rate for audio/video files
+	if (media->media_type == 1)
+	{
+		string = 	g_strdup_printf("%ld kbps", media->bitrate);
+		label = gtk_label_new (string);
+		gtk_grid_attach (GTK_GRID(table1), label, 1 , 5 , 1 ,1);
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		g_free(string);	
+		
+		string = 	g_strdup_printf("%d Hz", media->sample_rate);
+		label = gtk_label_new (string);
+		gtk_grid_attach (GTK_GRID(table1), label, 1 , 6 , 1 ,1);
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		g_free(string);	
+	}
+	
+	if (media->media_type == 1 || media->media_type == 2)
+	{
+		textview = gtk_text_view_new();
+		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+		gtk_text_buffer_set_text(buffer, media->metadata, -1);
+		gtk_text_view_set_editable(GTK_TEXT_VIEW(textview), FALSE);
+		gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), FALSE);
+		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(textview), FALSE);
+		gtk_grid_attach (GTK_GRID(table1), textview, 1 , 7 , 1 ,1);
+	}
+	gtk_widget_show_all(media_property_dialog);
 }
 
 gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type,  img_window_struct *img)

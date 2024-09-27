@@ -564,6 +564,9 @@ void img_free_media_struct( media_struct *entry )
 
 	if (entry->image_type)
 		g_free(entry->image_type);
+		
+	if (entry->audio_type)
+		g_free(entry->audio_type);
 
 	if (entry->audio_duration)
 		g_free(entry->audio_duration);
@@ -1091,10 +1094,12 @@ void img_message(img_window_struct *img, gchar *message)
 	
 	/* Yeah it's deprecated since 3.12 but it works. What is the alternative? */
 	g_object_set(G_OBJECT(action_area), "halign", GTK_ALIGN_CENTER);
-	gtk_widget_set_margin_bottom(action_area, 5);
+	 gtk_container_set_border_width(GTK_CONTAINER(dialog), 5);
+	//gtk_widget_set_margin_bottom(action_area, 5);
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
 	
-	label = gtk_label_new(message);
+	label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(label), message);
 	image = gtk_image_new();
 	gtk_image_set_from_icon_name(GTK_IMAGE(image), "dialog-error", GTK_ICON_SIZE_DIALOG);
 	g_signal_connect_swapped(dialog, "response", G_CALLBACK (gtk_widget_destroy), dialog);
@@ -1171,20 +1176,15 @@ gboolean img_check_for_recent_file(img_window_struct *img, const gchar *input)
 gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filename)
 {
 	GtkTreeIter iter;
-	gchar *filename;
+	media_struct *entry;
 
 	if( gtk_tree_model_get_iter_first(GTK_TREE_MODEL(img->media_model), &iter) )
 	{
 		do
 		{
-			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 1, &filename, -1);
-			g_print("img_find_media_in_list: %s\n",filename);
-			if (strcmp(filename, full_path_filename) == 0)
-			{
-				g_free(filename);
+			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 2, &entry, -1);
+			if (g_strcmp0(entry->full_path, full_path_filename) == 0)
 				return TRUE;
-			}
-			g_free(filename);
 		}
 		while( gtk_tree_model_iter_next(GTK_TREE_MODEL(img->media_model), &iter) );
 	}
@@ -1193,26 +1193,64 @@ gboolean img_find_media_in_list(img_window_struct *img, gchar *full_path_filenam
 
 }
 
-gchar * img_get_audio_duration(gchar *filename)
+void img_get_audio_data(media_struct *media)
 {
-	 AVFormatContext *fmt_ctx = NULL;
-	 gchar *time = NULL;
-
+	AVFormatContext *fmt_ctx = NULL;
+	AVDictionaryEntry *tag = NULL;
+	char metadata[1024] = {0};
+	gchar *time = NULL;
+	gint audio_stream_index = -1;
+    
+	//Open the file
+	avformat_open_input(&fmt_ctx, media->full_path, NULL, NULL) ;
+    
     // Retrieve stream information
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0)
-    return NULL;
+    return;
 
+    for (int i = 0; i < fmt_ctx->nb_streams; i++)
+    {
+        if (fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
+        {
+            audio_stream_index = i;
+            break;
+        }
+    }
+    
     // Get the duration
     int64_t duration = fmt_ctx->duration;
     double duration_seconds = (double)duration / AV_TIME_BASE;
-	avformat_close_input(&fmt_ctx);
-
+	
     // Convert duration to HH:MM:SS format
     int hours = (int)duration_seconds / 3600;
     int minutes = ((int)duration_seconds % 3600) / 60;
     int seconds = (int)duration_seconds % 60;
-	time = g_strdup_printf("%02d:%02d:%02d\n", hours, minutes, seconds);
-	return time;
+	media->audio_duration = g_strdup_printf("%02d:%02d:%02d", hours, minutes, seconds);
+	
+	//Get the audio type
+	media->audio_type = g_strdup(fmt_ctx->iformat->name);
+	to_upper(&media->audio_type);
+	
+	AVCodecParameters *codecpar = fmt_ctx->streams[audio_stream_index]->codecpar;
+
+	//Get the bitrate
+	if (fmt_ctx->bit_rate)
+		media->bitrate = fmt_ctx->bit_rate / 1000;
+	else if (codecpar->bit_rate)
+        media->bitrate = codecpar->bit_rate / 1000;
+
+	//Get the sample rate
+	media->sample_rate = codecpar->sample_rate;
+	
+	//Get the metadata
+	 while ((tag = av_dict_get(fmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+	{
+		char temp[256];
+		snprintf(temp, sizeof(temp), "%s: %s\n", tag->key, tag->value);
+		strncat(media->metadata, temp, sizeof(metadata) - strlen(media->metadata)-1);
+    }
+	
+	avformat_close_input(&fmt_ctx);
 }
 
 void rotate_point(double x, double y, double cx, double cy, double angle, double *rx, double *ry)
@@ -1264,5 +1302,15 @@ void select_word_at_position(img_textbox *textbox, int position)
     textbox->selection_start = start;
     textbox->selection_end = end;
     textbox->cursor_pos = end;
+}
+
+void to_upper(gchar **string)
+{
+	char *s = string[0];
+	while (*s)
+	{
+		*s = toupper((unsigned char) *s);
+		s++;
+	}
 }
 

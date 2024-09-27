@@ -32,7 +32,10 @@ void img_refresh_window_title(img_window_struct *);
 void img_new_slideshow(GtkMenuItem *,img_window_struct *);
 void img_add_media(GSList *, img_window_struct *);
 void img_add_slides_thumbnails(GtkMenuItem *,img_window_struct *);
+//TODO to remove?
 void img_detect_media_orientation_from_pixbuf(GdkPixbuf *, gboolean *, ImgAngle *);
+void img_select_all_media(GtkWidget *, img_window_struct *);
+void img_unselect_all_media(GtkWidget *, img_window_struct *);
 void img_rotate_slides_left( GtkWidget  *, img_window_struct * );
 void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
@@ -57,7 +60,7 @@ gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
 gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *, img_window_struct *);
-void img_add_media_widget_area(media_struct *, gchar *filename, img_window_struct *img);
+gboolean img_add_media_widget_area(media_struct *, gchar *filename, img_window_struct *img);
 void img_draw_image_on_surface( cairo_t           *cr,
 						   gint               width,
 						   cairo_surface_t   *surface,
