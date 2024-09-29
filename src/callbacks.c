@@ -214,7 +214,7 @@ void img_add_media(GSList *slides, img_window_struct *img)
 			media_info->media_type = 2;
 		else
 		{
-			gchar *string = g_strconcat( _("Can't recognize file type of media\n"), slides->data, NULL);
+			gchar *string = g_strconcat( _("Can't recognize media file type\n"), slides->data, NULL);
 			img_message(img, string);
 			g_free(string);
 			nr_invalid++;
@@ -581,12 +581,12 @@ void img_exit_fullscreen(img_window_struct *img)
 {
 	GdkWindow *win;
 
-	gtk_widget_show (img->main_horizontal_box);
 	gtk_widget_show(img->menubar);
 	gtk_widget_show(img->side_notebook);
 	gtk_widget_show(img->sidebar);
 	gtk_widget_show(img->preview_hbox);
-	
+	gtk_widget_show (img->timeline_scrolled_window);
+
 	gtk_widget_set_halign(img->image_area, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img->image_area, GTK_ALIGN_CENTER);
 	
@@ -616,9 +616,11 @@ void img_go_fullscreen(GtkMenuItem *item, img_window_struct *img)
 	gtk_widget_hide (img->menubar);
 	gtk_widget_hide (img->side_notebook);
 	gtk_widget_hide (img->sidebar);
+	gtk_widget_hide (img->preview_hbox);
+	gtk_widget_hide (img->timeline_scrolled_window);
+
 	gtk_widget_set_halign(img->image_area, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(img->image_area, GTK_ALIGN_FILL);
-	gtk_widget_hide (img->preview_hbox);
 	
 	gtk_window_fullscreen(GTK_WINDOW(img->imagination_window));
 	img->window_is_fullscreen =TRUE;
@@ -865,14 +867,12 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 	
 }
 
-void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
-	*context , int x, int y, GtkSelectionData *data, 
-	unsigned int info, unsigned int time, img_window_struct *img)
+void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *context , int x, int y, GtkSelectionData *data, unsigned int info, unsigned int time, img_window_struct *img)
 {
-	media_struct *media = NULL;
-	gchar **pictures = NULL;
+	media_struct *entry = NULL;
+	gchar **media = NULL;
 	gchar *filename;
-	GSList *slides = NULL;
+	GSList *list = NULL;
 	GtkWidget *dialog;
 	GFile *file;
 	GFileInfo *file_info;
@@ -881,8 +881,8 @@ void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
 	int len = 0;
 	gboolean dummy;
 
-	pictures = gtk_selection_data_get_uris(data);
-	if (pictures == NULL)
+	media = gtk_selection_data_get_uris(data);
+	if (media == NULL)
 	{
 		dialog = gtk_message_dialog_new(GTK_WINDOW(img->imagination_window),GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,_("Sorry, I could not perform the operation!"));
 		gtk_window_set_title(GTK_WINDOW(dialog),"Imagination");
@@ -893,35 +893,14 @@ void img_on_drag_data_received (GtkWidget *widget, GdkDragContext
 	}
 	gtk_drag_finish (context,TRUE,FALSE,time);
 	
-	while(pictures[len])
-	{
-		media = img_create_new_media();
-		filename = g_filename_from_uri (pictures[len],NULL,NULL);
-		//Determine the mime type
-		if (filename == NULL)
-			goto end;
-		file = g_file_new_for_path (filename);
-		file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
-		content_type = g_file_info_get_content_type (file_info);
-		mime_type = g_content_type_get_mime_type (content_type);
-		if (strstr(mime_type, "image"))
-			dummy = img_add_media_widget_area(media, filename, img);
-		else if (strstr(mime_type, "audio"))
-			dummy = img_add_media_widget_area(media, filename, img);
-		else if (strstr(mime_type, "video"))
-			g_print("Video!");
-		else
-		{
-			gchar *string = g_strconcat( _("Can't recognize file type of media\n"), filename, NULL);
-			img_message(img, string);
-			g_free(string);
-		}
-		g_free(mime_type);
-		g_free(filename);
-end:
-		len++;
-	}
-	g_strfreev (pictures);
+	// Let's copy the gchar array into a GSlist so we can use img_add_media()
+	// and avoid a lot of code duplicates
+	
+	 for (gchar** str = media; *str != NULL; str++)
+		list = g_slist_append(list, g_filename_from_uri (media[len],NULL,NULL)); //The allocated strings are freed in img_add_media()
+
+	img_add_media(list, img);
+	g_strfreev (media);
 }
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
@@ -1982,7 +1961,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
 	
 	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
-	gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
+		gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
 	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
 	
 	if( max )
@@ -1997,10 +1976,11 @@ void img_set_window_default_settings( img_window_struct *img )
 {
 	img->image_area_zoom = 1.0;
 	img->preview_fps = 25;
+	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
+	gtk_paned_set_position(GTK_PANED(img->vpaned), 520);
+	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
 
-	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), 800, 600 );
-
 }
 
 static void img_reset_rotation_flip( media_struct *slide) {

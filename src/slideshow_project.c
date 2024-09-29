@@ -351,6 +351,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				metadata							= g_key_file_get_string(img_key_file, conf, "metadata", NULL);
 				g_stpcpy(media->metadata, metadata);
 				no_use = img_add_media_widget_area(media, media->full_path, img);
+				g_free(metadata);
 			break;
 			
 			// Text

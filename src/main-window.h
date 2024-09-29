@@ -23,9 +23,13 @@
 #include <gtk/gtk.h>
 #include "support.h"
 #include "imagination.h"
+#include "img_timeline.h"
+#include "callbacks.h"
+#include "export.h"
+#include "text.h"
 
 img_window_struct *img_create_window(void);
-gboolean img_change_image_area_size (GtkPaned *, GtkScrollType ,  img_window_struct *);
+gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type,  img_window_struct *img);
 void img_text_font_set( GtkFontChooser     *button,
 				   img_window_struct *img );
 

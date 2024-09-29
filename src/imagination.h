@@ -218,12 +218,12 @@ typedef struct _img_window_struct img_window_struct;
 struct _img_window_struct
 {
 	/* Main GUI related variables */
+	GtkAccelGroup *accel_group;
 	GtkWidget	*imagination_window;
 	GtkWidget 	*menubar;
 	GtkWidget *sidebar;
 	GtkWidget *side_notebook;
 	GtkWidget *toggle_button_text;
-	GtkAccelGroup *accel_group;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
 	GtkWidget	*no_recent_item_menu;
@@ -234,7 +234,7 @@ struct _img_window_struct
 	GtkWidget	*save_as_menu;
 	GtkWidget	*edit_empty_slide;
 	GtkWidget	*remove_menu;
-	GtkWidget	*select_all_menu;
+	GtkWidget	*timeline;
 	GtkWidget 	*preview_hbox;
 	GtkWidget	*beginning_timer_label;
 	GtkWidget	*preview_button;
@@ -242,9 +242,7 @@ struct _img_window_struct
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*duration;
-	GtkWidget	*filename_data;
-	GtkWidget	*scrolled_win;
-	GtkWidget   *text_pos_button;
+	GtkWidget	*timeline_scrolled_window;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
   	GtkListStore *media_model;
@@ -254,7 +252,6 @@ struct _img_window_struct
   	GtkIconTheme *icon_theme;
   	gchar		*current_dir;
   	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
-	GtkWidget   *main_horizontal_box;
 	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
 
 	/* Ken Burns related controls */

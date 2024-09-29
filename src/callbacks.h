@@ -41,7 +41,7 @@ void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
-void img_on_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
+void img_media_widget_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
 void img_start_stop_export(GtkWidget *, img_window_struct *);
 void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
 void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
@@ -68,39 +68,25 @@ void img_draw_image_on_surface( cairo_t           *cr,
 						   img_window_struct *img );
 void img_add_stop_point( GtkButton         *button,
 					img_window_struct *img );
-void img_update_stop_point( GtkSpinButton         *button,
-					   img_window_struct *img );
-void img_delete_stop_point( GtkButton         *button,
-					   img_window_struct *img );
+void img_update_stop_point( GtkSpinButton *button, img_window_struct *img );
+void img_delete_stop_point( GtkButton *button, img_window_struct *img );
 
-void img_goto_prev_point( GtkButton         *button,
-					 img_window_struct *img );
-void img_goto_next_point( GtkButton         *button,
-					 img_window_struct *img );
-void img_goto_point ( GtkEntry          *entry,
-				 img_window_struct *img );
+void img_goto_prev_point( GtkButton  *button,  img_window_struct *img );
+void img_goto_next_point( GtkButton  *button,  img_window_struct *img );
+void img_goto_point ( GtkEntry          *entry,  img_window_struct *img );
 void img_calc_current_ken_point( ImgStopPoint *res,
 							ImgStopPoint *from,
 							ImgStopPoint *to,
 							gdouble       progress,
 							gint          mode );
 
-void img_add_empty_slide( GtkMenuItem       *item,
-					 img_window_struct *img );
-
+void img_add_empty_slide( GtkMenuItem  *item, img_window_struct *img );
 gboolean  img_save_window_settings( img_window_struct *img );
-
 gboolean img_load_window_settings( img_window_struct *img );
-
 void img_set_window_default_settings( img_window_struct *img );
-
 void img_rotate_flip_slide( media_struct   *slide, ImgAngle        angle,  gboolean        flipped);
-
-void img_align_text_horizontally_vertically(GtkMenuItem *item,
-					img_window_struct *img);
-
-void img_pattern_clicked(GtkMenuItem *item,
-					img_window_struct *img);
+void img_align_text_horizontally_vertically(GtkMenuItem *item, img_window_struct *img);
+void img_pattern_clicked(GtkMenuItem *item, img_window_struct *img);
 
 void img_subtitle_top_border_toggled (GtkToggleButton *button, img_window_struct *img);
 void img_subtitle_bottom_border_toggled (GtkToggleButton *button, img_window_struct *img);

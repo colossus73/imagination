@@ -20,21 +20,21 @@
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
-#include <assert.h>
+//#include <assert.h>
 
 #include "main-window.h"
-#include "callbacks.h"
-#include "export.h"
-#include "text.h"
 
-static const GtkTargetEntry drop_targets[] =
+static const GtkTargetEntry drop_target[] =
 {
 	{ "text/uri-list",0,0 },
 };
 
-/* ****************************************************************************
- * Local function declarations
- * ************************************************************************* */
+ static GtkTargetEntry timeline_drop_targets[] =
+ {
+	{ "IMG_TIMELINE_MEDIA", GTK_TARGET_SAME_APP, 0},
+	{ "text/uri-list", 0, 0}
+};
+
 static void img_random_button_clicked(GtkButton *, img_window_struct *);
 static GdkPixbuf *img_set_random_transition(img_window_struct *, media_struct *);
 static void img_transition_speed_changed (GtkRange *,  img_window_struct *);
@@ -100,6 +100,7 @@ img_window_struct *img_create_window (void)
 	GtkWidget *menuitem1;
 	GtkWidget *menuitem2;
 	GtkWidget *menu1;
+	GtkWidget *select_all_menu;
 	GtkWidget *imagemenuitem1;
 	GtkWidget *imagemenuitem5;
 	GtkWidget *separatormenuitem1;
@@ -117,16 +118,17 @@ img_window_struct *img_create_window (void)
 	GtkWidget *vbox_frames;
 	GtkWidget *transition_label;
 	GtkWidget *vbox_slide_motion;
+	GtkWidget *viewport;
 	GtkWidget *grid;
 	GtkWidget *duration_label;
-	GtkWidget *total_time;
 	GtkWidget *hbox_motion, *stop_points_label;
 	GtkWidget  *time_offset_label;
 	GtkWidget *image_buttons;
 	GtkCellRenderer *pixbuf_cell;
 	GdkPixbuf *icon;
-	GtkWidget *vbox, *hbox;
-	GtkWidget *a_hbox;
+	GtkWidget  *main_horizontal_box;
+	GtkWidget *vbox, *hbox, *right_horizontal_box;
+	GtkWidget *content_area;
 	GtkWidget *preview_menu;
 	GtkWidget *import_menu;
 	GtkWidget *properties_menu;
@@ -207,7 +209,7 @@ img_window_struct *img_create_window (void)
     
 	/* Create the menu items */
 	img_struct->menubar = gtk_menu_bar_new ();
-	gtk_box_pack_start (GTK_BOX (main_vertical_box), img_struct->menubar, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (main_vertical_box), img_struct->menubar, FALSE, FALSE, 0);
 
 	menuitem1 = gtk_menu_item_new_with_mnemonic (_("_Slideshow"));
 	gtk_container_add (GTK_CONTAINER (img_struct->menubar), menuitem1);
@@ -321,10 +323,10 @@ img_window_struct *img_create_window (void)
 	gtk_widget_add_accelerator (rotate_menu,"activate",img_struct->accel_group, GDK_KEY_r,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
 	//g_signal_connect(rotate_menu, "activate", G_CALLBACK ( img_rotate_media ), img_struct );
 
-	img_struct->select_all_menu = gtk_menu_item_new_with_mnemonic(_("Select All"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),img_struct->select_all_menu);
-	gtk_widget_add_accelerator (img_struct->select_all_menu,"activate",img_struct->accel_group,GDK_KEY_a,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	g_signal_connect (img_struct->select_all_menu,"activate",G_CALLBACK (img_select_all_media),img_struct);
+	select_all_menu = gtk_menu_item_new_with_mnemonic(_("Select All"));
+	gtk_container_add (GTK_CONTAINER (slide_menu), select_all_menu);
+	gtk_widget_add_accelerator (select_all_menu,"activate",img_struct->accel_group,GDK_KEY_a,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
+	g_signal_connect (select_all_menu,"activate",G_CALLBACK (img_select_all_media),img_struct);
 
 	deselect_all_menu = gtk_menu_item_new_with_mnemonic (_("Un_select all"));
 	gtk_container_add (GTK_CONTAINER (slide_menu),deselect_all_menu);
@@ -347,19 +349,14 @@ img_window_struct *img_create_window (void)
 	g_signal_connect (about,"activate",G_CALLBACK (img_show_about_dialog),img_struct);
 	gtk_window_add_accel_group (GTK_WINDOW (img_struct->imagination_window), img_struct->accel_group);
 
-	//Create the vertical paned widget to allow the timeline to resize upwards
-	img_struct->vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
-	gtk_box_pack_end (GTK_BOX (main_vertical_box), img_struct->vpaned, TRUE, TRUE, 0);
-	g_signal_connect (img_struct->vpaned , "notify::position", G_CALLBACK (img_change_image_area_size),img_struct);
-	
-	//Create the sidebar with the buttons and the related widget area
-	img_struct->main_horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_paned_add1( GTK_PANED( img_struct->vpaned ), img_struct->main_horizontal_box );
-	
+	//Create the sidebar with the buttons
+	main_horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(main_vertical_box), main_horizontal_box, TRUE, TRUE, 0);
+
 	img_struct->sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_set_can_focus(img_struct->sidebar, FALSE);
     gtk_container_set_border_width(GTK_CONTAINER(img_struct->sidebar), 5);
-    gtk_box_pack_start(GTK_BOX(img_struct->main_horizontal_box), img_struct->sidebar, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(main_horizontal_box), img_struct->sidebar, FALSE, FALSE, 0);
 	
 	button1 = gtk_button_new_from_icon_name("list-add", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	gtk_widget_set_tooltip_text(button1, _("Import any media"));
@@ -404,11 +401,22 @@ img_window_struct *img_create_window (void)
     gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button5, FALSE, FALSE, 5);
 	gtk_widget_set_can_focus(button5, FALSE);
 	
+	content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start (GTK_BOX(main_horizontal_box), content_area, TRUE, TRUE, 0);
+	
+	//Create the vertical paned widget to allow the timeline to resize upwards
+	img_struct->vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
+	gtk_box_pack_start (GTK_BOX (content_area), img_struct->vpaned, TRUE, TRUE, 0);
+	g_signal_connect (img_struct->vpaned , "notify::position", G_CALLBACK (img_change_image_area_size),img_struct);
+	
+	right_horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_paned_pack1(GTK_PANED( img_struct->vpaned ), right_horizontal_box, TRUE, FALSE);
+
    //Create the hidden notebook widget
 	img_struct->side_notebook = gtk_notebook_new();
 	gtk_widget_set_can_focus(img_struct->side_notebook, FALSE);
 	g_object_set (G_OBJECT (img_struct->side_notebook),"show-border", FALSE,"show-tabs", FALSE,"enable-popup",FALSE,NULL);
-	gtk_box_pack_start (GTK_BOX(img_struct->main_horizontal_box), img_struct->side_notebook, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX(right_horizontal_box), img_struct->side_notebook, FALSE, FALSE, 0);
 
 	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
@@ -433,8 +441,8 @@ img_window_struct *img_create_window (void)
 	
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (img_struct->media_iconview), GTK_SELECTION_MULTIPLE);
-	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(img_struct->media_iconview), drop_targets, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
-	g_signal_connect(img_struct->media_iconview, "drag-data-received", G_CALLBACK( img_on_drag_data_received), img_struct );
+	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(img_struct->media_iconview), drop_target, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
+	g_signal_connect(img_struct->media_iconview, "drag-data-received", G_CALLBACK( img_media_widget_drag_data_received), img_struct );
 	g_signal_connect(img_struct->media_iconview, "button-press-event", G_CALLBACK( img_iconview_popup), img_struct );
 	//gtk_icon_view_set_reorderable(GTK_ICON_VIEW (media_iconview),TRUE);
 	GtkCellRenderer *cell = gtk_cell_renderer_text_new();
@@ -489,12 +497,6 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_sensitive(img_struct->duration, FALSE);
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->duration),TRUE);
 	g_signal_connect (G_OBJECT (img_struct->duration),"value-changed",G_CALLBACK (img_spinbutton_value_changed),img_struct);
-
-	/* Slide Total Duration */
-	total_time = gtk_label_new (_("Slideshow length:"));
-	gtk_grid_attach (GTK_GRID (grid), total_time, 0, 4, 1, 1);
-	gtk_label_set_xalign(GTK_LABEL(total_time), 0);
-	gtk_label_set_yalign(GTK_LABEL(total_time), 0.5);
 
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
@@ -840,14 +842,16 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start (GTK_BOX (hbox_motion), img_struct->ken_zoom, TRUE, TRUE, 0);
 	g_signal_connect( img_struct->ken_zoom, "value-changed",  G_CALLBACK( img_ken_burns_zoom_changed ), img_struct );
 
-	/* Create the main image area */
+	/* Create the image area */
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_box_pack_start (GTK_BOX (img_struct->main_horizontal_box), vbox, TRUE, TRUE, 0);
+	g_object_set(G_OBJECT(vbox), "valign", GTK_ALIGN_CENTER);
+	gtk_box_pack_start (GTK_BOX (right_horizontal_box), vbox, TRUE, TRUE, 0);
 	
 	img_struct->image_area = gtk_drawing_area_new();
-	gtk_container_add(GTK_CONTAINER(vbox), img_struct->image_area);
-	gtk_widget_set_hexpand(img_struct->image_area, TRUE);
-	gtk_widget_set_vexpand(img_struct->image_area, TRUE);
+	gtk_box_pack_start(GTK_BOX(vbox), img_struct->image_area, FALSE, FALSE, 0);
+	gtk_widget_set_hexpand(img_struct->image_area, FALSE);
+	gtk_widget_set_vexpand(img_struct->image_area, FALSE);
+	
 	gtk_widget_set_halign(img_struct->image_area, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img_struct->image_area, GTK_ALIGN_CENTER);
 	gtk_widget_set_events(img_struct->image_area, 
@@ -864,7 +868,9 @@ img_window_struct *img_create_window (void)
 	g_signal_connect(img_struct->image_area , "button-release-event",G_CALLBACK( img_image_area_button_release ), img_struct );
 	g_signal_connect(img_struct->image_area , "motion-notify-event",  G_CALLBACK( img_image_area_motion ), img_struct );
 	g_signal_connect(img_struct->image_area , "key-press-event", 		G_CALLBACK(img_image_area_key_press), img_struct);
-	//g_signal_connect( G_OBJECT( img_struct->image_area ), "scroll-event",				G_CALLBACK( img_image_area_scroll ), img_struct);
+	//g_signal_connect(img_struct->image_area, "size-allocate",				G_CALLBACK(img_change_image_area_size), img_struct);
+	//g_signal_connect(img_struct->image_area ), "scroll-event",				G_CALLBACK( img_image_area_scroll ), img_struct);	
+	//gtk_widget_set_size_request(img_struct->image_area, 1000,562);
 
 	//Timer labels and preview buttons
 	img_struct->preview_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -896,10 +902,32 @@ img_window_struct *img_create_window (void)
 	gtk_widget_override_font(img_struct->slideshow_duration, new_size);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->slideshow_duration, FALSE, FALSE, 10);
 
-	/* ADD HERE the gtk timeline widget */
+	/* FINALLY the Imagination timeline widget: Yuppieeeeeeeeeeeeee */
+	img_struct->timeline = img_timeline_new();
+	gtk_drag_dest_set (img_struct->timeline, GTK_DEST_DEFAULT_ALL, timeline_drop_targets, G_N_ELEMENTS(timeline_drop_targets), GDK_ACTION_MOVE);
+	g_object_set(img_struct->timeline, "total_time",  27, NULL);
+	g_object_set(img_struct->timeline, "video_background", "#0084ff", NULL);
+	g_object_set(img_struct->timeline, "audio_background", "#0084ff", NULL);
 	
-	//gtk_paned_add2( GTK_PANED( img_struct->vpaned ), img_struct->thumb_scrolledwindow  );
-		
+	gtk_widget_add_events(img_struct->timeline, 
+                           GDK_POINTER_MOTION_MASK
+                         | GDK_BUTTON_PRESS_MASK   
+                         | GDK_BUTTON_RELEASE_MASK
+                         | GDK_SCROLL_MASK
+                         | GDK_KEY_PRESS_MASK );
+
+	viewport = gtk_viewport_new(NULL,NULL);
+	img_struct->timeline_scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_container_add (GTK_CONTAINER(viewport), img_struct->timeline);
+	gtk_container_add (GTK_CONTAINER(img_struct->timeline_scrolled_window), viewport);
+	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, FALSE, FALSE);
+
+	g_signal_connect(img_struct->timeline, 	"drag-data-received",		G_CALLBACK(img_timeline_drag_data_received), img_struct);
+	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct);
+	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct);
+
+	img_timeline_add_media(img_struct->timeline, "llandscape.jpg", 0);
+	
 	/* Load interface settings or apply default ones */
 	if( ! img_load_window_settings( img_struct ) )
 		img_set_window_default_settings( img_struct );
@@ -1285,10 +1313,10 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 {
 	media_struct *media;
 	gchar *string, *_string;
-	GtkWidget *media_property_dialog, *table1, *label, *textview;
+	GtkWidget *media_property_dialog, *table1, *label, *scrolled_win, *textview;
 	GtkTextBuffer *buffer;
 	
-	//Get the media address the user clicked on
+	//Get the media struct the user clicked on
 	gtk_tree_model_get( GTK_TREE_MODEL(img->media_model), &img->popup_iter, 2, &media, -1 );
 	
 	media_property_dialog = gtk_dialog_new_with_buttons (_("Media Properties"),
@@ -1415,34 +1443,38 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 		g_free(string);	
 	}
-	
+	// Metadata
 	if (media->media_type == 1 || media->media_type == 2)
 	{
 		textview = gtk_text_view_new();
 		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+		scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+		g_object_set (G_OBJECT (scrolled_win),"hscrollbar-policy",GTK_POLICY_AUTOMATIC,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,"shadow-type",GTK_SHADOW_IN,NULL);
+		gtk_container_add(GTK_CONTAINER (scrolled_win), textview);
 		gtk_text_buffer_set_text(buffer, media->metadata, -1);
 		gtk_text_view_set_editable(GTK_TEXT_VIEW(textview), FALSE);
 		gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), FALSE);
 		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(textview), FALSE);
-		gtk_grid_attach (GTK_GRID(table1), textview, 1 , 7 , 1 ,1);
+		gtk_widget_set_size_request(scrolled_win, 250, 200);
+		gtk_grid_attach (GTK_GRID(table1), scrolled_win, 1 , 7 , 1 ,1);
 	}
 	gtk_widget_show_all(media_property_dialog);
 }
 
 gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type,  img_window_struct *img)
 {
-	gint last_pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "last-position"));
-    gint actual_pos = gtk_paned_get_position(widget);
-    gint paned_height = gtk_widget_get_allocated_height(GTK_WIDGET(widget));
+	gint last_pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(img->vpaned), "last-position"));
+    gint actual_pos = gtk_paned_get_position(GTK_PANED(img->vpaned));
+    gint paned_height = gtk_widget_get_allocated_height(GTK_WIDGET(img->vpaned));
     
-    // Calculate zoom change based on paned movement relative to its total height
+	  // Calculate zoom change based on paned movement relative to its total height
     gdouble zoom_change = (gdouble)(actual_pos - last_pos) / paned_height;
     
     // Adjust zoom factor
     img->image_area_zoom += zoom_change;
     
     // Constrain zoom factor to reasonable limits (e.g., between 0.1 and 2.0)
-    img->image_area_zoom = CLAMP(img->image_area_zoom, 0.1, 1.8);
+    img->image_area_zoom = CLAMP(img->image_area_zoom, 0.1, 0.5);
     
     // Calculate new dimensions while maintaining aspect ratio
     gint new_width = img->video_size[0] * img->image_area_zoom;
@@ -1464,6 +1496,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
     }
     
     gtk_widget_set_size_request(img->image_area, new_width, new_height);
+
 	g_object_set_data(G_OBJECT(widget), "last-position", GINT_TO_POINTER(actual_pos));
 	
 	return FALSE;
