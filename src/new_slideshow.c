@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2009-2020 Giuseppe Torelli <colossus73@gmail.com>
+ *  Copyright (c) 2009-2024 Giuseppe Torelli <colossus73@gmail.com>
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -173,6 +173,8 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	if (c_color)
 		img_taint_project(img);
 	}
+
+	img_zoom_fit(NULL, img);
 	gtk_widget_destroy(dialog1);
 }
 

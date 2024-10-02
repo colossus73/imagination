@@ -571,12 +571,18 @@ void img_free_media_struct( media_struct *entry )
 	if (entry->audio_duration)
 		g_free(entry->audio_duration);
 
-	if (entry->subtitle)
-		g_free(entry->subtitle);
+	if (entry->text)
+		g_free(entry->text);
 
 	if (entry->pattern_filename)
 		g_free(entry->pattern_filename);
 	
+	if (entry->font_desc)
+		g_free(entry->font_desc);
+
+	if (entry->path)
+		g_free(entry->path);
+
 	/* Free stop point list */
 	for( tmp = entry->points; tmp; tmp = g_list_next( tmp ) )
 		g_slice_free( ImgStopPoint, tmp->data );

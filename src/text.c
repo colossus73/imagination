@@ -486,7 +486,7 @@ void img_render_subtitle( img_window_struct 	  *img,
 	GdkColor 	*color;
 	GtkTextTag	*tag;
 
-	if ( ! img->current_slide->subtitle)
+	if ( ! img->current_slide->text)
 		return;
 
 	/* Save cairo state */
@@ -497,7 +497,7 @@ void img_render_subtitle( img_window_struct 	  *img,
 	layout = pango_cairo_create_layout( cr );
 	pango_layout_set_font_description( layout, img->current_slide->font_desc );
 
-	pango_layout_set_text( layout, (gchar*)img->current_slide->subtitle, -1 );
+	pango_layout_set_text( layout, (gchar*)img->current_slide->text, -1 );
 
 	pango_layout_get_size( layout, &lw, &lh );
 	lw /= PANGO_SCALE;
@@ -564,7 +564,7 @@ img_text_ani_fade( cairo_t     *cr,
 //~ img_set_slide_text_info( media_struct      *slide,
 						 //~ GtkListStore      *store,
 						 //~ GtkTreeIter       *iter,
-						 //~ guint8		       *subtitle,
+						 //~ guint8		       *text,
 						 //~ gchar				*pattern_filename,
 						 //~ gint	            anim_id,
 						 //~ gint               anim_duration,
@@ -674,14 +674,14 @@ static void img_text_draw_layout( cairo_t     *cr,
 	pango_layout_get_pixel_size (layout, &w, &h );
 	pango_layout_set_alignment( layout, current_slide->alignment );
 
-	/* Subtitle angle */
+	/* text angle */
 	cairo_translate (cr, posx + (w / 2), posy + (h / 2) );
 	cairo_rotate (cr, angle * G_PI / 180.0);
 	cairo_translate (cr, -(posx + (w / 2)), -(posy + (h / 2)) );
 	pango_cairo_update_layout (cr, layout);
 	
 	/* Set the user chosen pattern
-	 * to draw the subtitle */
+	 * to draw the text */
 	if (current_slide->pattern_filename)
 	{
 		cairo_surface_t  *tmp_surf;
@@ -697,7 +697,7 @@ static void img_text_draw_layout( cairo_t     *cr,
 	}
 	else
 	{
-		/* Draw the subtitle */
+		/* Draw the text */
 		/* Set source color */
 		cairo_set_source_rgba( cr, current_slide->font_color[0],
 								current_slide->font_color[1],
@@ -900,13 +900,13 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	pango_layout_get_pixel_size (layout, &w, &h );
 	pango_layout_set_alignment( layout, current_slide->alignment );
 
-	/* Subtitle angle */
+	/* text angle */
 	cairo_translate (cr, posx + (w / 2), posy + (h / 2) );
 	cairo_rotate (cr, angle * G_PI / 180.0);
 	cairo_translate (cr, -(posx + (w / 2)), -(posy + (h / 2)) );
 	pango_cairo_update_layout (cr, layout);
 
-	/* Set the user chosen pattern to draw the subtitle */
+	/* Set the user chosen pattern to draw the text */
 	if (current_slide->pattern_filename)
 	{
 		cairo_surface_t  *tmp_surf;
@@ -922,7 +922,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	}
 	else
 	{
-		/* Draw the subtitle */
+		/* Draw the text */
 		/* Set source color */
 		cairo_set_source_rgba( cr, progress_font_color[0],
 								progress_font_color[1],

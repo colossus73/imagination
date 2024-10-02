@@ -27,16 +27,6 @@
 #include "support.h"
 #include "callbacks.h"
 
-void
-img_save_slideshow( img_window_struct *img,
-					const gchar       *output,
-					gboolean		   relative );
-
-void
-img_load_slideshow( img_window_struct *img,
-					GtkWidget			*menu,
-					const gchar       *input );
-
-gboolean
-img_append_slides_from( img_window_struct *img, GtkWidget *, const gchar *input );
+void img_save_slideshow( img_window_struct *, const gchar *, gboolean);
+void img_load_slideshow( img_window_struct *, GtkWidget *, const gchar * );
 #endif

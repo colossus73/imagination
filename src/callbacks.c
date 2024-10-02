@@ -158,109 +158,114 @@ void img_detect_media_orientation_from_pixbuf(GdkPixbuf *image, gboolean *flippe
         }
 }
 
-
-void img_add_slides_thumbnails(GtkMenuItem *item, img_window_struct *img)
+void img_add_media_items(GtkMenuItem *item, img_window_struct *img)
 {
-	GSList *media = img_import_slides_file_chooser(img);
+	GSList  *media, *bak;
+	
+	media = img_import_slides_file_chooser(img);
 
 	if (media == NULL)
 		return;
 
-	img_add_media(media, img);
+	bak = media;
+	while (media)
+	{
+		if (img_add_media(media->data, img))
+			img_taint_project(img);
+		 
+		media = media->next;
+	}
+	g_slist_free(bak);
 }
 
-void img_add_media(GSList *slides, img_window_struct *img)
+gboolean img_add_media(gchar *full_path, img_window_struct *img)
 {
 	GSList *bak;
 	GdkPixbuf *thumb;
 	GdkPixbufFormat *format;
+	GdkPixbuf *pb;
 	GtkTreeIter iter;
 	media_struct *media_info;
 	GError *error = NULL;
 	gchar *filename;
-	gint slides_cnt , nr_invalid = 0;
+	gint slides_cnt , type;
 	GFile *file;
 	GFileInfo *file_info;
 	const gchar *content_type;
 	gchar *mime_type;
+	gboolean flag = TRUE;
 
-	img->media_nr += g_slist_length(slides);
-
+	if (img_find_media_in_list(img, full_path))
+		return FALSE;
+	
 	/* Remove model from thumbnail iconview for efficiency */
 	g_object_ref( G_OBJECT( img->media_model ) );
 	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), NULL);
 
-	bak = slides;
-	while (slides)
+	//Determine the mime type
+	file = g_file_new_for_path (full_path);
+	file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
+	content_type = g_file_info_get_content_type (file_info);
+	mime_type = g_content_type_get_mime_type (content_type);
+
+	if (strstr(mime_type, "image"))
+		type = 0;
+	else if (strstr(mime_type, "audio"))
+		type = 1;
+	else if (strstr(mime_type, "video"))
+		type = 2;
+	else
 	{
-	    media_info = img_create_new_media();    
-	    filename = slides->data;
-	    media_info->full_path = g_strdup(filename);
+		gchar *string = g_strconcat( _("Unsupported media:\n"), full_path, NULL);
+		img_message(img, string);
+		g_free(string);
+		flag = FALSE;
+		goto next_media;
+	}
+	media_info = img_create_new_media();    
+	media_info->full_path = g_strdup(full_path);
+	media_info->media_type = type;
+	img->media_nr++;
 
-	    //Determine the mime type
-		file = g_file_new_for_path (filename);
-		file_info = g_file_query_info (file, "standard::*", 0, NULL, NULL);
-		content_type = g_file_info_get_content_type (file_info);
-		mime_type = g_content_type_get_mime_type (content_type);
+	filename = g_path_get_basename(full_path);
+	gtk_list_store_append (img->media_model, &iter);
 
-		//Get the filesize
-		media_info->filesize = g_file_info_get_size(file_info);
+	switch (media_info->media_type)
+    {
+		case 0:
+			format = gdk_pixbuf_get_file_info(full_path, &media_info->width, &media_info->height);
+			media_info->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
+			to_upper(&media_info->image_type);
+			/* to get the orientation tag, load a tiny version of the image */
+			thumb = gdk_pixbuf_new_from_file_at_size(full_path, 1, 1, NULL);
+    		img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
+			g_object_unref(thumb);
+			pb = gdk_pixbuf_new_from_file_at_scale(full_path, 120, 60, TRUE, NULL);
+			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media_info, -1);
+			g_object_unref(pb);
+		break;
 
-		if (strstr(mime_type, "image"))
-			media_info->media_type = 0;
-		else if (strstr(mime_type, "audio"))
-			media_info->media_type = 1;
-		else if (strstr(mime_type, "video"))
-			media_info->media_type = 2;
-		else
-		{
-			gchar *string = g_strconcat( _("Can't recognize media file type\n"), slides->data, NULL);
-			img_message(img, string);
-			g_free(string);
-			nr_invalid++;
-			goto next_slide;
-		}
-		switch (media_info->media_type)
-	    {
-			case 0:
-				format = gdk_pixbuf_get_file_info(filename, &media_info->width, &media_info->height);
-				media_info->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
-				to_upper(&media_info->image_type);
-				/* to get the orientation tag, load a tiny version of the image */
-				thumb = gdk_pixbuf_new_from_file_at_size(filename, 1, 1, NULL);
-	    		img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
-				g_object_unref(thumb);
-				/* create the associated full_path taking orientation into account */
-				//img_rotate_flip_slide(slide_info, slide_info->angle, slide_info->flipped);
-				if ( ! img_add_media_widget_area(media_info, filename, img))
-					nr_invalid++;
-			break;
-
-			case 1:
-				img_get_audio_data(media_info);
-				if ( ! img_add_media_widget_area(media_info, filename, img))
-					nr_invalid++;
-			break;
-		}
-next_slide:
+		case 1:
+			img_get_audio_data(media_info);
+			pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
+			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media_info, -1);
+			g_object_unref(pb);
+		break;
+	}
+	g_free(filename);
+	
+next_media:
 	    g_free(mime_type);
 		g_object_unref(file_info);
 		g_object_unref(file);
-	    g_free(slides->data);
-	    slides = slides->next;
-	} //Closing while(slides) curly bracket
-	
-	g_slist_free(bak);
-	if (nr_invalid == 0)
-		img_taint_project(img);
 
 	// Reinstate the model
 	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), GTK_TREE_MODEL(img->media_model) );
 	g_object_unref( G_OBJECT( img->media_model ) );
 	
-	//Update media nr
-	img->media_nr -= nr_invalid;
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(img->side_notebook), 0);
+	
+	return flag;
 }
 
 GSList *img_import_slides_file_chooser(img_window_struct *img)
@@ -340,6 +345,7 @@ void img_free_allocated_memory(img_window_struct *img_struct)
 		while (gtk_tree_model_iter_next (model,&iter));
 		gtk_list_store_clear(GTK_LIST_STORE(img_struct->media_model));
 	}
+	img_struct->media_nr = 0;
 
 	/* Free gchar pointers */
 	if (img_struct->current_dir)
@@ -611,7 +617,6 @@ void img_go_fullscreen(GtkMenuItem *item, img_window_struct *img)
 	display1 = gdk_display_get_default();
 	cursor = gdk_cursor_new_for_display(display1, GDK_BLANK_CURSOR);
 	gdk_window_set_cursor(win, cursor);
-	//gtk_widget_remove_accelerator (img->fullscreen, img->accel_group, GDK_KEY_F11, 0);
 
 	gtk_widget_hide (img->menubar);
 	gtk_widget_hide (img->side_notebook);
@@ -869,16 +874,10 @@ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
 
 void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *context , int x, int y, GtkSelectionData *data, unsigned int info, unsigned int time, img_window_struct *img)
 {
-	media_struct *entry = NULL;
 	gchar **media = NULL;
 	gchar *filename;
-	GSList *list = NULL;
 	GtkWidget *dialog;
-	GFile *file;
-	GFileInfo *file_info;
-	const gchar *content_type;
-	gchar *mime_type;
-	int len = 0;
+	int i = 0;
 	gboolean dummy;
 
 	media = gtk_selection_data_get_uris(data);
@@ -893,14 +892,51 @@ void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *con
 	}
 	gtk_drag_finish (context,TRUE,FALSE,time);
 	
-	// Let's copy the gchar array into a GSlist so we can use img_add_media()
-	// and avoid a lot of code duplicates
-	
-	 for (gchar** str = media; *str != NULL; str++)
-		list = g_slist_append(list, g_filename_from_uri (media[len],NULL,NULL)); //The allocated strings are freed in img_add_media()
+	 while(media[i])
+	{
+		filename = g_filename_from_uri (media[i], NULL, NULL);
+		if ( img_add_media(filename, img))
+			img_taint_project(img);
+		g_free(filename);
+		i++;
+	}
 
-	img_add_media(list, img);
-	g_strfreev (media);
+	g_strfreev(media);
+}
+
+void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data, guint info, guint time, gpointer user_data)
+{
+	media_struct *media;
+	GtkTreeModel *model;
+	GList *selected_items, *item;
+    GPtrArray *media_structs;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+
+	model = gtk_icon_view_get_model(GTK_ICON_VIEW(widget));
+    selected_items = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(widget));
+
+    media_structs = g_ptr_array_new();
+
+    for (item = selected_items; item != NULL; item = g_list_next(item))
+    {
+        path = (GtkTreePath *)item->data;
+        if (gtk_tree_model_get_iter(model, &iter, path))
+        {
+            gtk_tree_model_get(model, &iter, 2, &media, -1);
+			g_ptr_array_add(media_structs, media);
+        }
+    }
+    // Set the data
+    gtk_selection_data_set(selection_data,
+                           gdk_atom_intern( "application/x-media-item", FALSE),
+                           32,  // 32 bits per unit for pointers
+                           (guchar *)media_structs->pdata,
+                           media_structs->len * sizeof(media_struct*));
+
+    // Free allocated memory
+    g_ptr_array_free(media_structs, TRUE);
+    g_list_free_full(selected_items, (GDestroyNotify)gtk_tree_path_free);
 }
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
@@ -1016,7 +1052,9 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
 		cairo_fill(cr);
 
-		//Let's translate to origin of the drawing area allocation to avoid
+		if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
+		{
+			//Let's translate to origin of the drawing area allocation to avoid
 		//the cross lines to be rotated too
 		cairo_save(cr);
 		cairo_identity_matrix(cr);
@@ -1029,6 +1067,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 		//they always be 0,0 at the top left?
 
 		int menubar_height = gtk_widget_get_allocated_height(img->menubar);
+		int sidebar_width = gtk_widget_get_allocated_width(img->sidebar) + 10;
 		if (img->textbox->draw_horizontal_line)
 		{
 			if (gtk_widget_is_visible(img->menubar))
@@ -1036,19 +1075,24 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 			else
 				center_y = allocation.height / 2;
 
+			if (gtk_widget_is_visible(img->sidebar))
+				center_x = sidebar_width + center_x;
+			else
+				center_x = allocation.height / 2;
+
 		//Draw the horizontal centering line
 			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
 			cairo_set_line_width(cr, 1.0);
 			cairo_move_to(cr, 0, center_y - 2);
-			cairo_line_to(cr, allocation.width, center_y - 2);
+			cairo_line_to(cr, allocation.width + sidebar_width, center_y - 2);
 			cairo_stroke(cr);
 			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
 			cairo_move_to(cr, 0, center_y);
-			cairo_line_to(cr, allocation.width, center_y);
+			cairo_line_to(cr, allocation.width + sidebar_width, center_y);
 			cairo_stroke(cr);
 			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
 			cairo_move_to(cr, 0, center_y + 2);
-			cairo_line_to(cr, allocation.width, center_y + 2);
+			cairo_line_to(cr, allocation.width+sidebar_width, center_y + 2);
 			cairo_stroke(cr);
 		}
 		
@@ -1070,6 +1114,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 			cairo_stroke(cr);
 		}
 		cairo_restore(cr);
+	}
 		cairo_set_line_width(cr, 2.5);
 		
 		// Draw the bottom right handle
@@ -1265,17 +1310,16 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
     GtkWidget *fc;
     GtkFileChooserAction action = 0;
     gint	 response;
-    gboolean	 append, open_replace, save;
+    gboolean	 open_replace, save;
     gchar *filename = NULL;
     GtkFileFilter *project_filter, *all_files_filter;
 
 
     /* Determine what to do */
-    append = widget == img->import_project_menu;
     open_replace = widget == img->open_menu;
     save = widget == img->save_as_menu || widget == img->save_menu;
     /* Determine the mode of the chooser. */
-    if (open_replace || append) {
+    if (open_replace) {
 	action = GTK_FILE_CHOOSER_ACTION_OPEN;
     } else if (save) {
 	action = GTK_FILE_CHOOSER_ACTION_SAVE;
@@ -1284,7 +1328,7 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 	return;
     }
 
-    /* close old slideshow if we import */
+    /* close old slideshow if the user open a new one */
     if (open_replace)
     {
 		if (!img_can_discard_unsaved_project(img))
@@ -1364,9 +1408,7 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 		filename = g_strdup( img->project_filename );
 
     if (open_replace)
-		img_load_slideshow(img,NULL, filename);
-    else if (append) 
-		img_append_slides_from( img, NULL, filename );
+		img_load_slideshow(img, NULL, filename);
     else if (save)
 		img_save_slideshow( img, filename, img->relative_filenames );
 
@@ -1381,16 +1423,15 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
     if (widget && widget == img->close_menu && ! img_can_discard_unsaved_project(img))
 		return;
 
-	gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
-	img->media_nr = 0;
-	img->project_is_modified = FALSE;
 	img_free_allocated_memory(img);
+	img->project_is_modified = FALSE;
+	
 	img_refresh_window_title(img);
 	if( img->current_image )
 		cairo_surface_destroy( img->current_image );
 	img->current_image = NULL;
 	gtk_widget_queue_draw( img->image_area );
-	gtk_label_set_text(GTK_LABEL (img->slideshow_duration),"");
+	gtk_label_set_text(GTK_LABEL (img->total_time),"00:00:00");
 
 	/* Reset slideshow properties */
 	img->background_color[0] = 0;
@@ -1876,6 +1917,8 @@ gboolean img_save_window_settings( img_window_struct *img )
 	g_key_file_set_integer( kf, group, "height",  h );
 	g_key_file_set_integer( kf, group, "paned",  g );
 	g_key_file_set_double(  kf, group, "zoom_p",  img->image_area_zoom );
+	g_key_file_set_integer( kf, group, "image_area_width",   gtk_widget_get_allocated_width(img->image_area));
+	g_key_file_set_integer( kf, group, "image_area_height",  gtk_widget_get_allocated_height(img->image_area));
 	g_key_file_set_boolean( kf, group, "max",     max );
 	g_key_file_set_integer( kf, group, "preview", img->preview_fps );
 	g_key_file_set_string_list(kf, group, "recent_files", (const gchar * const *)recent_files->pdata, recent_files->len);
@@ -1904,7 +1947,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 	gchar     *group = "Interface settings";
 	gchar	  **recent_slideshows;
 	gchar     *rc_file, *recent_files = NULL;
-	gint      w, h, g, m; /* Width, height, gutter, mode */
+	gint      w, h, g, w2,h2;
 	gint	  i;
 	gboolean  max;
 
@@ -1919,10 +1962,11 @@ gboolean img_load_window_settings( img_window_struct *img )
 	w                    = g_key_file_get_integer( kf, group, "width",   NULL );
 	h                    = g_key_file_get_integer( kf, group, "height",  NULL );
 	g                    = g_key_file_get_integer( kf, group, "paned",  NULL );
-	m                    = g_key_file_get_integer( kf, group, "mode",    NULL );
 	img->image_area_zoom = g_key_file_get_double(  kf, group, "zoom_p",  NULL );
-	max                  = g_key_file_get_boolean( kf, group, "max",     NULL );
-	recent_files		 = g_key_file_get_string(  kf, group, "recent_files", NULL);
+	w2                  = g_key_file_get_integer( kf, group, "image_area_width",   NULL );
+	h2                  = g_key_file_get_integer( kf, group, "image_area_height",  NULL );
+	max                = g_key_file_get_boolean( kf, group, "max",     NULL );
+	recent_files	 	= g_key_file_get_string(  kf, group, "recent_files", NULL);
 
 	if (recent_files)
 	{
@@ -1950,24 +1994,22 @@ gboolean img_load_window_settings( img_window_struct *img )
 			gtk_widget_show(img->no_recent_item_menu);
 		}
 	}
-	/* New addition to environment settings */
 	img->preview_fps     = g_key_file_get_integer( kf, group, "preview", NULL );
 	if( ! img->preview_fps )
 		img->preview_fps = 25;
 
 	g_key_file_free( kf );
 
-	/* Update window size and gutter position */
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
 	
 	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
-		gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
+	gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
 	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
-	
+		
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
-	gtk_widget_set_size_request( img->image_area, img->video_size[0] * img->image_area_zoom,  img->video_size[1] * img->image_area_zoom );
+	gtk_widget_set_size_request(img->image_area, w2, h2);
 
 	return TRUE;
 }
@@ -2049,60 +2091,7 @@ void img_rotate_flip_slide( media_struct   *slide,
 	slide->flipped = flipped;
 }
 
-void img_align_text_horizontally_vertically(GtkMenuItem *item, img_window_struct *img)
-{
-	cairo_t	*cr;
-	GdkWindow *window;
-	GdkDrawingContext *drawingContext;
-	cairo_region_t *cairoRegion;
-
-	gboolean centerX = FALSE, centerY = FALSE;
-
-	cairoRegion = cairo_region_create();
-	window = gtk_widget_get_window(img->image_area);	
-	drawingContext = gdk_window_begin_draw_frame(window, cairoRegion);
-    cr = gdk_drawing_context_get_cairo_context(drawingContext);
-	
-	//~ if (GTK_WIDGET(item) == img->x_justify)
-	//~ {
-		//~ centerX = TRUE;
-		//~ centerY = FALSE;
-	//~ }
-	//~ else if (GTK_WIDGET(item) == img->y_justify)
-	//~ {
-		//~ centerX = FALSE;
-		//~ centerY = TRUE;
-	//~ }
-	//~ else
-	//~ {	
-		//~ img->current_slide->subtitle_angle = 0;
-		//~ gtk_range_set_value( GTK_RANGE(img->sub_angle), 0);
-	//~ }
-
-	img_render_subtitle( img,
-								 cr,
-								 img->image_area_zoom,
-								 img->current_slide->posX,
-								 img->current_slide->posY,
-								 img->current_slide->subtitle_angle,
-								 img->current_slide->alignment,
-								 img->current_point.zoom,
-								 img->current_point.offx,
-								 img->current_point.offy,
-								 centerX,
-								 centerY,
-								 1.0 );
-	
-	gtk_widget_queue_draw(img->image_area);
-
-	gdk_window_end_draw_frame(window, drawingContext);
-	cairo_region_destroy(cairoRegion);
-	
-	img_taint_project(img);
-}
-
-void
-img_pattern_clicked(GtkMenuItem *item,
+void img_pattern_clicked(GtkMenuItem *item,
 					img_window_struct *img)
 {
 	GtkWidget		*fc;
@@ -2279,40 +2268,28 @@ void img_open_recent_slideshow(GtkWidget *menu, img_window_struct *img)
 		img_load_slideshow(img, menu, filename);
 }
 
-void img_add_any_media_callback( GtkButton *button,  img_window_struct *img )
+void img_add_any_media_callback(GtkButton *button,  img_window_struct *img)
 {
-	img_add_slides_thumbnails(NULL, img);	
+	img_add_media_items(NULL, img);	
 }
 
-gboolean img_add_media_widget_area(media_struct *media, gchar *full_path_filename, img_window_struct *img)
+void img_zoom_fit( GtkWidget *item, img_window_struct *img)
 {
-	GdkPixbuf *pb;
-	GtkTreeIter iter;
-	gchar *filename;
+	GtkAllocation allocation;
+    gdouble step, level1, level2;
+    
+	gtk_widget_get_allocation(gtk_widget_get_parent(GTK_WIDGET(img->image_area)), &allocation);
 
-	if (img_find_media_in_list(img, full_path_filename))
-		return FALSE;
+	level1 = (float)allocation.width / img->video_size[0];
+	level2 = (float)allocation.height / img->video_size[1];
 
-	filename = g_path_get_basename(full_path_filename);
-	
-	gtk_list_store_append (img->media_model, &iter);
-	img_taint_project(img);
-	switch (media->media_type)
-	{
-		case 0:
-		//Load and scale the pixbuf and add it to the iconview
-		pb = gdk_pixbuf_new_from_file_at_scale(full_path_filename, 120, 60, TRUE, NULL);
-		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media, -1);
-		g_object_unref(pb);
-		break;
-		
-		case 1:
-		pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
-		gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media, -1);
-		g_object_unref(pb);
-		break;
-	}
-	g_free(filename);
-	return TRUE;
+	if (level1 < level2)
+		step = level1 - 1;
+	else
+		step = level2 - 1;
+
+	img->image_area_zoom = 1;
+
+	img->image_area_zoom = CLAMP( img->image_area_zoom + step, 0.1, 1.0);
+	gtk_widget_set_size_request(img->image_area, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom);
 }
-

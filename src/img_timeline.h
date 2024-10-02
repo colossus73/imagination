@@ -21,6 +21,7 @@
 #define __IMG_TIMELINE_H__
 
 #include <gtk/gtk.h>
+#include "imagination.h"
 
 G_BEGIN_DECLS
 
@@ -70,7 +71,7 @@ void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint );
 void img_timeline_set_time_marker			(ImgTimeline *, gint );
 
 gboolean img_timeline_scroll_event(GtkWidget *, GdkEventScroll *, GtkWidget *);
-void img_timeline_drag_data_received (GtkWidget *, GdkDragContext *, gint , gint , GtkSelectionData *, guint , guint , gpointer );
+void img_timeline_drag_data_received (GtkWidget *, GdkDragContext *, gint , gint , GtkSelectionData *, guint , guint , img_window_struct * );
 gboolean img_timeline_motion_notify(GtkWidget *, GdkEventMotion *event, ImgTimeline *);
 gboolean img_timeline_mouse_button_press (GtkWidget *, GdkEvent *event, ImgTimeline *);
 gboolean img_timeline_mouse_button_release (GtkWidget *, GdkEvent *event, ImgTimeline *);

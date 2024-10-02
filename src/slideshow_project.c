@@ -85,7 +85,6 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 				g_key_file_set_integer(img_key_file, conf, "width",	entry->width);
 				g_key_file_set_integer(img_key_file, conf, "height",	entry->height);
 				g_key_file_set_string(img_key_file, conf, "image_type", 	entry->image_type);
-				g_key_file_set_int64(img_key_file, conf, "filesize", 	entry->filesize);
 				g_key_file_set_integer(img_key_file, conf, "angle",	entry->angle);
 				g_key_file_set_boolean(img_key_file,conf, "flipped",	entry->flipped);
 				//thumb = gdk_pixbuf_new_from_file_at_size(entry->full_path, 1, 1, NULL);
@@ -96,7 +95,6 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 			case 1:
 				g_key_file_set_string(img_key_file, conf, "audio_type", 			entry->audio_type);
 				g_key_file_set_string(img_key_file, conf, "audio_duration", 	entry->audio_duration);
-				g_key_file_set_int64(img_key_file, conf, "filesize", 					entry->filesize);
 				g_key_file_set_integer(img_key_file, conf, "bitrate",			 	entry->bitrate);
 				g_key_file_set_integer(img_key_file, conf, "sample_rate",		entry->sample_rate);
 				g_key_file_set_string(img_key_file, conf, "metadata", 			entry->metadata);
@@ -104,7 +102,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 			
 			// Text
 			case 3:
-				g_key_file_set_string (img_key_file, conf,"text", (gchar*)entry->subtitle);
+				g_key_file_set_string (img_key_file, conf,"text", (gchar*)entry->text);
 				if( entry->pattern_filename )
 				{
 					if (relative)
@@ -180,7 +178,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 	img_refresh_window_title(img);
 }
 
-gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, const gchar *input )
+void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gchar *input )
 {
 	GdkPixbuf *thumb;
 	media_struct *media;
@@ -188,7 +186,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	GKeyFile *img_key_file;
 	gchar *dummy, *media_filename, *time;
 	GtkWidget *dialog, *menu;
-	gint i, transition_id, no_points, alignment, previous_nr_of_slides, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type;
+	gint i, transition_id, no_points, alignment, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type;
 	guint speed;
 	GtkTreeModel *model;
 	void (*render);
@@ -212,6 +210,9 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	ImgAngle   angle = 0;
 	GString *media_not_found = NULL;
 
+	if (img->media_nr > 0)
+		img_close_slideshow(NULL, img);
+	
 	media_not_found = g_string_new(NULL);
 	
 	if (img->no_recent_item_menu)
@@ -229,7 +230,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 		}
 		else
 			img_message(img, _("Error: Project file doesn't exist") );
-		return FALSE;
+		return;
 	}
 
 	/* Create new key file */
@@ -246,7 +247,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 		gtk_dialog_run( GTK_DIALOG( dialog ) );
 		gtk_widget_destroy( GTK_WIDGET( dialog ) );
 		g_key_file_free (img_key_file);
-		return FALSE;
+		return;
 	}
 	g_free( dummy );
 
@@ -289,10 +290,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 
 	/* Loads the media files */
 	number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
-	
-	previous_nr_of_slides = img->media_nr;
-	img->media_nr = number;
-	
+
 	for( i = 1; i <= number ; i++ )
 	{
 		conf = g_strdup_printf("media %d", i);
@@ -307,25 +305,18 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 
 		if(media_filename)
 		{
-			if ( g_path_is_absolute(media_filename) == FALSE)
+			//Let's chech if the media is found
+			if ( ! g_file_test (media_filename, G_FILE_TEST_EXISTS))
 			{
-				full_path = g_strconcat(project_current_dir, "/", media_filename, NULL);
-				//Let's chech if the media is found
-				if ( ! g_file_test (full_path, G_FILE_TEST_EXISTS))
-				{
-					gchar *msg = g_strdup_printf(_("Media %d: <b>%s</b> couldn't be found\n"), i, full_path);
-					g_string_append(media_not_found, msg);
-					previous_nr_of_slides--;
-					continue;
-				}
+				gchar *msg = g_strdup_printf(_("Media %d: <b>%s</b> couldn't be found\n"), i, media_filename);
+				g_string_append(media_not_found, msg);
+				continue;
 			}
 		}
 		/* Create the media structure */
 		media = img_create_new_media();
 		media->media_type = media_type;
-		
-		if (full_path || media_filename)
-			media->full_path = full_path ? full_path : media_filename;
+		media->full_path = media_filename;
 
 		switch (media->media_type)
 		{
@@ -334,29 +325,27 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				media->width 			= g_key_file_get_integer( img_key_file, conf, "width", NULL );
 				media->height 			= g_key_file_get_integer( img_key_file, conf, "height", NULL );
 				media->image_type = g_key_file_get_string( img_key_file, conf, "image_type", NULL );
-				media->filesize 		= g_key_file_get_int64( img_key_file, conf, "filesize", NULL );
 				media->angle 			= g_key_file_get_integer( img_key_file, conf, "angle", NULL );
 				media->flipped			= g_key_file_get_boolean( img_key_file, conf, "flipped", NULL );
-				no_use = img_add_media_widget_area(media, media->full_path, img);
+				no_use = img_add_media(media->full_path, img);
 			break;
 			
 			//Media audio
 			case 1:
 				gchar *metadata = NULL;
 				media->audio_type 			= g_key_file_get_string( img_key_file, conf, "audio_type", NULL );
-				media->filesize 				= g_key_file_get_int64( img_key_file, conf, "filesize", NULL );
 				media->audio_duration	= g_key_file_get_string( img_key_file, conf, "audio_duration", NULL );
 				media->bitrate 				= g_key_file_get_integer( img_key_file, conf, "bitrate", NULL );
 				media->sample_rate		= g_key_file_get_integer( img_key_file, conf, "sample_rate", NULL );
 				metadata							= g_key_file_get_string(img_key_file, conf, "metadata", NULL);
 				g_stpcpy(media->metadata, metadata);
-				no_use = img_add_media_widget_area(media, media->full_path, img);
+				no_use = img_add_media(media->full_path, img);
 				g_free(metadata);
 			break;
 			
 			// Text
 			case 3:
-				media->subtitle				=	g_key_file_get_string (img_key_file, conf, "text",	NULL);
+				media->text						=	g_key_file_get_string (img_key_file, conf, "text",	NULL);
 				media->pattern_filename=	g_key_file_get_string (img_key_file, conf, "pattern filename",	NULL);
 				media->anim_id 	  			= g_key_file_get_integer(img_key_file, conf, "anim id", 		NULL);
 				media->anim_duration 	= g_key_file_get_integer(img_key_file, conf, "anim duration",	NULL);
@@ -386,31 +375,6 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 				media->duration	 		= g_key_file_get_double(img_key_file, conf, "duration", NULL);
 				media->transition_id 	= g_key_file_get_integer(img_key_file, conf, "transition_id", NULL);
 			break;
-			
-				//~ load_ok = img_scale_image( original_filename, img->video_ratio,
-										   //~ 88, 0, FALSE,
-										   //~ img->background_color, &thumb, NULL );
-                //~ img_load_ok = load_ok;
-                //~ if (! load_ok)
-                //~ {
-                    //~ icon_theme = gtk_icon_theme_get_default();
-                    //~ icon_info = gtk_icon_theme_lookup_icon(icon_theme,
-                                                           //~ "image-missing",
-                                                           //~ 256,
-                                                           //~ GTK_ICON_LOOKUP_FORCE_SVG);
-                    //~ icon_filename = gtk_icon_info_get_filename(icon_info);
-
-					//~ gchar *string;
-					//~ string = g_strconcat( _("Media %i: can't load image %s\n"), i, media_filename, NULL);
-                    //~ img_message(img, string);
-					//~ g_free(string);
-                    //~ g_free (media_filename);
-                    //~ media_filename = g_strdup(icon_filename);
-                    //~ load_ok = img_scale_image( media_filename, img->video_ratio,
-                                                //~ 88, 0, FALSE,
-                                                //~ img->background_color, &thumb, NULL );
-
-                //~ }
 			
 			//~ else
 			//~ {
@@ -522,9 +486,7 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 			g_free(conf);
 		} //End switch media type
 	}
-	
-	img->media_nr += previous_nr_of_slides;
-	
+
 	// If some media were not found display an error dialog
 	if (media_not_found->len > 0)
 	{
@@ -539,33 +501,22 @@ gboolean img_append_slides_from( img_window_struct *img, GtkWidget *menuitem, co
 	g_key_file_free (img_key_file);
 
 	g_hash_table_destroy( table );
-	g_free(project_current_dir);
 	
-	return TRUE;
-}
-
-void
-img_load_slideshow( img_window_struct *img, GtkWidget *menu, const gchar *input )
-{
-	if (img->media_nr > 0)
-		img_close_slideshow(NULL, img);
-
-	if (img_append_slides_from(img, menu, input))
-	{
-		img->project_is_modified = FALSE;
-
-		/* If we made it to here, we succesfully loaded project, so it's safe to set
-		 * filename field in global data structure. */
-		if( img->project_filename )
+	/* If we made it to here, we succesfully loaded project, so it's safe to set
+	 * filename field in global data structure. */
+	
+	if( img->project_filename )
 			g_free( img->project_filename );
-		img->project_filename = g_strdup( input );
+	
+	img->project_filename = g_strdup( input );
 
-		if (img->project_current_dir)
+	if (img->project_current_dir)
 			g_free(img->project_current_dir);
-		img->project_current_dir = g_path_get_dirname(input);
-
-		img_refresh_window_title(img);
-	}
+	
+	img->project_current_dir = project_current_dir;
+	g_print("Prohect filename: %s\nProject current dir: %s\n", img->project_filename,img->project_current_dir);
+	img_refresh_window_title(img);
+	img_zoom_fit(NULL, img);
 }
 
 static gboolean img_populate_hash_table( GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, GHashTable **table )

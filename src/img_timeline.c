@@ -17,6 +17,7 @@
  *
  */
 #include "img_timeline.h"
+#include "callbacks.h"
 
 typedef struct _ImgTimelinePrivate
 {
@@ -342,7 +343,7 @@ static gboolean img_timeline_draw(GtkWidget *da, cairo_t *cr)
 	  cairo_fill(cr);
 	  cairo_restore(cr);
 
-	  //This is necessary to draw the slides represented by the GtkButtons
+	  //This is necessary to draw the media represented by the GtkButtons
 	  GTK_WIDGET_CLASS (img_timeline_parent_class)->draw (da, cr);
 
 	  //Draw the red time marker 
@@ -521,7 +522,7 @@ void img_timeline_add_media(GtkWidget *da, gchar *filename, gint x)
     else
         pos = priv->last_slide_posX;
     
-    gtk_layout_move(GTK_LAYOUT(da), item->button, priv->last_slide_posX, 35);
+    gtk_layout_move(GTK_LAYOUT(da), item->button, pos, 35);
     item->old_x = pos;
 
     priv->last_slide_posX += 95;
@@ -575,6 +576,7 @@ void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx)
 
 void img_timeline_media_drag_data_get(GtkWidget *widget, GdkDragContext *drag_context, GtkSelectionData *data, guint info, guint time, gpointer user_data)
 {
+	//This callback is for the timeline itself when data is being dragged OUT of it
 	gtk_selection_data_set (data, gdk_atom_intern_static_string ("IMG_TIMELINE_MEDIA"), 32, (const guchar *)&widget, sizeof (gpointer));
 	g_print("Drag data get\n");
 }
@@ -589,8 +591,8 @@ void img_timeline_adjust_marker_posx(GtkWidget *da, gint posx)
 
 gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEvent *event, ImgTimeline *da)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
-	if (event->button.y < 16.0 || event->button.y > 32.0)
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
+	if (event->button.y < 12.0 || event->button.y > 32.0)
 		return FALSE;
 
 	priv->button_pressed_on_needle = TRUE;
@@ -611,12 +613,12 @@ gboolean img_timeline_mouse_button_release (GtkWidget *timeline, GdkEvent *event
 
 gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, ImgTimeline *da)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
 
 	if (priv->button_pressed_on_needle)
 			img_timeline_adjust_marker_posx(timeline, event->x - 5);
 
-   return FALSE;
+   return TRUE;
 }
 
 static void img_timeline_update_button_image(GtkWidget *button)
@@ -831,24 +833,56 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 	return TRUE;
 }
 
-void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *context, gint x, gint y, GtkSelectionData *selection_data, guint info, guint time, gpointer pointer)
+void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *context, gint x, gint y, GtkSelectionData *selection_data, guint info, guint time, img_window_struct *img)
 {
-  gchar **images = NULL;
-  gchar *filename;
-  gint i = 0;
+	gchar **images = NULL;
+	gchar *filename;
+	gint i = 0;
+	const guchar *data;
+	gint length;
+	media_struct **media_structs;
+	gint n_structs;
 
-  images = gtk_selection_data_get_uris(selection_data);
-  if (images)
-  {
-    while(images[i])
-    {
-      filename = g_filename_from_uri (images[i], NULL, NULL);
-      img_timeline_add_media(timeline, filename, x);
-      g_free(filename);
-      i++;
-    }
-  }
-  g_strfreev (images);
+	if (gtk_selection_data_get_target(selection_data) != gdk_atom_intern( "application/x-media-item", FALSE))
+	{
+		images = gtk_selection_data_get_uris(selection_data);
+		if (images)
+		{
+			while(images[i])
+			{
+				filename = g_filename_from_uri (images[i], NULL, NULL);
+				if (img_add_media(filename, img))
+				{
+					img_timeline_add_media(timeline, filename, x);
+					img_taint_project(img);
+				}
+				g_free(filename);
+				i++;
+			}
+		}
+		g_strfreev (images);	
+	}
+	// The timeline is receiving media items from the top media widget within Imagination itself
+	else
+	{
+		// Get the received data
+		data = gtk_selection_data_get_data(selection_data);
+		length = gtk_selection_data_get_length(selection_data);
 
-  gtk_drag_finish (context, TRUE, FALSE, time);
+		if (length < 0)
+		{
+			g_print("No data received\n");
+			return;
+		}
+
+		// Calculate how many media struct pointers we received
+		n_structs = length / sizeof(media_struct*);
+		media_structs = (media_struct**)data;
+
+		// Process each received media_struct
+		for (int i = 0; i < n_structs; i++)
+			img_timeline_add_media(timeline, media_structs[i]->full_path, x);
+	}
+	
+	gtk_drag_finish (context, TRUE, FALSE, time);
 }

@@ -130,7 +130,6 @@ struct _media_struct
 	gchar		metadata[1024];
 	gint			width;
 	gint			height;
-	guint64	filesize;
 
 	ImgAngle  angle;      /* Angle of rotated image */
     gboolean  flipped;    /* flag for flipped images */
@@ -159,8 +158,8 @@ struct _media_struct
 	gint   cur_point; /* Currently active stop point */
 
 	/* Text related variables */
-	guint8				 *subtitle;        			/* Subtitle text */
-	gsize				 subtitle_length; 			/* Subtitle length */
+	guint8				*text;        				/* Media text */
+	gsize				 text_length; 			/* Text length */
 	gchar			 	 *pattern_filename;	/* Pattern image file */
 	TextAnimationFunc     anim;           /* Animation functions */
 	gint                  posX;       	   				/* subtitle X position */
@@ -229,7 +228,6 @@ struct _img_window_struct
 	GtkWidget	*no_recent_item_menu;
 	GtkWidget	*recent_slideshows;
     GtkWidget   *close_menu;
-    GtkWidget   *import_project_menu;
 	GtkWidget	*save_menu;
 	GtkWidget	*save_as_menu;
 	GtkWidget	*edit_empty_slide;
@@ -238,7 +236,7 @@ struct _img_window_struct
 	GtkWidget 	*preview_hbox;
 	GtkWidget	*beginning_timer_label;
 	GtkWidget	*preview_button;
-	GtkWidget	*slideshow_duration;
+	GtkWidget	*total_time;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*duration;
