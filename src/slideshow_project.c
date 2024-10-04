@@ -502,9 +502,6 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 
 	g_hash_table_destroy( table );
 	
-	/* If we made it to here, we succesfully loaded project, so it's safe to set
-	 * filename field in global data structure. */
-	
 	if( img->project_filename )
 			g_free( img->project_filename );
 	
@@ -514,7 +511,6 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 			g_free(img->project_current_dir);
 	
 	img->project_current_dir = project_current_dir;
-	g_print("Prohect filename: %s\nProject current dir: %s\n", img->project_filename,img->project_current_dir);
 	img_refresh_window_title(img);
 	img_zoom_fit(NULL, img);
 }

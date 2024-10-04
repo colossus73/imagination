@@ -909,9 +909,10 @@ img_window_struct *img_create_window (void)
 	img_struct->timeline = img_timeline_new();
 	gtk_drag_dest_set (img_struct->timeline, GTK_DEST_DEFAULT_ALL, timeline_drop_targets, 2, GDK_ACTION_COPY);
 	g_object_set(img_struct->timeline, "total_time",  27, NULL);
-	g_object_set(img_struct->timeline, "video_background", "#d6d1cd", NULL);
-	g_object_set(img_struct->timeline, "audio_background", "#d6d1cd", NULL);
-	
+
+	img_timeline_add_track(img_struct->timeline, 0, "#000000");
+	img_timeline_add_track(img_struct->timeline, 1, "#00FF00");
+
 	gtk_widget_add_events(img_struct->timeline, 
                            GDK_POINTER_MOTION_MASK
                          | GDK_BUTTON_PRESS_MASK   
@@ -1505,8 +1506,8 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
     gint new_height = img->video_size[1] * img->image_area_zoom;
     
     // Get the available space in the window
-	gint max_width = allocation.width * 0.9; 
-    gint max_height = allocation.height * 0.9;
+	gint max_width = allocation.width * 0.85; 
+    gint max_height = allocation.height * 0.85;
     
     // Scale down if necessary to fit within the window
     if (new_width > max_width || new_height > max_height)

@@ -75,7 +75,7 @@ void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
     img->textbox->dragx = x - img->textbox->x;
     img->textbox->dragy = y - img->textbox->y;
 
-   transform_coords(img->textbox, event->x, event->y, &x, &y);
+   //transform_coords(img->textbox, event->x, event->y, &x, &y);
     x -= img->textbox->x;
     y -= img->textbox->y;
 

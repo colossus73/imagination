@@ -992,14 +992,19 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 		if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
 		{
 			cairo_save(cr);
-			// Reset the transformation for angle text
-			cairo_identity_matrix(cr);
-			gchar buf[4];
+			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+			cairo_rotate(cr, -img->textbox->angle);
+			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+			
+			gchar buf[8];
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
+			cairo_rectangle(cr, 5, 5, 45, 25);
+			cairo_fill(cr);
 			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
 			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-			cairo_set_font_size(cr, 12.0);
-			g_snprintf(buf, sizeof(buf), "%2.0f", round(img->textbox->angle * (180.0 / G_PI)));
-			cairo_move_to(cr, 10, 20);
+			cairo_set_font_size(cr, 16.0);
+			g_snprintf(buf, sizeof(buf), "%2.0f%s", round(img->textbox->angle * (180.0 / G_PI)), "\xC2\xB0");
+			cairo_move_to(cr, 15, 24);
 			cairo_show_text(cr, buf);
 			cairo_restore(cr);
 		}
@@ -1054,67 +1059,47 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 
 		if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
 		{
-			//Let's translate to origin of the drawing area allocation to avoid
-		//the cross lines to be rotated too
-		cairo_save(cr);
-		cairo_identity_matrix(cr);
-		cairo_translate(cr, allocation.x, allocation.y);
+			cairo_save(cr);
+			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+			cairo_rotate(cr, -img->textbox->angle);
+			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+
+			if (img->textbox->draw_horizontal_line)
+			{
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_set_line_width(cr, 1.0);
+				cairo_move_to(cr, 0, center_y);
+				cairo_line_to(cr, allocation.width, center_y - 2);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+				cairo_move_to(cr, 0, center_y);
+				cairo_line_to(cr, allocation.width, center_y);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_move_to(cr, 0, center_y + 2);
+				cairo_line_to(cr, allocation.width, center_y + 2);
+				cairo_stroke(cr);
+			}
 		
-		//This to compensate the allocation menubar height gap
-		//which prevents the horizontal line to be drawn at the center
-		//I wonder why the coordinates in the drawing area are shifted
-		//when the blessed menubar is hidden by the TAB key, shouldn't
-		//they always be 0,0 at the top left?
-
-		int menubar_height = gtk_widget_get_allocated_height(img->menubar);
-		int sidebar_width = gtk_widget_get_allocated_width(img->sidebar) + 10;
-		if (img->textbox->draw_horizontal_line)
-		{
-			if (gtk_widget_is_visible(img->menubar))
-				center_y = menubar_height + center_y;
-			else
-				center_y = allocation.height / 2;
-
-			if (gtk_widget_is_visible(img->sidebar))
-				center_x = sidebar_width + center_x;
-			else
-				center_x = allocation.height / 2;
-
-		//Draw the horizontal centering line
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_set_line_width(cr, 1.0);
-			cairo_move_to(cr, 0, center_y - 2);
-			cairo_line_to(cr, allocation.width + sidebar_width, center_y - 2);
-			cairo_stroke(cr);
-			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-			cairo_move_to(cr, 0, center_y);
-			cairo_line_to(cr, allocation.width + sidebar_width, center_y);
-			cairo_stroke(cr);
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_move_to(cr, 0, center_y + 2);
-			cairo_line_to(cr, allocation.width+sidebar_width, center_y + 2);
-			cairo_stroke(cr);
+			// Draw the vertical centering line
+			if (img->textbox->draw_vertical_line)
+			{
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_set_line_width(cr, 1.0);
+				cairo_move_to(cr, center_x - 2, 0);
+				cairo_line_to(cr, center_x - 2, allocation.height);// + menubar_height);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+				cairo_move_to(cr, center_x, 0);
+				cairo_line_to(cr, center_x, allocation.height);// + menubar_height);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_move_to(cr, center_x + 2, 0);
+				cairo_line_to(cr, center_x + 2, allocation.height );//+ menubar_height);
+				cairo_stroke(cr);
+			}
+			cairo_restore(cr);
 		}
-		
-		// Draw the vertical centering line
-		if (img->textbox->draw_vertical_line)
-		{
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_set_line_width(cr, 1.0);
-			cairo_move_to(cr, center_x - 2, 0);
-			cairo_line_to(cr, center_x - 2, allocation.height + menubar_height);
-			cairo_stroke(cr);
-			cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-			cairo_move_to(cr, center_x, 0);
-			cairo_line_to(cr, center_x, allocation.height + menubar_height);
-			cairo_stroke(cr);
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_move_to(cr, center_x + 2, 0);
-			cairo_line_to(cr, center_x + 2, allocation.height + menubar_height);
-			cairo_stroke(cr);
-		}
-		cairo_restore(cr);
-	}
 		cairo_set_line_width(cr, 2.5);
 		
 		// Draw the bottom right handle
@@ -1142,6 +1127,17 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 				(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
 			cairo_fill(cr);
 		}
+
+		// Draw the cursor
+		if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
+		{
+			PangoRectangle strong_pos;
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
+			pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
+			cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_stroke(cr);
+		}
 	}
 	
 	// Draw the text
@@ -1151,16 +1147,6 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
 	pango_cairo_show_layout(cr, img->textbox->layout);
 
-	// Draw the cursor
-	if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
-	{
-		PangoRectangle strong_pos;
-		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
-		pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
-		cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
-		cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
-		cairo_stroke(cr);
-	}
 	return FALSE;
 }
 

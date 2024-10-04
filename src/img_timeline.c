@@ -21,23 +21,16 @@
 
 typedef struct _ImgTimelinePrivate
 {
-  gchar *video_background_string;
-  gchar *audio_background_string;
-  gdouble video_background[4];
-  gdouble audio_background[4];
-  
-  gint last_slide_posX;
-  gint zoom;
-  gint seconds;
-  gint minutes;
-  gint hours;
-  gint total_time;
-  gint time_marker_pos;
-  gdouble zoom_scale;
-  gboolean button_pressed_on_needle;
-
-  cairo_surface_t *surface;
-  GtkWidget *slide_selected;
+	gint last_media_posX;
+	gint zoom;
+	gint seconds;
+	gint minutes;
+	gint hours;
+	gint total_time;
+	gint time_marker_pos;
+	gdouble zoom_scale;
+	gboolean button_pressed_on_needle;
+	GArray *tracks;
 } ImgTimelinePrivate;
 
 typedef struct _TimelineHandle TimelineHandle;
@@ -77,8 +70,11 @@ static void img_timeline_set_property(GObject *, guint , const GValue *, GParamS
 static void img_timeline_get_property(GObject *, guint , GValue *, GParamSpec *);
 static void img_timeline_init(ImgTimeline *);
 static void img_timeline_draw_time_ticks(GtkWidget *widget, cairo_t *, gint );
-static gboolean img_timeline_draw(GtkWidget *, cairo_t *);
 static void img_timeline_finalize(GObject *);
+static gboolean img_timeline_draw(GtkWidget *, cairo_t *);
+static gint img_timeline_calculate_total_tracks_height(GtkWidget *);
+
+static gint img_sort_image_track_first(gconstpointer a, gconstpointer b);
 
 // Media button events
 static void img_timeline_media_drag_data_get(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint, gpointer );
@@ -97,11 +93,9 @@ static void img_timeline_class_init(ImgTimelineClass *klass)
 	object_class->finalize = img_timeline_finalize;
 	
 	widget_class->draw = img_timeline_draw;
-  
-	g_object_class_install_property(object_class, VIDEO_BACKGROUND, g_param_spec_string("video_background", "video_background", "video_background", NULL, G_PARAM_READWRITE));
-	g_object_class_install_property(object_class, AUDIO_BACKGROUND, g_param_spec_string("audio_background", "audio_background", "audio_background", NULL, G_PARAM_READWRITE));
-	g_object_class_install_property(object_class, TOTAL_TIME,       g_param_spec_int("total_time", "total_time", "total_time", 0, G_MAXINT, 60, G_PARAM_READWRITE));
-	g_object_class_install_property(object_class, TIME_MARKER_POS, g_param_spec_int("time_marker_pos", "Time Marker Position", "Position of the time marker", 0, G_MAXINT, 0, G_PARAM_READWRITE));
+
+	g_object_class_install_property(object_class, TOTAL_TIME,       			g_param_spec_int		("total_time", "total_time", "total_time", 0, G_MAXINT, 60, G_PARAM_READWRITE));
+	g_object_class_install_property(object_class, TIME_MARKER_POS, 	g_param_spec_int		("time_marker_pos", "Time Marker Position", "Position of the time marker", 0, G_MAXINT, 0, G_PARAM_READWRITE));
 
 	// Install signals
     timeline_signals[SIGNAL_TIME_CHANGED] = g_signal_new("time-changed",
@@ -111,40 +105,44 @@ static void img_timeline_class_init(ImgTimelineClass *klass)
         NULL, NULL,
         g_cclosure_marshal_VOID__INT,
         G_TYPE_NONE, 1, G_TYPE_INT);
-
 }
 
 static void img_timeline_init(ImgTimeline *timeline)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
 
-    priv->last_slide_posX = 0;
+    priv->last_media_posX = 0;
     priv->zoom = 1;
     priv->zoom_scale = 1.0;
     priv->seconds = priv->minutes = priv->hours = 0;
     priv->total_time = 60;
     priv->time_marker_pos = 0;
+	priv->tracks = g_array_new(FALSE, FALSE, sizeof(Track));
 
-    for (int i = 0; i < 4; i++)
-        priv->video_background[i] = priv->audio_background[i] = (i < 3) ? 0.0 : 1.0;
-
-    priv->video_background_string = g_strdup("rgba(0, 0, 0, 1.0)");
-    priv->audio_background_string = g_strdup("rgba(0, 0, 0, 1.0)");
+	// Add default image and audio tracks
+	Track image_track;
+	image_track.type = 0;
+	image_track.items = NULL;
+	image_track.background_color = "#d6d1cd";
+    g_array_append_val(priv->tracks, image_track);
+    
+    Track audio_track;
+	audio_track.type = 1;
+	audio_track.items = NULL;
+	audio_track.background_color = "#d6d1cd";
+    g_array_append_val(priv->tracks, audio_track);
 
     // Set up CSS styling
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
-        ".timeline-button { border-width: 0; outline-width: 0; background-color: transparent; padding: 0; margin: 0; }"
+        ".timeline-button { border-width: 0; outline-width: 0; background: #404040; padding: 0; margin: 0; }"
         ".timeline-button:focus { outline-width: 0; }"
         ".timeline-button .timeline-image-container { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
         ".timeline-button:checked .timeline-image-container { border-top-color: #FFD700; border-bottom-color: #FFD700; }"
-        ".timeline-button:hover { opacity: 0.8; }"
         ".timeline-image-container { padding: 0; margin: 0; }", -1, NULL);
+    //".timeline-button:hover { opacity: 0.8; }"
     
-    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(css_provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    
+    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(css_provider);
 }
 
@@ -152,15 +150,8 @@ static void img_timeline_init(ImgTimeline *timeline)
 static void img_timeline_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
 	ImgTimeline *da = IMG_TIMELINE(object);
-
 	switch(prop_id)
 	{
-		case VIDEO_BACKGROUND:
-			img_timeline_set_video_background(da, g_value_get_string(value));
-		break;
-		case AUDIO_BACKGROUND:
-			img_timeline_set_audio_background(da, g_value_get_string(value));
-		break;
 		case TOTAL_TIME:
 			img_timeline_set_total_time(da, g_value_get_int(value));
 		break; 
@@ -172,40 +163,6 @@ static void img_timeline_set_property(GObject *object, guint prop_id, const GVal
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
 		break;
   }
-}
-
-void img_timeline_set_video_background(ImgTimeline *da, const gchar *background_string)
-{
-	  ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
-	  GdkRGBA rgba;
-	  
-	  gdk_rgba_parse(&rgba, background_string);
-	  priv->video_background[0] = rgba.red;
-	  priv->video_background[1] = rgba.green;
-	  priv->video_background[2] = rgba.blue;
-	  priv->video_background[3] = rgba.alpha;
-	  
-	  if(priv->video_background_string)
-		g_free(priv->video_background_string);
-	  
-	  priv->video_background_string = g_strdup(background_string); 
-}
-
-void img_timeline_set_audio_background(ImgTimeline *da, const gchar *background_string)
-{
-	  ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
-	  GdkRGBA rgba;
-	  
-	  gdk_rgba_parse(&rgba, background_string);
-	  priv->audio_background[0] = rgba.red;
-	  priv->audio_background[1] = rgba.green;
-	  priv->audio_background[2] = rgba.blue;
-	  priv->audio_background[3] = rgba.alpha;
-
-	  if(priv->audio_background_string)
-		g_free(priv->audio_background_string);
-	  
-	  priv->audio_background_string = g_strdup(background_string); 
 }
 
 void img_timeline_set_total_time(ImgTimeline *da, gint total_time)
@@ -232,12 +189,6 @@ static void img_timeline_get_property(GObject *object, guint prop_id, GValue *va
 	  
 	switch(prop_id)
 	{
-		case VIDEO_BACKGROUND:
-			g_value_set_string(value, priv->video_background_string);
-		 break;
-		case AUDIO_BACKGROUND:
-			g_value_set_string(value, priv->audio_background_string);
-		break;
 		case TOTAL_TIME:
 			g_value_set_int(value, priv->total_time);
 		break;
@@ -254,7 +205,7 @@ GtkWidget* img_timeline_new()
 
 static void timeline_handle_init(TimelineHandle *handle)
 {
-	gtk_widget_set_size_request(GTK_WIDGET(handle), 20, -1);
+	gtk_widget_set_size_request(GTK_WIDGET(handle), 10, -1);
 }
 
 static gboolean timeline_handle_draw(GtkWidget *widget, cairo_t *cr)
@@ -316,52 +267,58 @@ static GtkWidget *timeline_handle_new(gboolean is_left_handle)
 {
     TimelineHandle *handle = g_object_new(TIMELINE_TYPE_HANDLE, NULL);
     handle->is_left_handle = is_left_handle;
-    gtk_widget_set_size_request(GTK_WIDGET(handle), 15, -1);
+    gtk_widget_set_size_request(GTK_WIDGET(handle), 10, -1);
     return GTK_WIDGET(handle);
 }
 
 static gboolean img_timeline_draw(GtkWidget *da, cairo_t *cr)
 {
-	  ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
-
-	  gint width = gtk_widget_get_allocated_width(da);
-
-	  cairo_save(cr);
-	  cairo_translate (cr, 0 , 12);
-	  img_timeline_draw_time_ticks(da, cr, width);
-
-	  //Video timeline
-	  cairo_translate (cr, 0 , 11);
-	  cairo_set_source_rgba(cr, priv->video_background[0], priv->video_background[1], priv->video_background[2], priv->video_background[3]);
-	  cairo_set_line_width(cr, 1);
-	  cairo_rectangle(cr, 0,11, width - 2, 51);
-	  cairo_fill(cr);
-	  
-	  //Audio timeline
-	  cairo_set_source_rgba(cr, priv->audio_background[0], priv->audio_background[1], priv->audio_background[2], priv->audio_background[3]);
-	  cairo_rectangle(cr, 0,70, width - 2, 51);
-	  cairo_fill(cr);
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
+	GdkRGBA rgba;
+	Track *track;
+	
+	gint width = gtk_widget_get_allocated_width(da);
+	cairo_save(cr);
+		cairo_translate (cr, 0 , 12);
+		img_timeline_draw_time_ticks(da, cr, width);
+		cairo_translate (cr, 0 , 20);
+		
+		int y = 0;
+		for (guint i = 0; i < priv->tracks->len; i++)
+		{
+			track = &g_array_index(priv->tracks, Track, i);
+			gdk_rgba_parse(&rgba, track->background_color);
+			cairo_set_source_rgb(cr, rgba.red, rgba.green, rgba.blue);
+			cairo_rectangle(cr, 0, y , width, TRACK_HEIGHT);
+			y += TRACK_HEIGHT + TRACK_GAP;
+			cairo_fill(cr);
+		}
 	  cairo_restore(cr);
 
 	  //This is necessary to draw the media represented by the GtkButtons
 	  GTK_WIDGET_CLASS (img_timeline_parent_class)->draw (da, cr);
 
 	  //Draw the red time marker 
-	  img_timeline_draw_time_marker(da, cr, priv->time_marker_pos);
+	  img_timeline_draw_time_marker(da, cr, priv->time_marker_pos, img_timeline_calculate_total_tracks_height(da));
 
 	  return TRUE;
 }
 
 static void img_timeline_finalize(GObject *object)
 { 
-  ImgTimeline *da = IMG_TIMELINE(object);
-  ImgTimelinePrivate *priv =img_timeline_get_instance_private(da);
+	ImgTimeline *timeline = IMG_TIMELINE(object);
+	ImgTimelinePrivate *priv =img_timeline_get_instance_private(timeline);
 	  
-  g_free(priv->video_background_string);
-  g_free(priv->audio_background_string);
-	  
-  if(priv->surface != NULL)
-	cairo_surface_destroy(priv->surface);
+	if (priv->tracks)
+	{
+        for (guint i = 0; i < priv->tracks->len; i++)
+        {
+            Track *track = &g_array_index(priv->tracks, Track, i);
+            if (track->items)
+                g_array_free(track->items, TRUE);
+        }
+        g_array_free(priv->tracks, TRUE);
+    }
 
   G_OBJECT_CLASS(img_timeline_parent_class)->finalize(object);
 }
@@ -380,7 +337,7 @@ void img_timeline_draw_time_ticks(GtkWidget *da, cairo_t *cr, gint width)
 	if (distanceBetweenTicks <= 12)
 		distanceBetweenTicks = 12;    
 	  
-	gtk_widget_set_size_request(da, (int)(priv->total_time * distanceBetweenTicks), -1);
+	gtk_widget_set_size_request(da, (int)(priv->total_time * distanceBetweenTicks), img_timeline_calculate_total_tracks_height(da));
 	cairo_set_source_rgb(cr, 0,0,0);
 
 	// Calculate the number of time ticks to draw based on zoom
@@ -520,19 +477,34 @@ void img_timeline_add_media(GtkWidget *da, gchar *filename, gint x)
     if (x > 0)
         pos = x - 47.5;
     else
-        pos = priv->last_slide_posX;
+        pos = priv->last_media_posX;
     
     gtk_layout_move(GTK_LAYOUT(da), item->button, pos, 35);
     item->old_x = pos;
 
-    priv->last_slide_posX += 95;
+    priv->last_media_posX += 95;
     gtk_widget_set_size_request(item->button, 95, (pix ? -1 : 35));
 
     if (pix)
         g_object_unref(pix);
 }
 
-void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx)
+void img_timeline_add_track(GtkWidget *timeline, gint type, gchar *hexcode)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	Track new_track;
+	gint total_height;
+	
+	new_track.type = type;
+	new_track.background_color = hexcode;
+	new_track.items = g_array_new(FALSE, FALSE, sizeof(media_item));
+	g_array_append_val(priv->tracks, new_track);
+	
+	// Sort by track type so we can easily draw them in the draw event
+	g_array_sort(priv->tracks,  img_sort_image_track_first);
+}
+
+void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx, gint length)
 {
 	cairo_save(cr);
 	cairo_set_source_rgb(cr, 1,0,0);
@@ -559,17 +531,14 @@ void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx)
     // Left vertical line (closing the path)
     cairo_close_path(cr);
 
-    // Draw the needle
-    cairo_move_to(cr, 5, 26);
-    cairo_line_to(cr, 5, 125);
-
     // Set color and stroke
     cairo_set_source_rgb(cr, 1, 0, 0);  // Red color
     cairo_set_line_width(cr, 2);
     cairo_fill(cr);
 
-	cairo_move_to(cr, 5,15);
-	cairo_line_to(cr, 5,137);
+	//Draw the needle
+	cairo_move_to(cr, 5, 15);
+	cairo_line_to(cr, 5, img_timeline_calculate_total_tracks_height(widget));
 	cairo_stroke(cr);
 	cairo_restore(cr);
 }
@@ -658,20 +627,11 @@ static void img_timeline_update_button_image(GtkWidget *button)
     }
     g_list_free(children);
 
-    if (!image)
-        return;
-
     original_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
-    if (!original_pixbuf)
-        return;
 
     gtk_widget_get_size_request(button, &button_width, &button_height);
     image_width = gdk_pixbuf_get_width(original_pixbuf);
     image_height = gdk_pixbuf_get_height(original_pixbuf);
-
-    // Ensure button dimensions are positive
-    button_width = MAX(button_width, 50);
-    button_height = MAX(button_height, 1);
 
     // Create a new pixbuf to hold the tiled image
     // Subtract width of handles (assumed to be 20px each)
@@ -681,9 +641,6 @@ static void img_timeline_update_button_image(GtkWidget *button)
                                   button_width - 20, 
                                   button_height);
 
-    if (!tiled_pixbuf)
-        return;
-
     // Tile the original image across the button
     for (int y = 0; y < button_height; y += image_height)
     {
@@ -692,7 +649,7 @@ static void img_timeline_update_button_image(GtkWidget *button)
             gdk_pixbuf_copy_area(original_pixbuf, 
                                  0, 0, 
                                  MIN(image_width, button_width - 20 - x), 
-                                 MIN(image_height, button_height - y), 
+                                 MAX(image_height, button_height - y), 
                                  tiled_pixbuf, 
                                  x, y);
         }
@@ -761,13 +718,13 @@ static gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMoti
 			gtk_layout_move(GTK_LAYOUT(timeline), button, x, 35);
 			item->old_x = x;
 			item->initial_width = new_width;
-			img_timeline_update_button_image(button);
+			//img_timeline_update_button_image(button);
 			break;
 		  
 		  case RESIZE_RIGHT:
 			new_width = MAX(event->x, 50);  // Ensure a minimum width
 			gtk_widget_set_size_request(button, new_width, 45);
-			img_timeline_update_button_image(button);
+			//img_timeline_update_button_image(button);
 			break;
 		  
 		  case RESIZE_NONE:
@@ -783,7 +740,7 @@ static gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMoti
 	}
 
 	// Update cursor based on mouse position
-	if (event->x <= 15 || (event->x >= button_width - 15 && event->x <= button_width))
+	if (event->x <= 10 || (event->x >= button_width - 10 && event->x <= button_width))
 		cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_SB_H_DOUBLE_ARROW);
 	else
 		cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_ARROW);
@@ -885,4 +842,24 @@ void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *conte
 	}
 	
 	gtk_drag_finish (context, TRUE, FALSE, time);
+}
+
+static gint img_timeline_calculate_total_tracks_height(GtkWidget *da)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
+	gint total = 0; //Start from the height of the first two default tracks
+	
+	for (guint i = 0; i < priv->tracks->len; i++)
+		total += (TRACK_HEIGHT + TRACK_GAP);
+
+    return total + 20;
+}
+
+static gint img_sort_image_track_first(gconstpointer a, gconstpointer b)
+{
+    const Track *track_a = a;
+    const Track *track_b = b;
+
+	// Sort image tracks (0) before audio tracks (1)
+	return track_a->type - track_b->type;
 }

@@ -41,11 +41,30 @@ enum
 	N_PROPERTIES
 };
 
+typedef struct _media_item
+{
+    media_struct media;
+    double start_time;
+    double duration;
+} media_item;
+
+typedef struct _Track
+{
+    GArray *items;
+    gint type;
+    gint items_nr;
+    gchar *background_color;
+} Track;
+
 enum
 {
     SIGNAL_TIME_CHANGED,
     N_SIGNALS
 };
+
+#define TRACK_HEIGHT 50
+#define TRACK_HEIGHT 50
+#define TRACK_GAP 5
 
 #define IMG_TIMELINE_TYPE img_timeline_get_type()
 G_DECLARE_FINAL_TYPE(ImgTimeline, img_timeline, IMG, TIMELINE, GtkLayout)
@@ -60,14 +79,12 @@ G_DECLARE_FINAL_TYPE(ImgTimeline, img_timeline, IMG, TIMELINE, GtkLayout)
 //Public functions.
 GtkWidget* img_timeline_new();
 
-//Set and get colors.
-void img_timeline_set_video_background	(ImgTimeline *, const gchar *);
-void img_timeline_set_audio_background	(ImgTimeline *, const gchar *);
 void img_timeline_adjust_zoom					(GtkWidget *, gdouble);
 void img_timeline_adjust_marker_posx		(GtkWidget *, gint );
 void img_timeline_set_total_time				(ImgTimeline *, gint );
 void img_timeline_add_media						(GtkWidget *, gchar *filename, gint );
-void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint );
+void img_timeline_add_track						(GtkWidget *, gint, gchar *);
+void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint, gint);
 void img_timeline_set_time_marker			(ImgTimeline *, gint );
 
 gboolean img_timeline_scroll_event(GtkWidget *, GdkEventScroll *, GtkWidget *);

@@ -124,10 +124,10 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	gtk_label_set_markup(GTK_LABEL(label), "HD <b>1280x720</b>");
 	gtk_grid_attach( GTK_GRID(grid), hd_button, 3, 1, 1, 1);
     
-    g_signal_connect(G_OBJECT (fourk_button), "clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)0);
-    g_signal_connect(G_OBJECT (eightk_button),"clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)1);
-    g_signal_connect(G_OBJECT (fullhd_button),"clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)2);
-    g_signal_connect(G_OBJECT (hd_button),	  "clicked", G_CALLBACK(img_new_slideshow_button_clicked), (gpointer)3);
+    g_signal_connect(G_OBJECT (fourk_button), "clicked", 	G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 0);
+    g_signal_connect(G_OBJECT (eightk_button),"clicked", 	G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 1);
+    g_signal_connect(G_OBJECT (fullhd_button),"clicked",		G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 2);
+    g_signal_connect(G_OBJECT (hd_button),	  "clicked", 		G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 3);
 
 	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
