@@ -200,7 +200,7 @@ void img_text_align_changed(GtkButton *button, img_window_struct *img)
 {
 	gint alignment = 0;
 
-	if (img->current_slide == NULL)
+	if (img->current_media == NULL)
 		return;
 
 	if (GTK_WIDGET(button) == img->left_justify)
@@ -256,7 +256,7 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide);
+				   media_struct *current_media);
 
 static void
 img_text_draw_layout( cairo_t     *cr,
@@ -272,7 +272,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_slide,
+                      media_struct *current_media,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_brdr_color,
 					  gdouble	    *progress_font_bgcolor,
@@ -302,7 +302,7 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble	   progress,
-					media_struct *current_slide);
+					media_struct *current_media);
 
 static void
 img_text_spin_grow( cairo_t     *cr,
@@ -486,7 +486,7 @@ void img_render_subtitle( img_window_struct 	  *img,
 	GdkColor 	*color;
 	GtkTextTag	*tag;
 
-	if ( ! img->current_slide->text)
+	if ( ! img->current_media->text)
 		return;
 
 	/* Save cairo state */
@@ -495,21 +495,21 @@ void img_render_subtitle( img_window_struct 	  *img,
 
 	/* Create pango layout and measure it */
 	layout = pango_cairo_create_layout( cr );
-	pango_layout_set_font_description( layout, img->current_slide->font_desc );
+	pango_layout_set_font_description( layout, img->current_media->font_desc );
 
-	pango_layout_set_text( layout, (gchar*)img->current_slide->text, -1 );
+	pango_layout_set_text( layout, (gchar*)img->current_media->text, -1 );
 
 	pango_layout_get_size( layout, &lw, &lh );
 	lw /= PANGO_SCALE;
 	lh /= PANGO_SCALE;
 
 	/* Do animation */
-	if( img->current_slide->anim )
-		(*img->current_slide->anim)( cr, layout, img->video_size[0], img->video_size[1], lw, lh, posx, posy, angle, progress, img->current_slide);
+	if( img->current_media->anim )
+		(*img->current_media->anim)( cr, layout, img->video_size[0], img->video_size[1], lw, lh, posx, posy, angle, progress, img->current_media);
 	else
 	{
 		/* No animation renderer */
-        img_text_draw_layout(cr, layout, posx, posy, angle, img->current_slide);
+        img_text_draw_layout(cr, layout, posx, posy, angle, img->current_media);
 	}
 
 	/* Destroy layout */
@@ -530,33 +530,33 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide)
+				   media_struct *current_media)
 {
     gdouble  progress_font_color[4], progress_font_bgcolor[4], progress_font_shadow_color[4], progress_font_outline_color[4];
 
 	/* Calculate colors */
-    progress_font_color[0] = current_slide->font_color[0];
-    progress_font_color[1] = current_slide->font_color[1];
-    progress_font_color[2] = current_slide->font_color[2];
-    progress_font_color[3] = current_slide->font_color[3] * progress;
+    progress_font_color[0] = current_media->font_color[0];
+    progress_font_color[1] = current_media->font_color[1];
+    progress_font_color[2] = current_media->font_color[2];
+    progress_font_color[3] = current_media->font_color[3] * progress;
 
-	progress_font_bgcolor[0] = current_slide->font_bg_color[0];
-    progress_font_bgcolor[1] = current_slide->font_bg_color[1];
-    progress_font_bgcolor[2] = current_slide->font_bg_color[2];
-    progress_font_bgcolor[3] = current_slide->font_bg_color[3] * pow(progress, 6);
+	progress_font_bgcolor[0] = current_media->font_bg_color[0];
+    progress_font_bgcolor[1] = current_media->font_bg_color[1];
+    progress_font_bgcolor[2] = current_media->font_bg_color[2];
+    progress_font_bgcolor[3] = current_media->font_bg_color[3] * pow(progress, 6);
 
-    progress_font_shadow_color[0] = current_slide->font_shadow_color[0];
-    progress_font_shadow_color[1] = current_slide->font_shadow_color[1];
-    progress_font_shadow_color[2] = current_slide->font_shadow_color[2];
-    progress_font_shadow_color[3] = current_slide->font_shadow_color[3] * pow(progress, 6);
+    progress_font_shadow_color[0] = current_media->font_shadow_color[0];
+    progress_font_shadow_color[1] = current_media->font_shadow_color[1];
+    progress_font_shadow_color[2] = current_media->font_shadow_color[2];
+    progress_font_shadow_color[3] = current_media->font_shadow_color[3] * pow(progress, 6);
     
-    progress_font_outline_color[0] = current_slide->font_outline_color[0];
-    progress_font_outline_color[1] = current_slide->font_outline_color[1];
-    progress_font_outline_color[2] = current_slide->font_outline_color[2];
-    progress_font_outline_color[3] = current_slide->font_outline_color[3];
+    progress_font_outline_color[0] = current_media->font_outline_color[0];
+    progress_font_outline_color[1] = current_media->font_outline_color[1];
+    progress_font_outline_color[2] = current_media->font_outline_color[2];
+    progress_font_outline_color[3] = current_media->font_outline_color[3];
 
     /* Paint text */
-    img_text_draw_layout_fade(cr, layout, posx, posy, angle, current_slide, progress_font_color, progress_font_bgcolor,
+    img_text_draw_layout_fade(cr, layout, posx, posy, angle, current_media, progress_font_color, progress_font_bgcolor,
 						progress_font_shadow_color, progress_font_outline_color);
 }
 
@@ -665,14 +665,14 @@ static void img_text_draw_layout( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_slide)
+                      media_struct *current_media)
 {
 	cairo_pattern_t  *font_pattern = NULL;
     gint x,y,w,h;
 	gdouble cairo_factor;
 
 	pango_layout_get_pixel_size (layout, &w, &h );
-	pango_layout_set_alignment( layout, current_slide->alignment );
+	pango_layout_set_alignment( layout, current_media->alignment );
 
 	/* text angle */
 	cairo_translate (cr, posx + (w / 2), posy + (h / 2) );
@@ -682,12 +682,12 @@ static void img_text_draw_layout( cairo_t     *cr,
 	
 	/* Set the user chosen pattern
 	 * to draw the text */
-	if (current_slide->pattern_filename)
+	if (current_media->pattern_filename)
 	{
 		cairo_surface_t  *tmp_surf;
 		cairo_matrix_t	matrix;
 
-		tmp_surf = cairo_image_surface_create_from_png(current_slide->pattern_filename);
+		tmp_surf = cairo_image_surface_create_from_png(current_media->pattern_filename);
 		font_pattern = cairo_pattern_create_for_surface(tmp_surf);
 		cairo_set_source(cr, font_pattern);
 		cairo_pattern_set_extend (font_pattern, CAIRO_EXTEND_REPEAT);
@@ -699,16 +699,16 @@ static void img_text_draw_layout( cairo_t     *cr,
 	{
 		/* Draw the text */
 		/* Set source color */
-		cairo_set_source_rgba( cr, current_slide->font_color[0],
-								current_slide->font_color[1],
-								current_slide->font_color[2],
-								current_slide->font_color[3] );
+		cairo_set_source_rgba( cr, current_media->font_color[0],
+								current_media->font_color[1],
+								current_media->font_color[2],
+								current_media->font_color[3] );
 	}
     /* Move to proper place and paint text */
 	cairo_move_to( cr, posx, posy );
 	pango_cairo_show_layout( cr, layout );
 	
-	if (current_slide->pattern_filename)
+	if (current_media->pattern_filename)
 		cairo_pattern_destroy(font_pattern);
 }
 
@@ -723,13 +723,13 @@ img_text_from_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					media_struct *current_slide)
+ 					media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress - lw * ( 1 - progress ),
                          posy,
                          angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -743,13 +743,13 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble      progress,
-                     media_struct *current_slide)
+                     media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress + sw * ( 1 - progress ),
                          posy,
                          angle,
-                        current_slide);
+                        current_media);
 }
 
 static void
@@ -763,13 +763,13 @@ img_text_from_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide)
+				   media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
                          posy * progress - lh * ( 1 - progress ),
                          angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -783,13 +783,13 @@ img_text_from_bottom( cairo_t     *cr,
   					  gint         posy,
   					  gint         angle,
   					  gdouble      progress,
-  					 media_struct *current_slide)
+  					 media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
                          posy * progress + sh * ( 1 - progress ),
                          angle,
-                        current_slide);
+                        current_media);
 }
 
 static void
@@ -803,7 +803,7 @@ img_text_grow( cairo_t     *cr,
 			   gint         posy,
 			   gint         angle,
 			   gdouble      progress,
-			  media_struct *current_slide)
+			  media_struct *current_media)
 {
 	cairo_translate( cr, posx + lw * 0.5, posy + lh * 0.5 );
 	cairo_scale( cr, exp(log(progress)), exp(log(progress)) );
@@ -812,7 +812,7 @@ img_text_grow( cairo_t     *cr,
                          - lw * 0.5,
                          - lh * 0.5,
                          angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -826,13 +826,13 @@ img_text_bottom_to_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide)
+				   media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
                          sh * (1 - progress) - lh * progress,
                          angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -846,12 +846,12 @@ img_text_right_to_left( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide)
+				   media_struct *current_media)
 {
     img_text_draw_layout(cr, layout,
                          sw * (1 - progress) - lw * progress,
                          posy, angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -865,7 +865,7 @@ img_text_spin_grow( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_slide)
+				   media_struct *current_media)
 {
 	gint my_angle;
 	my_angle = angle + 360 * exp(log(progress));
@@ -878,7 +878,7 @@ img_text_spin_grow( cairo_t     *cr,
                          - lw * 0.5,
                          - lh * 0.5,
                          my_angle,
-                         current_slide);
+                         current_media);
 }
 
 static void
@@ -887,7 +887,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_slide,
+                      media_struct *current_media,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_bg_color,
 					  gdouble	    *progress_font_shadow_color,
@@ -898,7 +898,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	gdouble cairo_factor;
 
 	pango_layout_get_pixel_size (layout, &w, &h );
-	pango_layout_set_alignment( layout, current_slide->alignment );
+	pango_layout_set_alignment( layout, current_media->alignment );
 
 	/* text angle */
 	cairo_translate (cr, posx + (w / 2), posy + (h / 2) );
@@ -907,12 +907,12 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	pango_cairo_update_layout (cr, layout);
 
 	/* Set the user chosen pattern to draw the text */
-	if (current_slide->pattern_filename)
+	if (current_media->pattern_filename)
 	{
 		cairo_surface_t  *tmp_surf;
 		cairo_matrix_t	matrix;
 
-		tmp_surf = cairo_image_surface_create_from_png(current_slide->pattern_filename);
+		tmp_surf = cairo_image_surface_create_from_png(current_media->pattern_filename);
 		font_pattern = cairo_pattern_create_for_surface(tmp_surf);
 		cairo_set_source(cr, font_pattern);
 		cairo_pattern_set_extend (font_pattern, CAIRO_EXTEND_REPEAT);
@@ -933,6 +933,6 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	cairo_move_to( cr, posx, posy );
 	pango_cairo_show_layout( cr, layout );
 	
-	if (current_slide->pattern_filename)
+	if (current_media->pattern_filename)
 		cairo_pattern_destroy(font_pattern);
 }

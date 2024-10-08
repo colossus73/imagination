@@ -119,17 +119,18 @@ struct _media_struct
 	 * 4 - transition */
 	
 	gint			media_type;
+	gint			id;						// This is needed to link the same media when placed on the timeline
+	gint			bitrate;
+	gint			sample_rate;
+	gint			width;
+	gint			height;
 	gchar		*full_path;
 	gchar 		*image_type;
 	gchar 		*video_type;
 	gchar 		*audio_type;
 	gchar		*video_duration;
 	gchar		*audio_duration;
-	gint			bitrate;
-	gint			sample_rate;
 	gchar		metadata[1024];
-	gint			width;
-	gint			height;
 
 	ImgAngle  angle;      /* Angle of rotated image */
     gboolean  flipped;    /* flag for flipped images */
@@ -297,7 +298,7 @@ struct _img_window_struct
 	gdouble       maxoffx;       /* Maximal offsets for current zoom */
 	gdouble       maxoffy;
 	ImgStopPoint  current_point; /* Data for rendering current image */
-  	media_struct 		*current_slide;
+  	media_struct 		*current_media;
 	img_textbox 	*textbox;
 
 	/* Renderers and module stuff */

@@ -591,8 +591,7 @@ void img_free_media_struct( media_struct *entry )
 	g_slice_free( media_struct, entry );
 }
 
-gint img_calc_slide_duration_points( GList *list,
-								gint   length )
+gint img_calc_slide_duration_points( GList *list, gint   length )
 {
 	GList        *tmp;
 	gint          i, duration = 0;
@@ -1051,7 +1050,7 @@ gboolean img_scale_empty_slide( gint gradient,  gint countdown,
 
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 {
-	media_struct 	*slide = img->current_slide;
+	media_struct 	*slide = img->current_media;
 	GdkPixbuf 		*pixbuf;
 	GtkWidget		*tmp_image,*fc;
 	GtkIconTheme	*icon_theme;
@@ -1318,5 +1317,21 @@ void to_upper(gchar **string)
 		*s = toupper((unsigned char) *s);
 		s++;
 	}
+}
+
+gint img_convert_time_string_to_seconds(gchar *string)
+{
+	gchar **parts = g_strsplit(string, ":", -1);
+	gint total_seconds = 0;
+	
+	if (g_strv_length(parts) == 3)
+	{
+		gint hours = g_ascii_strtoll(parts[0], NULL, 10);
+		gint minutes = g_ascii_strtoll(parts[1], NULL, 10);
+		gint seconds = g_ascii_strtoll(parts[2], NULL, 10);
+		total_seconds = hours * 3600 + minutes * 60 + seconds;
+	}
+	g_strfreev(parts);
+	return total_seconds;
 }
 

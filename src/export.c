@@ -180,7 +180,7 @@ static gboolean img_start_export( img_window_struct *img)
 	}
 
 	/* Add export idle function and set initial values */
-	img->current_slide = entry;
+	img->current_media = entry;
 	img->total_nr_frames = img->total_secs * img->export_fps;
 	img->displayed_frame = 0;
 	img->next_slide_off = 0;
@@ -217,8 +217,8 @@ static gboolean img_start_export( img_window_struct *img)
 	/* Set stop points */
 	img->cur_point = NULL;
 	img->point1 = NULL;
-	img->point2 = (ImgStopPoint *)( img->current_slide->no_points ?
-									img->current_slide->points->data :
+	img->point2 = (ImgStopPoint *)( img->current_media->no_points ?
+									img->current_media->points->data :
 									NULL );
 
 	/* Set first slide */
@@ -227,7 +227,7 @@ static gboolean img_start_export( img_window_struct *img)
 	img->export_slide = 1;
 
 	img->export_idle_func = (GSourceFunc)img_export_transition;
-	if (img->current_slide->gradient == 4)
+	if (img->current_media->gradient == 4)
 			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
 	else
 		img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
@@ -343,8 +343,8 @@ img_prepare_pixbufs( img_window_struct *img)
 	model = GTK_TREE_MODEL( img->media_model );
 
 	/* Get last stop point of current slide */
-	img->point1 = (ImgStopPoint *)( img->current_slide->no_points ?
-									g_list_last( img->current_slide->points )->data :
+	img->point1 = (ImgStopPoint *)( img->current_media->no_points ?
+									g_list_last( img->current_media->points )->data :
 									NULL );
 
 	/* We're done now */
@@ -375,14 +375,14 @@ img_calc_next_slide_time_offset( img_window_struct *img,
 {
 	int transition_speed = 3;
 	
-	if( img->current_slide->render )
+	if( img->current_media->render )
 	{
-		img->next_slide_off += img->current_slide->duration + transition_speed;
+		img->next_slide_off += img->current_media->duration + transition_speed;
 		img->slide_trans_frames = transition_speed * rate;
 	}
 	else
 	{
-		img->next_slide_off += img->current_slide->duration;
+		img->next_slide_off += img->current_media->duration;
 		img->slide_trans_frames = 0;
 	}
 
@@ -391,10 +391,10 @@ img_calc_next_slide_time_offset( img_window_struct *img,
 	img->slide_still_frames = img->slide_nr_frames - img->slide_trans_frames;
 
 	/* Calculate subtitle frames */
-	if( img->current_slide->text )
+	if( img->current_media->text )
 	{
 		img->cur_text_frame = 0;
-		img->no_text_frames = img->current_slide->anim_duration * rate;
+		img->no_text_frames = img->current_media->anim_duration * rate;
 	}
 
 	return( img->next_slide_off );
@@ -485,7 +485,7 @@ img_export_still( img_window_struct *img )
 			img->export_slide++;
 
 			/* Make dialog more informative */
-			if( img->current_slide->duration == 0 )
+			if( img->current_media->duration == 0 )
 				string = g_strdup_printf( _("Final transition export progress:") );
 			else
 				string = g_strdup_printf( _("Slide %d export progress:"),
@@ -579,7 +579,7 @@ img_render_transition_frame( img_window_struct *img )
 	/* Create first image
 	 * this is a dirt hack to have Imagination use the image_from painted
 	 * with the second color set in the empty slide fade gradient */
-	if (img->current_slide->full_path && img->gradient_slide)
+	if (img->current_media->full_path && img->gradient_slide)
 	{
 		cr = cairo_create( img->image_from );
 		cairo_set_source_rgb(cr,	img->g_stop_color[0],
@@ -590,13 +590,13 @@ img_render_transition_frame( img_window_struct *img )
 	else
 	{
 		cr = cairo_create( img->image_from );
-		if (img->current_slide->gradient != 3)
+		if (img->current_media->gradient != 3)
 			img_draw_image_on_surface( cr, img->video_size[0], img->image1,
 								( img->point1 ? img->point1 : &point ), img );
 	}
 #if 0
 	/* Render subtitle if present */
-	if( img->current_slide->subtitle )
+	if( img->current_media->subtitle )
 	{
 		gdouble       progress;     /* Text animation progress */
 		ImgStopPoint *p_draw_point; 
@@ -612,14 +612,14 @@ img_render_transition_frame( img_window_struct *img )
 							 img->video_size[0],
 							 img->video_size[1],
 							 1.0,
-							 img->current_slide->position,
+							 img->current_media->position,
 							 p_draw_point->zoom,
 							 p_draw_point->offx,
 							 p_draw_point->offy,
-							 img->current_slide->subtitle,
-							 img->current_slide->font_desc,
-							 img->current_slide->font_color,
-							 img->current_slide->anim,
+							 img->current_media->subtitle,
+							 img->current_media->font_desc,
+							 img->current_media->font_color,
+							 img->current_media->anim,
 							 FALSE,
 							 FALSE,
 							 progress );
@@ -629,7 +629,7 @@ img_render_transition_frame( img_window_struct *img )
 
 	/* Create second image */
 	cr = cairo_create( img->image_to );
-	if (img->current_slide->gradient != 3)
+	if (img->current_media->gradient != 3)
 		img_draw_image_on_surface( cr, img->video_size[0], img->image2,
 							   ( img->point2 ? img->point2 : &point ), img );
 	/* FIXME: Add subtitles here */
@@ -639,7 +639,7 @@ img_render_transition_frame( img_window_struct *img )
 	progress = (gdouble)img->slide_cur_frame / ( img->slide_trans_frames - 1 );
 	cr = cairo_create( img->exported_image );
 	cairo_save( cr );
-	img->current_slide->render( cr, img->image_from, img->image_to, progress );
+	img->current_media->render( cr, img->image_from, img->image_to, progress );
 	cairo_restore( cr );
 	
 	/* Export frame */
@@ -670,14 +670,14 @@ void img_render_still_frame( img_window_struct *img, gdouble rate )
 	 *
 	 * If we have more than one point, we draw movement from point to point.
 	 */
-	switch( img->current_slide->no_points )
+	switch( img->current_media->no_points )
 	{
 		case( 0 ): /* No stop points */
 			p_draw_point = &draw_point;
 			break;
 
 		case( 1 ): /* Single stop point */
-			p_draw_point = (ImgStopPoint *)img->current_slide->points->data;
+			p_draw_point = (ImgStopPoint *)img->current_media->points->data;
 			break;
 
 		default:   /* Many stop points */
@@ -690,7 +690,7 @@ void img_render_still_frame( img_window_struct *img, gdouble rate )
 				if( ! img->cur_point )
 				{
 					/* This is initialization */
-					img->cur_point = img->current_slide->points;
+					img->cur_point = img->current_media->points;
 					point1 = (ImgStopPoint *)img->cur_point->data;
 					img->still_offset = point1->time;
 					img->still_max = img->still_offset * rate;
@@ -728,7 +728,7 @@ void img_render_still_frame( img_window_struct *img, gdouble rate )
 
 	/* Paint surface */
 	cr = cairo_create( img->exported_image );
-	if (img->current_slide->gradient == 3)
+	if (img->current_media->gradient == 3)
 		img_draw_image_on_surface( cr, img->video_size[0], img->image_to,
 							   p_draw_point, img );
 	else
@@ -736,7 +736,7 @@ void img_render_still_frame( img_window_struct *img, gdouble rate )
 							   p_draw_point, img );
 
 	/* Render subtitle if present */
-	if( img->current_slide->text )
+	if( img->current_media->text )
 	{
 		gdouble progress; /* Text animation progress */
 
@@ -747,10 +747,10 @@ void img_render_still_frame( img_window_struct *img, gdouble rate )
 		img_render_subtitle( img,
 							 cr,
 							 1.0,
-							 img->current_slide->posX,
-							 img->current_slide->posY,
-							 img->current_slide->subtitle_angle,
-							 img->current_slide->alignment,
+							 img->current_media->posX,
+							 img->current_media->posY,
+							 img->current_media->subtitle_angle,
+							 img->current_media->alignment,
 							 p_draw_point->zoom,
 							 p_draw_point->offx,
 							 p_draw_point->offy,

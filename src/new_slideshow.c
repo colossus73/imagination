@@ -178,18 +178,6 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	gtk_widget_destroy(dialog1);
 }
 
-static void img_update_current_slide( img_window_struct *img )
-{
-	if( ! img->current_slide )
-		return;
-
-	cairo_surface_destroy( img->current_image );
-	img_scale_image( img->current_slide->full_path, img->video_ratio,
-					 0, img->video_size[1], FALSE,
-					 img->background_color, NULL, &img->current_image );
-	gtk_widget_queue_draw( img->image_area );
-}
-
 void img_new_slideshow_button_clicked(GtkWidget *button, gpointer video_size)
 {
 	gint w,h;

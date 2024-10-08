@@ -222,10 +222,12 @@ gboolean img_add_media(gchar *full_path, img_window_struct *img)
 		flag = FALSE;
 		goto next_media;
 	}
-	media_info = img_create_new_media();    
+	media_info = img_create_new_media();
 	media_info->full_path = g_strdup(full_path);
 	media_info->media_type = type;
+	media_info->id++;
 	img->media_nr++;
+	img->current_media = media_info;
 
 	filename = g_path_get_basename(full_path);
 	gtk_list_store_append (img->media_model, &iter);
@@ -783,13 +785,13 @@ static void img_rotate_selected_slides( img_window_struct *img,
 	g_list_free(bak);
 
 	/* If no slide is selected currently, simply return */
-	if( ! img->current_slide )
+	if( ! img->current_media )
 		return;
 
 	if (info_slide->full_path != NULL)
 	{
 		cairo_surface_destroy( img->current_image );
-		img_scale_image( img->current_slide->full_path, img->video_ratio,
+		img_scale_image( img->current_media->full_path, img->video_ratio,
 							 0, img->video_size[1], FALSE,
 							 img->background_color, NULL, &img->current_image );
 		
@@ -957,14 +959,14 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 		//img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
 
 		/* Render subtitle if present 
-		if( img->current_slide->subtitle )
+		if( img->current_media->subtitle )
 			img_render_subtitle( img,
 								 cr,
 								 img->image_area_zoom,
-								 img->current_slide->posX,
-								 img->current_slide->posY,
-								 img->current_slide->subtitle_angle,
-								 img->current_slide->alignment,
+								 img->current_media->posX,
+								 img->current_media->posY,
+								 img->current_media->subtitle_angle,
+								 img->current_media->alignment,
 								 img->current_point.zoom,
 								 img->current_point.offx,
 								 img->current_point.offy,
@@ -1188,10 +1190,10 @@ gboolean img_transition_timeout(img_window_struct *img)
 	}
 
 	/* Render single frame */
-	if (img->current_slide->gradient == 3)
+	if (img->current_media->gradient == 3)
 	{
 		img->gradient_slide = TRUE;
-		memcpy(img->g_stop_color, img->current_slide->g_stop_color,  3 * sizeof(gdouble));
+		memcpy(img->g_stop_color, img->current_media->g_stop_color,  3 * sizeof(gdouble));
 	}
 	img_render_transition_frame( img );
 
@@ -1706,7 +1708,7 @@ void img_add_stop_point( GtkButton  *button, img_window_struct *img )
 	ImgStopPoint *point;
 	GList        *tmp;
 
-	if (img->current_slide == NULL)
+	if (img->current_media == NULL)
 		return;
 
 	/* Create new point */
@@ -1716,14 +1718,14 @@ void img_add_stop_point( GtkButton  *button, img_window_struct *img )
 						GTK_SPIN_BUTTON( img->ken_duration ) );
 
 	/* Append it to the list */
-	tmp = img->current_slide->points;
+	tmp = img->current_media->points;
 	tmp = g_list_append( tmp, point );
-	img->current_slide->points = tmp;
-	img->current_slide->cur_point = img->current_slide->no_points;
-	img->current_slide->no_points++;
+	img->current_media->points = tmp;
+	img->current_media->cur_point = img->current_media->no_points;
+	img->current_media->no_points++;
 
 	/* Sync timings */
-	img_sync_timings( img->current_slide, img );
+	img_sync_timings( img->current_media, img );
 	
 	img_taint_project(img);
 }
@@ -1735,26 +1737,26 @@ img_update_stop_point( GtkSpinButton  *button,
 	ImgStopPoint *point;
 	gint full;
 
-	if( img->current_slide == NULL || img->current_slide->points == NULL)
+	if( img->current_media == NULL || img->current_media->points == NULL)
 		return;
 
 	/* Get selected point */
-	point = g_list_nth_data( img->current_slide->points,
-							 img->current_slide->cur_point );
+	point = g_list_nth_data( img->current_media->points,
+							 img->current_media->cur_point );
 
 	/* Update data */
 	*point = img->current_point;
 	point->time = gtk_spin_button_get_value_as_int(	GTK_SPIN_BUTTON( img->ken_duration ) );
 	
 	/* Update total slideshow duration */
-	full = img_calc_slide_duration_points(img->current_slide->points,
-										img->current_slide->no_points);
+	full = img_calc_slide_duration_points(img->current_media->points,
+										img->current_media->no_points);
 
-	img->current_slide->duration = full;
+	img->current_media->duration = full;
 
 
 	/* Sync timings */
-	img_sync_timings( img->current_slide, img );
+	img_sync_timings( img->current_media, img );
 
 	img_taint_project(img);
 }
@@ -1766,29 +1768,29 @@ img_delete_stop_point( GtkButton         *button,
 	GList *node;
 	gint  full;
 
-	if( img->current_slide == NULL )
+	if( img->current_media == NULL )
 		return;
 
 	/* Get selected node and free it */
-	node = g_list_nth( img->current_slide->points,
-					   img->current_slide->cur_point );
+	node = g_list_nth( img->current_media->points,
+					   img->current_media->cur_point );
 	g_slice_free( ImgStopPoint, node->data );
-	img->current_slide->points = 
-			g_list_delete_link( img->current_slide->points, node );
+	img->current_media->points = 
+			g_list_delete_link( img->current_media->points, node );
 
 	/* Update counters */
-	img->current_slide->no_points--;
-	img->current_slide->cur_point = MIN( img->current_slide->cur_point,
-										 img->current_slide->no_points - 1 );
+	img->current_media->no_points--;
+	img->current_media->cur_point = MIN( img->current_media->cur_point,
+										 img->current_media->no_points - 1 );
 
 	/* Update total slideshow duration */
-	full = img_calc_slide_duration_points(img->current_slide->points,
-										img->current_slide->no_points);
+	full = img_calc_slide_duration_points(img->current_media->points,
+										img->current_media->no_points);
 
-	img->current_slide->duration = full;
+	img->current_media->duration = full;
 	
 	/* Sync timings */
-	img_sync_timings( img->current_slide, img );
+	img_sync_timings( img->current_media, img );
 	
 	img_taint_project(img);
 }
@@ -1796,22 +1798,22 @@ img_delete_stop_point( GtkButton         *button,
 void img_goto_prev_point( GtkButton         *button,
 					 img_window_struct *img )
 {
-	if( img->current_slide && img->current_slide->no_points )
+	if( img->current_media && img->current_media->no_points )
 	{
-		img->current_slide->cur_point =
-				CLAMP( img->current_slide->cur_point - 1,
-					   0, img->current_slide->no_points - 1 );
+		img->current_media->cur_point =
+				CLAMP( img->current_media->cur_point - 1,
+					   0, img->current_media->no_points - 1 );
 	}
 }
 
 void img_goto_next_point( GtkButton         *button,
 					 img_window_struct *img )
 {
-	if( img->current_slide && img->current_slide->no_points )
+	if( img->current_media && img->current_media->no_points )
 	{
-		img->current_slide->cur_point =
-				CLAMP( img->current_slide->cur_point + 1,
-					   0, img->current_slide->no_points - 1 );
+		img->current_media->cur_point =
+				CLAMP( img->current_media->cur_point + 1,
+					   0, img->current_media->no_points - 1 );
 
 	}
 }
@@ -1826,10 +1828,10 @@ img_goto_point ( GtkEntry          *entry,
 	string = gtk_entry_get_text( entry );
 	number = (gint)strtol( string, NULL, 10 );
 
-	if( img->current_slide && img->current_slide->no_points )
+	if( img->current_media && img->current_media->no_points )
 	{
-		img->current_slide->cur_point =
-				CLAMP( number - 1, 0, img->current_slide->no_points - 1 );
+		img->current_media->cur_point =
+				CLAMP( number - 1, 0, img->current_media->no_points - 1 );
 
 	}
 }
@@ -2125,10 +2127,10 @@ void img_pattern_clicked(GtkMenuItem *item,
 			gtk_widget_destroy(fc);
 			return;
 		}
-		if ( (img->current_slide)->pattern_filename)
-			g_free( ( img->current_slide )->pattern_filename);
+		if ( (img->current_media)->pattern_filename)
+			g_free( ( img->current_media )->pattern_filename);
 
-		(img->current_slide)->pattern_filename = g_strdup(filename);
+		(img->current_media)->pattern_filename = g_strdup(filename);
 		pattern_pix = gdk_pixbuf_new_from_file_at_scale( filename, 32, 32, TRUE, &error);
 		g_free(filename);
 		if (! pattern_pix)
@@ -2184,7 +2186,7 @@ void img_spinbutton_value_changed (GtkSpinButton *spinbutton, img_window_struct 
 	g_list_free(bak);
 
 	/* Sync timings */
-	img_sync_timings( img->current_slide, img );
+	img_sync_timings( img->current_media, img );
 	img_taint_project(img);
 }
 
@@ -2231,13 +2233,13 @@ void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img)
 	g_list_free(bak);
 
 	/* If no slide is selected currently, simply return */
-	if( ! img->current_slide )
+	if( ! img->current_media )
 		return;
 
 	if (info_slide->full_path != NULL)
 	{
 		cairo_surface_destroy( img->current_image );
-		img_scale_image( img->current_slide->full_path, img->video_ratio,
+		img_scale_image( img->current_media->full_path, img->video_ratio,
 							 0, img->video_size[1], FALSE,
 							 img->background_color, NULL, &img->current_image );
 		

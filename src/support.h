@@ -48,6 +48,8 @@
 #  define N_(String) (String)
 #endif
 
+#define BASE_SCALE 10
+
 GtkWidget *img_load_icon(gchar *, GtkIconSize );
 gchar *img_convert_seconds_to_time(gint );
 GtkWidget *_gtk_combo_box_new_text(gint);
@@ -127,4 +129,5 @@ void rotate_point(double , double , double , double , double , double *, double 
 void transform_coords(img_textbox *, double , double , double *, double *);
 void select_word_at_position(img_textbox *, int );
 void to_upper(gchar **);
+gint img_convert_time_string_to_seconds(gchar *);
 #endif

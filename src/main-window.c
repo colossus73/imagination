@@ -40,6 +40,11 @@ static GtkTargetEntry dest_target[] =
 	{ "text/uri-list", 0, 0}
 };
 
+static GtkTargetEntry timeline_drag_targets[] =
+{
+    { "application/x-media-item", GTK_TARGET_SAME_APP, 0 }
+};
+
 static void img_random_button_clicked(GtkButton *, img_window_struct *);
 static GdkPixbuf *img_set_random_transition(img_window_struct *, media_struct *);
 static void img_transition_speed_changed (GtkRange *,  img_window_struct *);
@@ -47,7 +52,9 @@ static void img_clear_audio_files(GtkButton *, img_window_struct *);
 static void img_quit_menu(GtkMenuItem *, img_window_struct *);
 static gint img_sort_none_before_other(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer);
 static void img_check_numeric_entry (GtkEditable *entry, gchar *text, gint lenght, gint *position, gpointer data);
-static void img_show_uri(GtkMenuItem *, img_window_struct *);
+static void img_open_documentation(GtkMenuItem *, img_window_struct *);
+static void img_open_github_bug_report(GtkMenuItem *, img_window_struct *);
+static void img_open_paypal_page(GtkMenuItem *, img_window_struct *);
 static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
@@ -115,6 +122,8 @@ img_window_struct *img_create_window (void)
 	GtkWidget *tmp_image;
 	GtkWidget *menu3;
 	GtkWidget *about;
+	GtkWidget *donate;
+	GtkWidget *report_bug;
 	GtkWidget *contents;
 	GtkWidget *add_slide;
 	GtkWidget *label_of;
@@ -335,7 +344,7 @@ img_window_struct *img_create_window (void)
 	g_signal_connect (deselect_all_menu,"activate",G_CALLBACK (img_unselect_all_media),img_struct);
 
 	/* Help menu */
-	menuitem3 = gtk_menu_item_new_with_mnemonic (_("_Help"));
+	menuitem3 = gtk_menu_item_new_with_mnemonic (_("Help"));
 	gtk_container_add (GTK_CONTAINER (img_struct->menubar), menuitem3);
 	menu3 = gtk_menu_new ();
 	gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem3), menu3);
@@ -343,7 +352,18 @@ img_window_struct *img_create_window (void)
 	contents = gtk_menu_item_new_with_mnemonic (_("Contents"));
 	gtk_container_add (GTK_CONTAINER (menu3),contents);
 	gtk_widget_add_accelerator (contents,"activate",img_struct->accel_group,GDK_KEY_F1,0,GTK_ACCEL_VISIBLE);
-	g_signal_connect (contents,"activate",G_CALLBACK (img_show_uri),img_struct);
+	g_signal_connect (contents,"activate",G_CALLBACK (img_open_documentation),img_struct);
+
+	separatormenuitem1 = gtk_separator_menu_item_new();
+	gtk_container_add (GTK_CONTAINER(menu3), separatormenuitem1);
+	
+	report_bug = gtk_menu_item_new_with_mnemonic (_("Report a bug..."));
+	gtk_container_add (GTK_CONTAINER (menu3), report_bug);
+	g_signal_connect (report_bug,"activate",G_CALLBACK (img_open_github_bug_report),img_struct);
+	
+	donate = gtk_menu_item_new_with_mnemonic (_("Donate..."));
+	gtk_container_add (GTK_CONTAINER (menu3), donate);
+	g_signal_connect (donate,"activate",G_CALLBACK (img_open_paypal_page),img_struct);
 
 	about = gtk_menu_item_new_with_mnemonic (_("About"));
 	gtk_container_add (GTK_CONTAINER (menu3), about);
@@ -907,11 +927,11 @@ img_window_struct *img_create_window (void)
 
 	/* FINALLY the Imagination timeline widget: Yuppieeeeeeeeeeeeee */
 	img_struct->timeline = img_timeline_new();
-	gtk_drag_dest_set (img_struct->timeline, GTK_DEST_DEFAULT_ALL, timeline_drop_targets, 2, GDK_ACTION_COPY);
-	g_object_set(img_struct->timeline, "total_time",  27, NULL);
+	//gtk_drag_source_set	(img_struct->timeline, GDK_BUTTON1_MASK, timeline_drag_targets, 1, GDK_ACTION_COPY);
+	gtk_drag_dest_set		(img_struct->timeline, GTK_DEST_DEFAULT_ALL, timeline_drop_targets, 2, GDK_ACTION_COPY);
 
-	img_timeline_add_track(img_struct->timeline, 0, "#000000");
-	img_timeline_add_track(img_struct->timeline, 1, "#00FF00");
+	g_object_set(img_struct->timeline, "total_time",  36000, NULL); //10 hours max
+	gtk_widget_set_size_request(img_struct->timeline, 36000, -1);
 
 	gtk_widget_add_events(img_struct->timeline, 
                            GDK_POINTER_MOTION_MASK
@@ -924,12 +944,16 @@ img_window_struct *img_create_window (void)
 	img_struct->timeline_scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add (GTK_CONTAINER(viewport), img_struct->timeline);
 	gtk_container_add (GTK_CONTAINER(img_struct->timeline_scrolled_window), viewport);
-	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, FALSE, FALSE);
+	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, TRUE, FALSE);
 
 	g_signal_connect(img_struct->timeline, 	"drag-data-received",		G_CALLBACK(img_timeline_drag_data_received), img_struct);
+	g_signal_connect(img_struct->timeline,	"drag-motion", 				G_CALLBACK(img_timeline_drag_motion), img_struct->timeline);
+	g_signal_connect(img_struct->timeline, 	"drag-leave", 					G_CALLBACK(img_timeline_drag_leave), img_struct->timeline);
+	//g_signal_connect(img_struct->timeline,	"drag-data-get",				G_CALLBACK(img_timeline_drag_data_get), img_struct->timeline); //
 	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct->timeline);
 	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct->timeline);
 	g_signal_connect(img_struct->timeline,	"motion-notify-event",	G_CALLBACK(img_timeline_motion_notify), img_struct->timeline);
+	g_signal_connect(img_struct->timeline,	"scroll-event",					G_CALLBACK(img_timeline_scroll_event), img_struct->timeline);
 
 	/* Load interface settings or apply default ones */
 	if( ! img_load_window_settings( img_struct ) )
@@ -1107,13 +1131,23 @@ static void img_check_numeric_entry (GtkEditable *entry, gchar *text, gint lengt
 		g_signal_stop_emission_by_name( (gpointer)entry, "insert-text" );
 }
 
-static void img_show_uri(GtkMenuItem *menuitem , img_window_struct *img)
+static void img_open_github_bug_report(GtkMenuItem *menuitem , img_window_struct *img)
+{
+	gtk_show_uri_on_window(GTK_WINDOW(img->imagination_window), "https://github.com/colossus73/imagination/issues", GDK_CURRENT_TIME, NULL);
+}
+
+static void img_open_paypal_page(GtkMenuItem *menuitem , img_window_struct *img)
+{
+	gtk_show_uri_on_window(GTK_WINDOW(img->imagination_window), "https://www.paypal.me/giutor73", GDK_CURRENT_TIME, NULL);
+}
+
+static void img_open_documentation(GtkMenuItem *menuitem , img_window_struct *img)
 {
 	gchar *file = NULL;
 	gchar *lang = NULL;
 	
-	lang = g_strndup(g_getenv("LANG"),2);
-	file = g_strconcat("file://",DATADIR,"/doc/",PACKAGE,"/html/",lang,"/index.html",NULL);
+	lang = g_strndup(g_getenv("LANG"), 2);
+	file = g_strconcat("file://",DATADIR,"/doc/", PACKAGE, "/html/", lang, "/index.html", NULL);
 	g_free(lang);
 	img_message (img, file);
 
@@ -1498,7 +1532,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
     // Adjust zoom factor
     img->image_area_zoom += zoom_change;
 
-    // Constrain zoom factor to reasonable limits (e.g., between 0.1 and 2.0)
+    // Constrain zoom factor to reasonable limits (e.g., between 0.1 and 1.0)
     img->image_area_zoom = CLAMP(img->image_area_zoom, 0.1, 1);
 
     // Calculate new dimensions while maintaining aspect ratio

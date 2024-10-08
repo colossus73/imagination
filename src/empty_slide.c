@@ -70,35 +70,35 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 		 * values in the empty slide struct so
 		 * the preview dialog area shows the settings
 		 * user applied when creating the empty one */
-		slide.gradient = img->current_slide->gradient;
-		slide.c_start[0] = img->current_slide->g_start_color[0];
-		slide.c_start[1] = img->current_slide->g_start_color[1];
-		slide.c_start[2] = img->current_slide->g_start_color[2];
+		slide.gradient = img->current_media->gradient;
+		slide.c_start[0] = img->current_media->g_start_color[0];
+		slide.c_start[1] = img->current_media->g_start_color[1];
+		slide.c_start[2] = img->current_media->g_start_color[2];
 		
-		slide.c_stop[0] = img->current_slide->g_stop_color[0];
-		slide.c_stop[1] = img->current_slide->g_stop_color[1];
-		slide.c_stop[2] = img->current_slide->g_stop_color[2];
+		slide.c_stop[0] = img->current_media->g_stop_color[0];
+		slide.c_stop[1] = img->current_media->g_stop_color[1];
+		slide.c_stop[2] = img->current_media->g_stop_color[2];
 		
 		if (slide.gradient < 2 || slide.gradient == 4) /* solid and linear */
 		{
-			slide.pl_start[0] = img->current_slide->g_start_point[0] * w;
-			slide.pl_start[1] = img->current_slide->g_start_point[1] * h;
-			slide.pl_stop[0]  = img->current_slide->g_stop_point[0] * w;
-			slide.pl_stop[1]  = img->current_slide->g_stop_point[1] * h;
+			slide.pl_start[0] = img->current_media->g_start_point[0] * w;
+			slide.pl_start[1] = img->current_media->g_start_point[1] * h;
+			slide.pl_stop[0]  = img->current_media->g_stop_point[0] * w;
+			slide.pl_stop[1]  = img->current_media->g_stop_point[1] * h;
 			if (slide.gradient == 4)
 			{
-				slide.countdown = img->current_slide->countdown;
-				slide.countdown_color[0] = img->current_slide->countdown_color[0];
-				slide.countdown_color[1] = img->current_slide->countdown_color[1];
-				slide.countdown_color[2] = img->current_slide->countdown_color[2];
+				slide.countdown = img->current_media->countdown;
+				slide.countdown_color[0] = img->current_media->countdown_color[0];
+				slide.countdown_color[1] = img->current_media->countdown_color[1];
+				slide.countdown_color[2] = img->current_media->countdown_color[2];
 			}
 		}
 		else if (slide.gradient == 3) /* radial and countdown */
 		{
-			slide.pr_start[0] = img->current_slide->g_start_point[0] * w;
-			slide.pr_start[1] = img->current_slide->g_start_point[1] * h;
-			slide.pr_stop[0]  = img->current_slide->g_stop_point[0] * w;
-			slide.pr_stop[1]  = img->current_slide->g_stop_point[1] * h;
+			slide.pr_start[0] = img->current_media->g_start_point[0] * w;
+			slide.pr_start[1] = img->current_media->g_start_point[1] * h;
+			slide.pr_stop[0]  = img->current_media->g_stop_point[0] * w;
+			slide.pr_stop[1]  = img->current_media->g_stop_point[1] * h;
 		}
 	}
 	dialog = gtk_dialog_new_with_buttons(
@@ -231,7 +231,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 		gchar		 *path;
 
 		if (GTK_WIDGET(item) == img->edit_empty_slide)
-			slide_info = img->current_slide;
+			slide_info = img->current_media;
 		else
 			slide_info = img_create_new_media();
 
@@ -396,7 +396,7 @@ gboolean img_fade_countdown(ImgEmptySlide *slide)
 
 gboolean img_empty_slide_countdown_preview(img_window_struct *img)
 {
-	media_struct *slide = img->current_slide;
+	media_struct *slide = img->current_media;
 	
 	slide->countdown_angle += 0.5;
 	if (slide->countdown_angle > 6.5)
