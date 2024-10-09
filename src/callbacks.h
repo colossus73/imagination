@@ -23,7 +23,7 @@
 #include <gtk/gtk.h>
 #include "main-window.h"
 #include "new_slideshow.h"
-#include "slideshow_project.h"
+#include "file.h"
 #include "text.h"
 
 gboolean img_can_discard_unsaved_project(img_window_struct *);

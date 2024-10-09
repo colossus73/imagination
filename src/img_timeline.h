@@ -31,6 +31,20 @@ struct _ImgTimeline
   GtkLayout da;
 };
 
+typedef struct _ImgTimelinePrivate
+{
+	gint last_media_posX;
+	gint seconds;
+	gint minutes;
+	gint hours;
+	gint total_time;
+	gint time_marker_pos;
+	gdouble zoom_scale;
+	gboolean button_pressed_on_needle;
+	gdouble pixels_per_second;
+	GArray *tracks;
+} ImgTimelinePrivate;
+
 enum
 {
 	PROP_0,
@@ -74,36 +88,30 @@ enum
 };
 
 #define TRACK_HEIGHT 50
-#define TRACK_HEIGHT 50
 #define TRACK_GAP 5
 
 #define IMG_TIMELINE_TYPE img_timeline_get_type()
 G_DECLARE_FINAL_TYPE(ImgTimeline, img_timeline, IMG, TIMELINE, GtkLayout)
 
-#define TIMELINE_TYPE_HANDLE (timeline_handle_get_type())
-#define TIMELINE_HANDLE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), TIMELINE_TYPE_HANDLE, TimelineHandle))
-#define TIMELINE_IS_HANDLE(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), TIMELINE_TYPE_HANDLE))
-#define TIMELINE_HANDLE_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), TIMELINE_TYPE_HANDLE, TimelineHandleClass))
-#define TIMELINE_IS_HANDLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), TIMELINE_TYPE_HANDLE))
-#define TIMELINE_HANDLE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), TIMELINE_TYPE_HANDLE, TimelineHandleClass))
-
 //Public functions.
 GtkWidget* img_timeline_new();
+ImgTimelinePrivate* img_timeline_get_private_struct(GtkWidget *);
 
 void img_timeline_adjust_marker_posx		(GtkWidget *, gint );
 void img_timeline_set_total_time				(ImgTimeline *, gint );
-void img_timeline_add_media						(GtkWidget *, media_struct *, gint, gint );
+void img_timeline_add_media						(GtkWidget *, media_struct *, gint, gint, img_window_struct *);
 void img_timeline_add_track						(GtkWidget *, gint, gchar *);
 void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint, gint);
 void img_timeline_set_time_marker			(ImgTimeline *, gint );
 
 //Timeline events
-gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, img_window_struct *);
+gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);
 gboolean	img_timeline_drag_motion				(GtkWidget *, GdkDragContext *, gint , gint , guint , img_window_struct *);
 gboolean img_timeline_drag_leave					(GtkWidget *, GdkDragContext *context, guint , img_window_struct *);
 gboolean img_timeline_motion_notify				(GtkWidget *, GdkEventMotion *event, ImgTimeline *);
 gboolean img_timeline_mouse_button_press 	(GtkWidget *, GdkEventButton *event, ImgTimeline *);
 gboolean img_timeline_mouse_button_release (GtkWidget *, GdkEvent *event, ImgTimeline *);
+gboolean img_timeline_key_press					(GtkWidget *, GdkEventKey *, img_window_struct *);
 void		img_timeline_drag_data_received 	(GtkWidget *, GdkDragContext *, gint , gint , GtkSelectionData *, guint , guint , img_window_struct *);
 void 		img_timeline_drag_data_get				(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , img_window_struct *);
 

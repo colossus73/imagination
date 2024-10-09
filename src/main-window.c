@@ -315,7 +315,6 @@ img_window_struct *img_create_window (void)
 
 	img_struct->remove_menu = gtk_menu_item_new_with_mnemonic (_("Dele_te"));
 	gtk_container_add (GTK_CONTAINER (slide_menu), img_struct->remove_menu);
-	gtk_widget_add_accelerator (img_struct->remove_menu,"activate",img_struct->accel_group, GDK_KEY_Delete,0,GTK_ACCEL_VISIBLE);
 	g_signal_connect (img_struct->remove_menu,"activate",G_CALLBACK (img_media_model_remove_media), img_struct);
 
 	flip_horizontally_menu = gtk_menu_item_new_with_mnemonic (_("_Flip horizontally"));
@@ -386,7 +385,7 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_can_focus(button1, FALSE);
 	
 	button2 = gtk_toggle_button_new();
-    gtk_widget_set_tooltip_text(button2, _("Lists all the imported media"));
+    gtk_widget_set_tooltip_text(button2, _("Media Library"));
     GtkWidget *image1 = gtk_image_new_from_icon_name("applications-multimedia", GTK_ICON_SIZE_LARGE_TOOLBAR);
     gtk_button_set_image(GTK_BUTTON(button2), image1);
     gtk_button_set_relief(GTK_BUTTON(button2), GTK_RELIEF_NONE);
@@ -444,7 +443,7 @@ img_window_struct *img_create_window (void)
 	g_signal_connect(img_struct->toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 
-	//Create the list media widget
+	//Create the Media Library
 	img_struct->media_model = gtk_list_store_new (3, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
 	img_struct->media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
 	gtk_widget_set_can_focus(img_struct->media_iconview, FALSE);
@@ -940,6 +939,9 @@ img_window_struct *img_create_window (void)
                          | GDK_SCROLL_MASK
                          | GDK_KEY_PRESS_MASK );
 
+	gtk_widget_set_can_focus(img_struct->timeline, TRUE);
+	gtk_widget_grab_focus(img_struct->timeline);
+	
 	viewport = gtk_viewport_new(NULL,NULL);
 	img_struct->timeline_scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add (GTK_CONTAINER(viewport), img_struct->timeline);
@@ -953,8 +955,22 @@ img_window_struct *img_create_window (void)
 	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct->timeline);
 	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct->timeline);
 	g_signal_connect(img_struct->timeline,	"motion-notify-event",	G_CALLBACK(img_timeline_motion_notify), img_struct->timeline);
-	g_signal_connect(img_struct->timeline,	"scroll-event",					G_CALLBACK(img_timeline_scroll_event), img_struct->timeline);
+	g_signal_connect(img_struct->timeline,	"key-press-event",			G_CALLBACK(img_timeline_key_press), img_struct);
+	g_signal_connect(img_struct->timeline,	"scroll-event",					G_CALLBACK(img_timeline_scroll_event), viewport);
 
+	// Set up CSS styling
+    GtkCssProvider *css_provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(css_provider,
+        ".timeline-button { border-width: 0; outline-width: 0; background: #404040; padding: 0; margin: 0; }"
+        ".timeline-button:focus { outline-width: 0; }"
+        ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
+        ".timeline-button:checked { border-top-color: #FFD700; border-bottom-color: #FFD700; }"
+        "tooltip  { background-color: #FAECC6; color: #454545;  font-weight: normal; border-width: 1px; border-radius: 5px; border-color: #f4d27b;}"
+        "tooltip * { color: black;  padding: 0; margin: 0 }", -1, NULL);
+    
+    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(css_provider);
+    
 	/* Load interface settings or apply default ones */
 	if( ! img_load_window_settings( img_struct ) )
 		img_set_window_default_settings( img_struct );
@@ -1319,31 +1335,71 @@ static gboolean img_iconview_popup(GtkWidget *widget,  GdkEvent  *event, img_win
 
 static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *img)
 {
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
 	GtkTreeModel	*model;
 	GtkTreeIter iter;
 	GList *selected;
 	gint nr_selected;
 	media_struct *media;
+	media_timeline *item;
+	Track *track;
+	gboolean delete, media_on_timeline;
 
 	model = GTK_TREE_MODEL(img->media_model);
 	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
-	
+
 	if (selected == NULL || img->preview_is_running)
 		return;
 
 	while (selected)
 	{
+		delete = TRUE;
 		gtk_tree_model_get_iter(model, &iter, selected->data);
 		gtk_tree_model_get(model, &iter,2 ,&media, -1);
-		img_free_media_struct(media);
-		img->media_nr--;
-		gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
+		for (gint i = 0; i < priv->tracks->len; i++)
+		{
+			track = &g_array_index(priv->tracks, Track, i);
+			if (track->items)
+			{
+				for (gint q = track->items->len - 1; q >= 0; q--)
+				{
+					item = g_array_index(track->items, media_timeline  *, q);
+					if (item->id == media->id)
+					{
+						gchar *msg = g_strdup_printf(_("The media <b>%s</b> is currently placed on the timeline. Deleting it will remove all of its instances from the timeline. " \
+						"Are you sure you want to do this?"), media->full_path, NULL); 
+						int response = img_ask_user_confirmation( img, msg);
+						g_free(msg);
+						if (response == GTK_RESPONSE_OK)
+						{
+							media_on_timeline = TRUE;
+							gtk_widget_destroy(item->button);
+							g_slice_free(media_timeline, item);
+							g_array_remove_index(track->items, q);
+							
+							img_free_media_struct(media);
+							img->media_nr--;
+							gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
+							img_taint_project(img);
+						}
+						else
+							delete = FALSE;
+					}
+					else
+						media_on_timeline = FALSE;
+				}
+			}
+		}
+		if (delete && ! media_on_timeline)
+		{
+			img_free_media_struct(media);
+			img->media_nr--;
+			gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
+			img_taint_project(img);
+		}
 		selected = selected->next;
 	}
-
 	g_list_free(selected);
-	if (img->media_nr > 0)
-		img_taint_project(img);
 }
 
 static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)

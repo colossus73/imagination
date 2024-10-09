@@ -23,6 +23,8 @@
 #include <math.h>
 #include <sys/stat.h>
 
+static int next_id = 0;
+
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
 gboolean img_transition_timeout(img_window_struct *);
@@ -225,7 +227,7 @@ gboolean img_add_media(gchar *full_path, img_window_struct *img)
 	media_info = img_create_new_media();
 	media_info->full_path = g_strdup(full_path);
 	media_info->media_type = type;
-	media_info->id++;
+	media_info->id = next_id++;
 	img->media_nr++;
 	img->current_media = media_info;
 
@@ -680,7 +682,7 @@ static void img_file_chooser_add_preview(img_window_struct *img_struct)
 	g_signal_connect (img_struct->import_slide_chooser, "update-preview",G_CALLBACK (img_update_preview_file_chooser), img_struct);
 }
 
-static void	img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_window_struct *img_struct)
+static void img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_window_struct *img_struct)
 {
 	gchar *filename,*size;
 	gboolean has_preview = FALSE;
