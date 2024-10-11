@@ -374,7 +374,7 @@ media_struct *img_create_new_media()
 {
 	media_struct  *slide = NULL;
 
-	slide = g_slice_new0( media_struct );
+	slide = g_new0( media_struct, 1 );
 	if(slide)
 	{
 		/* Still part */
@@ -588,7 +588,7 @@ void img_free_media_struct( media_struct *entry )
 		g_slice_free( ImgStopPoint, tmp->data );
 	g_list_free( entry->points );
 
-	g_slice_free( media_struct, entry );
+	g_free(entry);
 }
 
 gint img_calc_slide_duration_points( GList *list, gint   length )
@@ -1126,6 +1126,7 @@ gint img_ask_user_confirmation(img_window_struct *img_struct, gchar *msg)
 	gtk_window_set_title(GTK_WINDOW(dialog),"Imagination");
 	response = gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (GTK_WIDGET (dialog));
+	
 	return response;
 }
 
@@ -1226,12 +1227,7 @@ void img_get_audio_data(media_struct *media)
     // Get the duration
     int64_t duration = fmt_ctx->duration;
     double duration_seconds = (double)duration / AV_TIME_BASE;
-	
-    // Convert duration to HH:MM:SS format
-    int hours = (int)duration_seconds / 3600;
-    int minutes = ((int)duration_seconds % 3600) / 60;
-    int seconds = (int)duration_seconds % 60;
-	media->audio_duration = g_strdup_printf("%02d:%02d:%02d", hours, minutes, seconds);
+	media->audio_duration = img_convert_time_to_string(duration_seconds);
 	
 	//Get the audio type
 	media->audio_type = g_strdup(fmt_ctx->iformat->name);
@@ -1336,3 +1332,37 @@ gint img_convert_time_string_to_seconds(gchar *string)
 	return total_seconds;
 }
 
+gchar *img_convert_time_to_string(gint duration_seconds)
+{
+	gchar *string;
+	
+	  // Convert duration to HH:MM:SS format
+    int hours = (int)duration_seconds / 3600;
+    int minutes = ((int)duration_seconds % 3600) / 60;
+    int seconds = (int)duration_seconds % 60;
+	
+	string = g_strdup_printf("%02d:%02d:%02d", hours, minutes, seconds);
+	return string;
+}
+
+gint find_nearest_major_tick(gint pixels_per_second, gint x)
+{
+    gdouble tick_interval = 1.0;
+
+    if (pixels_per_second < 0.05) tick_interval = 1800.0;
+    else if (pixels_per_second < 0.1) tick_interval = 900.0;
+    else if (pixels_per_second < 0.2) tick_interval = 600.0;
+    else if (pixels_per_second < 0.5) tick_interval = 300.0;
+    else if (pixels_per_second < 1) tick_interval = 120.0;
+    else if (pixels_per_second < 2) tick_interval = 60.0;
+    else if (pixels_per_second < 5) tick_interval = 30.0;
+    else if (pixels_per_second < 10) tick_interval = 15.0;
+    else if (pixels_per_second < 20) tick_interval = 5.0;
+    else if (pixels_per_second < 40) tick_interval = 2.0;
+    else tick_interval = 1.0;
+
+    gdouble tick_pixels = tick_interval * pixels_per_second;
+    gint nearest_tick = round(x / tick_pixels) * tick_pixels;
+    
+    return nearest_tick;
+}

@@ -235,7 +235,7 @@ struct _img_window_struct
 	GtkWidget	*remove_menu;
 	GtkWidget	*timeline;
 	GtkWidget 	*preview_hbox;
-	GtkWidget	*beginning_timer_label;
+	GtkWidget	*current_time;
 	GtkWidget	*preview_button;
 	GtkWidget	*total_time;
 	GtkWidget	*transition_type;

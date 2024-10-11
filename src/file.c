@@ -22,14 +22,17 @@ static gboolean img_populate_hash_table( GtkTreeModel *, GtkTreePath *, GtkTreeI
 
 void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean relative )
 {
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
 	GKeyFile *img_key_file;
 	gchar *conf, *conf_media, *path, *filename, *file, *font_desc;
 	gint count = 0;
 	gsize len;
 	GtkTreeIter media_iter;
-	media_struct *entry;
 	GtkTreeModel *media_model;
-
+	Track *track;
+	media_struct *entry;
+	media_timeline *item;
+	
 	media_model = GTK_TREE_MODEL( img->media_model );
 	if (!gtk_tree_model_get_iter_first (media_model, &media_iter))
 		return;
@@ -42,6 +45,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
     g_key_file_set_integer(img_key_file, "slideshow settings", "video height", img->video_size[1]);
 	g_key_file_set_double_list( img_key_file, "slideshow settings", "background color", img->background_color, 3 );
 	g_key_file_set_integer(img_key_file, "slideshow settings", "number of media", img->media_nr);
+	g_key_file_set_integer(img_key_file, "slideshow settings", "number of tracks", priv->tracks->len);
 
 	/* Media settings */
 	count = 0;
@@ -137,7 +141,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 			break;
 			
 		} // End swith entry->media type
-		
+	
 		/* Stop points */
 		//~ g_key_file_set_integer(img_key_file,conf, "no_points",		entry->no_points);
 		//~ if (entry->no_points > 0)
@@ -161,7 +165,30 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 		g_free(conf);
 	}
 	while (gtk_tree_model_iter_next (media_model,&media_iter));
-	count = 0;
+
+	/* Media on the timeline settings */
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		conf = g_strdup_printf("track %d", i);
+		track = &g_array_index(priv->tracks, Track, i);
+		g_key_file_set_integer(img_key_file, conf, "track_type", track->type);
+		g_key_file_set_boolean(img_key_file, conf, "is_default", track->is_default);
+		if (track->items)
+		{
+			for (gint q = 0; q < track->items->len; q++)
+			{
+				item = g_array_index(track->items, media_timeline  *, q);
+				gchar *string = g_strdup_printf("media_%d", item->id);
+				gint values[3];
+				values[0] = item->id;
+				values[1] = item->start_time;
+				values[2] = item->duration;
+				g_key_file_set_integer_list(img_key_file, conf, string, values, 3);
+				g_free(string);
+			}
+		}
+		g_free(conf);
+	}
 
 	/* Write the project file */
 	conf = g_key_file_to_data(img_key_file, &len, NULL);
@@ -180,35 +207,35 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 
 void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gchar *input )
 {
-	GdkPixbuf *thumb;
-	media_struct *media;
-	GtkTreeIter iter;
-	GKeyFile *img_key_file;
-	gchar *dummy, *media_filename, *time;
-	GtkWidget *dialog, *menu;
-	gint i, transition_id, no_points, alignment, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type;
-	guint speed;
-	GtkTreeModel *model;
-	void (*render);
-	GHashTable *table;
-	gchar      *spath, *conf, *project_current_dir;
-	gdouble    duration, *color, *font_color, *font_bg_color, *font_shadow_color, *font_outline_color;
-	gboolean   first_slide = TRUE;
-	gchar *subtitle = NULL, *pattern_name = NULL, *font_desc;
-	gdouble *my_points = NULL, *p_start = NULL, *p_stop = NULL, *c_start = NULL, *c_stop = NULL, *countdown_color = NULL;
-	gsize length;
-	GdkPixbuf *pix = NULL;
-    gboolean  flipped, no_use;
-	gchar *original_filename = NULL;
-	GtkIconTheme *icon_theme;
-	GtkIconInfo  *icon_info;
-	GFile *file;
-	GFileInfo *file_info;
-	const gchar  *icon_filename;
-	const gchar *content_type;
-	gchar *mime_type, *full_path = NULL;
-	ImgAngle   angle = 0;
-	GString *media_not_found = NULL;
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+
+	GdkPixbuf 				*thumb, *pix = NULL;
+	Track						*track;
+	media_struct 		*media;
+	media_timeline 	*item;
+	GtkTreeIter 				iter;
+	GKeyFile 					*img_key_file;
+	gchar 						*dummy, *media_filename, *time, *mime_type, *full_path = NULL, *subtitle = NULL, *pattern_name = NULL, *font_desc, *background_color;
+	gchar      					*spath, *conf, *conf2, *project_current_dir;
+	gchar						**keys;
+	GtkWidget 				*dialog, *menu;
+	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, width;
+	gint							*values;
+	GtkTreeModel 		*model;
+	void 						(*render);
+	GHashTable 			*table;
+	gdouble    				duration, *color, *font_color, *font_bg_color, *font_shadow_color, *font_outline_color;
+	gdouble					*my_points = NULL, *p_start = NULL, *p_stop = NULL, *c_start = NULL, *c_stop = NULL, *countdown_color = NULL;
+	gsize						length, num_keys;
+    gboolean  				flipped, no_use, is_default;
+	GtkIconTheme 		*icon_theme;
+	GtkIconInfo  			*icon_info;
+	GFile 						*file;
+	GFileInfo 				*file_info;
+	const gchar  			*icon_filename;
+	const gchar 			*content_type;
+	ImgAngle   			angle = 0;
+	GString 					*media_not_found = NULL;
 
 	if (img->media_nr > 0)
 		img_close_slideshow(NULL, img);
@@ -229,7 +256,7 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 				gtk_widget_destroy(menuitem);
 		}
 		else
-			img_message(img, _("Error: Project file doesn't exist") );
+			img_message(img, _("Error: project file doesn't exist") );
 		return;
 	}
 
@@ -289,34 +316,32 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 	g_free( color );
 
 	/* Loads the media files */
-	number = g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
-
-	for( i = 1; i <= number ; i++ )
+	number = 	g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
+	track_nr =	g_key_file_get_integer( img_key_file, "slideshow settings",  "number of tracks", NULL);
+	
+	for( gint i = 1; i <= number ; i++ )
 	{
 		conf = g_strdup_printf("media %d", i);
-		//~ if ( !g_key_file_has_group(img_key_file, conf))
-		//~ {
-			//~ img->media_nr--;
-			//~ continue;
-		//~ }
 		media_type = g_key_file_get_integer(img_key_file, conf, "media_type", NULL);
 		if (media_type == 0 || media_type == 1 || media_type == 2);
 			media_filename = g_key_file_get_string(img_key_file,conf, "filename", NULL);
 
 		if(media_filename)
 		{
-			//Let's chech if the media is found
+			//Let's chec if the media is found
 			if ( ! g_file_test (media_filename, G_FILE_TEST_EXISTS))
 			{
 				gchar *msg = g_strdup_printf(_("Media %d: <b>%s</b> couldn't be found\n"), i, media_filename);
 				g_string_append(media_not_found, msg);
+				g_free(media_filename);
 				continue;
 			}
 		}
 		/* Create the media structure */
 		media = img_create_new_media();
 		media->media_type = media_type;
-		media->full_path = media_filename;
+		media->full_path = g_strdup(media_filename);
+		g_free(media_filename);
 
 		switch (media->media_type)
 		{
@@ -482,7 +507,6 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 				//~ img_message(img, string);
 				//~ g_free(string);
             //~ }
-			g_free(media_filename);
 			g_free(conf);
 		} //End switch media type
 	}
@@ -493,19 +517,77 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 		img_message(img, media_not_found->str);
 		g_string_free(media_not_found, TRUE);
 	}
+
+	//Add the media on the timeline
+	posy = 32;
+	for (gint i=0; i < track_nr; i++)
+	{
+			//~ if ( !g_key_file_has_group(img_key_file, conf))
+		//~ {
+			//~ img->media_nr--;
+			//~ continue;
+		//~ }
+		conf = g_strdup_printf("track %d",  i);
+		number = g_key_file_get_integer( img_key_file, conf, "track_type", NULL);
+		is_default = g_key_file_get_boolean( img_key_file, conf, "is_default", NULL);
+		if (is_default == FALSE)
+		{
+			background_color = (number == 0) ? "#CCCCFF" : "#d6d1cd";
+			img_timeline_add_track(img->timeline, number, background_color); 
+		}
+		keys = g_key_file_get_keys(img_key_file, conf, &num_keys, NULL);
+		for (int q = 0; q < num_keys; q++)
+		{
+			if (g_str_has_prefix(keys[q], "media_"))
+			{
+				track = &g_array_index(priv->tracks, Track, i);
+				values = g_key_file_get_integer_list(img_key_file, conf, keys[q], NULL, NULL);
+				
+				item = g_new0(media_timeline, 1);
+				item->id = values[0];
+				item->start_time = values[1];
+				item->duration = values[2];
+				g_array_append_val(track->items, item);
+				g_free(values);
+
+				// Read the media filename again to create the image in the toggle button
+				conf2 = g_strdup_printf("media %d", item->id);
+				media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
+				media_type = g_key_file_get_integer(img_key_file, conf2, "media_type",  NULL);
+				g_free(conf2);
+				
+				img_timeline_create_toggle_button(item, media_type, media_filename, img);
+				g_free(media_filename);
+				
+				//Position the toggle button in the timeline
+				width = item->duration * BASE_SCALE * priv->zoom_scale;
+				gtk_widget_set_size_request(item->button, width, 50);
+				
+				posx = item->start_time * BASE_SCALE *priv->zoom_scale;
+				if (i == 0)
+					posy = 32;
+				else
+					posy += TRACK_HEIGHT + TRACK_GAP;
+
+				gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
+				item->y = posy;
+				item->old_x = posx;
+			}
+		}
+		g_free(conf);
+	}
 	
 	// Reinstate the model
 	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), GTK_TREE_MODEL(img->media_model) );
 	g_object_unref( G_OBJECT( img->media_model ) );
 
-	g_key_file_free (img_key_file);
-
-	g_hash_table_destroy( table );
+	g_key_file_free(img_key_file);
+	g_hash_table_destroy(table);
 	
-	if( img->project_filename )
-			g_free( img->project_filename );
+	if( img->project_filename)
+			g_free( img->project_filename);
 	
-	img->project_filename = g_strdup( input );
+	img->project_filename = g_strdup(input);
 
 	if (img->project_current_dir)
 			g_free(img->project_current_dir);

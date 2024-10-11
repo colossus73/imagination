@@ -23,7 +23,7 @@
 #include <math.h>
 #include <sys/stat.h>
 
-static int next_id = 0;
+static int next_id = 1;
 
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
@@ -329,50 +329,52 @@ GSList *img_import_slides_file_chooser(img_window_struct *img)
 	return slides;
 }
 
-void img_free_allocated_memory(img_window_struct *img_struct)
+void img_free_allocated_memory(img_window_struct *img)
 {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	media_struct *entry;
 
-	g_print("Nr of media: %d\n",img_struct->media_nr);
-	if (img_struct->media_nr)
+	g_print("Nr of media: %d\n",img->media_nr);
+	if (img->media_nr)
 	{
-		model = GTK_TREE_MODEL( img_struct->media_model );
+		model = GTK_TREE_MODEL( img->media_model );
 
 		gtk_tree_model_get_iter_first(model,&iter);
 		do
 		{
 			gtk_tree_model_get(model, &iter, 2, &entry,-1);
-			img_free_media_struct( entry );
+			img_free_media_struct(entry);
 		}
 		while (gtk_tree_model_iter_next (model,&iter));
-		gtk_list_store_clear(GTK_LIST_STORE(img_struct->media_model));
+		gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
+		
+		img_timeline_free_media((ImgTimeline*)img->timeline);
 	}
-	img_struct->media_nr = 0;
+	img->media_nr = 0;
 
 	/* Free gchar pointers */
-	if (img_struct->current_dir)
+	if (img->current_dir)
 	{
-		g_free(img_struct->current_dir);
-		img_struct->current_dir = NULL;
+		g_free(img->current_dir);
+		img->current_dir = NULL;
 	}
 	
-	if (img_struct->project_current_dir)
+	if (img->project_current_dir)
     {
-        g_free(img_struct->project_current_dir);
-        img_struct->project_current_dir = NULL;
+        g_free(img->project_current_dir);
+        img->project_current_dir = NULL;
     }
 
-	if (img_struct->project_filename)
+	if (img->project_filename)
 	{
-		g_free(img_struct->project_filename);
-		img_struct->project_filename = NULL;
+		g_free(img->project_filename);
+		img->project_filename = NULL;
 	}
-	if (img_struct->slideshow_filename)
+	if (img->slideshow_filename)
 	{
-		g_free(img_struct->slideshow_filename);
-		img_struct->slideshow_filename = NULL;
+		g_free(img->slideshow_filename);
+		img->slideshow_filename = NULL;
 	}
 }
 
@@ -1421,6 +1423,7 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 		cairo_surface_destroy( img->current_image );
 	img->current_image = NULL;
 	gtk_widget_queue_draw( img->image_area );
+	gtk_label_set_text(GTK_LABEL (img->current_time),"00:00:00");
 	gtk_label_set_text(GTK_LABEL (img->total_time),"00:00:00");
 
 	/* Reset slideshow properties */
@@ -1941,8 +1944,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 	gint	  i;
 	gboolean  max;
 
-	rc_file = g_build_filename( g_get_home_dir(), ".config",
-								"imagination", "imaginationrc", NULL );
+	rc_file = g_build_filename( g_get_home_dir(), ".config", "imagination", "imaginationrc", NULL);
 	if( ! g_file_test( rc_file, G_FILE_TEST_EXISTS ) )
 		return( FALSE );
 

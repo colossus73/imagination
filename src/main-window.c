@@ -899,10 +899,10 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->preview_hbox, TRUE, FALSE, 10);
 	gtk_widget_set_halign(GTK_WIDGET(img_struct->preview_hbox), GTK_ALIGN_CENTER);
 
-	img_struct->beginning_timer_label = gtk_label_new("00:00:00");
+	img_struct->current_time = gtk_label_new("00:00:00");
 	PangoFontDescription *new_size = pango_font_description_from_string("Sans 10");
-	gtk_widget_override_font(img_struct->beginning_timer_label, new_size);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->beginning_timer_label, FALSE, FALSE, 10);
+	gtk_widget_override_font(img_struct->current_time, new_size);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->current_time, FALSE, FALSE, 10);
 	
 	beginning = gtk_button_new_from_icon_name("go-first", GTK_ICON_SIZE_BUTTON);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), beginning, FALSE, FALSE, 5);
@@ -931,7 +931,8 @@ img_window_struct *img_create_window (void)
 
 	g_object_set(img_struct->timeline, "total_time",  36000, NULL); //10 hours max
 	gtk_widget_set_size_request(img_struct->timeline, 36000, -1);
-
+	//img_timeline_add_track(img_struct->timeline, 0, "#000000");
+	
 	gtk_widget_add_events(img_struct->timeline, 
                            GDK_POINTER_MOTION_MASK
                          | GDK_BUTTON_PRESS_MASK   
@@ -961,12 +962,12 @@ img_window_struct *img_create_window (void)
 	// Set up CSS styling
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
-        ".timeline-button { border-width: 0; outline-width: 0; background: #404040; padding: 0; margin: 0; }"
+        ".timeline-button { border-width: 0; outline-width: 0; background: #606060; padding: 0; margin: 0; }"
         ".timeline-button:focus { outline-width: 0; }"
         ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
         ".timeline-button:checked { border-top-color: #FFD700; border-bottom-color: #FFD700; }"
-        "tooltip  { background-color: #FAECC6; color: #454545;  font-weight: normal; border-width: 1px; border-radius: 5px; border-color: #f4d27b;}"
-        "tooltip * { color: black;  padding: 0; margin: 0 }", -1, NULL);
+        "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
+        "tooltip * {  color: #000000;  padding: 0; margin: 0 }", -1, NULL);
     
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(css_provider);
@@ -1339,11 +1340,11 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 	GtkTreeModel	*model;
 	GtkTreeIter iter;
 	GList *selected;
-	gint nr_selected;
+	gint deletion_count = 0;
 	media_struct *media;
 	media_timeline *item;
 	Track *track;
-	gboolean delete, media_on_timeline;
+	gboolean delete;
 
 	model = GTK_TREE_MODEL(img->media_model);
 	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
@@ -1358,6 +1359,7 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 		gtk_tree_model_get(model, &iter,2 ,&media, -1);
 		for (gint i = 0; i < priv->tracks->len; i++)
 		{
+			deletion_count = 0;
 			track = &g_array_index(priv->tracks, Track, i);
 			if (track->items)
 			{
@@ -1366,32 +1368,42 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 					item = g_array_index(track->items, media_timeline  *, q);
 					if (item->id == media->id)
 					{
-						gchar *msg = g_strdup_printf(_("The media <b>%s</b> is currently placed on the timeline. Deleting it will remove all of its instances from the timeline. " \
+						deletion_count++;
+						item->to_be_deleted = TRUE;
+					}
+				}
+				if (deletion_count > 0)
+				{
+					gchar *msg = g_strdup_printf(_("The media <b>%s</b> is currently placed on the timeline. Deleting it will remove all of its instances from the timeline. " \
 						"Are you sure you want to do this?"), media->full_path, NULL); 
-						int response = img_ask_user_confirmation( img, msg);
-						g_free(msg);
-						if (response == GTK_RESPONSE_OK)
+					int response = img_ask_user_confirmation( img, msg);
+					g_free(msg);
+					if (response == GTK_RESPONSE_OK)
+					{
+						g_print("%d to be delted\n",deletion_count);
+						for (gint q = track->items->len - 1; q >= 0; q--)
 						{
-							media_on_timeline = TRUE;
-							gtk_widget_destroy(item->button);
-							g_slice_free(media_timeline, item);
-							g_array_remove_index(track->items, q);
-							
-							img_free_media_struct(media);
-							img->media_nr--;
-							gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
-							img_taint_project(img);
+							item = g_array_index(track->items, media_timeline  *, q);
+							if (item->to_be_deleted)
+							{
+								gtk_widget_destroy(item->button);
+								g_array_remove_index(track->items, q);
+								g_free(item);
+							}
 						}
-						else
-							delete = FALSE;
+						//goto delete;
 					}
 					else
-						media_on_timeline = FALSE;
+					{
+						delete = FALSE;
+						break;
+					}
 				}
 			}
 		}
-		if (delete && ! media_on_timeline)
+		if (delete)
 		{
+delete:			
 			img_free_media_struct(media);
 			img->media_nr--;
 			gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
@@ -1399,7 +1411,7 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 		}
 		selected = selected->next;
 	}
-	g_list_free(selected);
+	g_list_free_full(selected, (GDestroyNotify)gtk_tree_path_free);
 }
 
 static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
@@ -1573,7 +1585,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
 	// The image area is resized too small
 	 
 	if (img->media_nr == 0)
-	 return FALSE;
+		return FALSE;
 	
 	vbox = gtk_widget_get_parent(GTK_WIDGET(img->image_area));
 	gtk_widget_get_allocation(vbox, &allocation);
@@ -1589,7 +1601,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
     img->image_area_zoom += zoom_change;
 
     // Constrain zoom factor to reasonable limits (e.g., between 0.1 and 1.0)
-    img->image_area_zoom = CLAMP(img->image_area_zoom, 0.1, 1);
+    img->image_area_zoom = CLAMP(img->image_area_zoom, 0.1, 1.0);
 
     // Calculate new dimensions while maintaining aspect ratio
     gint new_width = img->video_size[0] * img->image_area_zoom;
