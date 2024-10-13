@@ -931,7 +931,6 @@ img_window_struct *img_create_window (void)
 
 	g_object_set(img_struct->timeline, "total_time",  36000, NULL); //10 hours max
 	gtk_widget_set_size_request(img_struct->timeline, 36000, -1);
-	//img_timeline_add_track(img_struct->timeline, 0, "#000000");
 	
 	gtk_widget_add_events(img_struct->timeline, 
                            GDK_POINTER_MOTION_MASK
@@ -950,12 +949,12 @@ img_window_struct *img_create_window (void)
 	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, TRUE, FALSE);
 
 	g_signal_connect(img_struct->timeline, 	"drag-data-received",		G_CALLBACK(img_timeline_drag_data_received), img_struct);
-	g_signal_connect(img_struct->timeline,	"drag-motion", 				G_CALLBACK(img_timeline_drag_motion), img_struct->timeline);
-	g_signal_connect(img_struct->timeline, 	"drag-leave", 					G_CALLBACK(img_timeline_drag_leave), img_struct->timeline);
+	g_signal_connect(img_struct->timeline,	"drag-motion", 				G_CALLBACK(img_timeline_drag_motion), img_struct);
+	g_signal_connect(img_struct->timeline, 	"drag-leave", 					G_CALLBACK(img_timeline_drag_leave), img_struct);
 	//g_signal_connect(img_struct->timeline,	"drag-data-get",				G_CALLBACK(img_timeline_drag_data_get), img_struct->timeline); //
-	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct->timeline);
+	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct);
 	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct->timeline);
-	g_signal_connect(img_struct->timeline,	"motion-notify-event",	G_CALLBACK(img_timeline_motion_notify), img_struct->timeline);
+	g_signal_connect(img_struct->timeline,	"motion-notify-event",	G_CALLBACK(img_timeline_motion_notify), img_struct);
 	g_signal_connect(img_struct->timeline,	"key-press-event",			G_CALLBACK(img_timeline_key_press), img_struct);
 	g_signal_connect(img_struct->timeline,	"scroll-event",					G_CALLBACK(img_timeline_scroll_event), viewport);
 
@@ -1391,7 +1390,6 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 								g_free(item);
 							}
 						}
-						//goto delete;
 					}
 					else
 					{
@@ -1403,7 +1401,6 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 		}
 		if (delete)
 		{
-delete:			
 			img_free_media_struct(media);
 			img->media_nr--;
 			gtk_list_store_remove(GTK_LIST_STORE(model),&iter);

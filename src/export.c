@@ -168,9 +168,9 @@ static gboolean img_start_export( img_window_struct *img)
 	}
 	else
 	{
-		success = img_scale_image( entry->full_path, img->video_ratio,
-						 0, 0, FALSE,
-						 img->background_color, NULL, &img->image2 );
+		//~ success = img_scale_image( entry->full_path, img->video_ratio,
+						 //~ 0, 0, FALSE,
+						 //~ img->background_color, NULL, &img->image2 );
 	}
 
 	if (!success) {

@@ -795,9 +795,9 @@ static void img_rotate_selected_slides( img_window_struct *img,
 	if (info_slide->full_path != NULL)
 	{
 		cairo_surface_destroy( img->current_image );
-		img_scale_image( img->current_media->full_path, img->video_ratio,
-							 0, img->video_size[1], FALSE,
-							 img->background_color, NULL, &img->current_image );
+		//~ img_scale_image( img->current_media->full_path, img->video_ratio,
+							 //~ 0, img->video_size[1], FALSE,
+							 //~ img->background_color, NULL, &img->current_image );
 		
 		gtk_widget_queue_draw( img->image_area );
 	}
@@ -947,6 +947,15 @@ void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, 
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
 {
+	GdkPixbuf *pix = NULL;
+	GArray* active_media = NULL;
+	gdouble current_time;
+	gint media_type;
+	media_timeline* media;
+	const gchar *media_filename;
+
+	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
+{
 	/* If we're previewing or exporting, only paint frame that is being
 	 * currently produced. 
 	if( img->preview_is_running || img->export_is_running )
@@ -977,6 +986,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 								 FALSE,
 								 FALSE,
 								 1.0 ); */
+	}
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(img->image_area, &allocation);
 
@@ -992,6 +1002,31 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	cairo_rotate(cr, img->textbox->angle);
 	cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
 
+	// Get the list of active media on all tracks under the red needle
+	active_media = img_timeline_get_active_media(img->timeline, current_time);
+
+    // Sort active elements by track index (lower tracks drawn first)
+	g_array_sort(active_media, img_sort_tracks_ascendant);
+
+	// Draw all the active elements on the tracks
+	for (guint i = 0; i < active_media->len; i++)
+	{
+		media = g_array_index(active_media, media_timeline *, i);
+		media_filename = img_get_media_id_and_filename(img, media->id, &media_type);
+
+		switch (media_type)
+		{
+			case 0:
+				pix = gdk_pixbuf_new_from_file_at_scale (media_filename, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, FALSE, NULL);
+				gdk_cairo_set_source_pixbuf(cr, pix, 0,0);
+				cairo_paint(cr);
+			break;
+		}
+	}
+        
+	g_array_free(active_media, FALSE);
+	
+	
 	if (img->textbox->visible)
 	{
 		// Draw the angle
@@ -1430,6 +1465,9 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	img->background_color[0] = 0;
 	img->background_color[1] = 0;
 	img->background_color[2] = 0;
+	
+	// This is neede to reset the id counter when loading a new slideshow without quitting Imagination
+	next_id = 1;
 }
 
 /*
@@ -1881,7 +1919,9 @@ gboolean img_save_window_settings( img_window_struct *img )
 	GKeyFile *kf;
 	gchar    *group = "Interface settings";
 	gchar    *rc_file, *rc_path, *contents;
-	int       w, h, g, f; /* Width, height, gutter, flags */
+	/* Width, height, gutter, flags, time marker */
+	int       w, h, g, f;
+	gdouble current_time;
 	gboolean  max;
 
 	recent_files = g_ptr_array_new();
@@ -1904,7 +1944,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 		w -= 100;
 		h -= 100;
 	}
-
+	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
 	kf = g_key_file_new();
 	g_key_file_set_integer( kf, group, "width",   w );
 	g_key_file_set_integer( kf, group, "height",  h );
@@ -1913,7 +1953,8 @@ gboolean img_save_window_settings( img_window_struct *img )
 	g_key_file_set_integer( kf, group, "image_area_width",   gtk_widget_get_allocated_width(img->image_area));
 	g_key_file_set_integer( kf, group, "image_area_height",  gtk_widget_get_allocated_height(img->image_area));
 	g_key_file_set_boolean( kf, group, "max",     max );
-	g_key_file_set_integer( kf, group, "preview", img->preview_fps );
+	g_key_file_set_double( kf, group, "time_marker_pos",  current_time);
+	g_key_file_set_integer( kf, group, "preview", img->preview_fps);
 	g_key_file_set_string_list(kf, group, "recent_files", (const gchar * const *)recent_files->pdata, recent_files->len);
 
 	rc_path = g_build_filename( g_get_home_dir(), ".config", "imagination", NULL );
@@ -1943,6 +1984,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 	gint      w, h, g, w2,h2;
 	gint	  i;
 	gboolean  max;
+	gdouble current_time;
 
 	rc_file = g_build_filename( g_get_home_dir(), ".config", "imagination", "imaginationrc", NULL);
 	if( ! g_file_test( rc_file, G_FILE_TEST_EXISTS ) )
@@ -1951,14 +1993,15 @@ gboolean img_load_window_settings( img_window_struct *img )
 	kf = g_key_file_new();
 	g_key_file_load_from_file( kf, rc_file, G_KEY_FILE_NONE, NULL );
 
-	w                    = g_key_file_get_integer( kf, group, "width",   NULL );
-	h                    = g_key_file_get_integer( kf, group, "height",  NULL );
-	g                    = g_key_file_get_integer( kf, group, "paned",  NULL );
+	w                   	= g_key_file_get_integer( kf, group, "width",   NULL );
+	h                    	= g_key_file_get_integer( kf, group, "height",  NULL );
+	g                    	= g_key_file_get_integer( kf, group, "paned",  NULL );
 	img->image_area_zoom = g_key_file_get_double(  kf, group, "zoom_p",  NULL );
-	w2                  = g_key_file_get_integer( kf, group, "image_area_width",   NULL );
-	h2                  = g_key_file_get_integer( kf, group, "image_area_height",  NULL );
-	max                = g_key_file_get_boolean( kf, group, "max",     NULL );
-	recent_files	 	= g_key_file_get_string(  kf, group, "recent_files", NULL);
+	w2                  	= g_key_file_get_integer( kf, group, "image_area_width",   NULL );
+	h2                  	= g_key_file_get_integer( kf, group, "image_area_height",  NULL );
+	max                	= g_key_file_get_boolean( kf, group, "max",     					NULL );
+	current_time  	= g_key_file_get_double( kf, group, "time_marker_pos",     NULL );
+	recent_files	 	= g_key_file_get_string(  kf, group, "recent_files", 				NULL);
 
 	if (recent_files)
 	{
@@ -2001,6 +2044,8 @@ gboolean img_load_window_settings( img_window_struct *img )
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
+	g_print("%12.19f\n",current_time);
+	img_timeline_set_time_marker((ImgTimeline *)img->timeline, current_time);
 	gtk_widget_set_size_request(img->image_area, w2, h2);
 
 	return TRUE;
@@ -2243,9 +2288,9 @@ void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img)
 	if (info_slide->full_path != NULL)
 	{
 		cairo_surface_destroy( img->current_image );
-		img_scale_image( img->current_media->full_path, img->video_ratio,
-							 0, img->video_size[1], FALSE,
-							 img->background_color, NULL, &img->current_image );
+		//~ img_scale_image( img->current_media->full_path, img->video_ratio,
+							 //~ 0, img->video_size[1], FALSE,
+							 //~ img->background_color, NULL, &img->current_image );
 		
 		gtk_widget_queue_draw( img->image_area );
 	}

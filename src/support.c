@@ -611,213 +611,6 @@ gint img_calc_slide_duration_points( GList *list, gint   length )
 	return( duration );
 }
 
-/*
- * img_scale_image:
- *
- * This function should be called for all image loading needs. It'll properly
- * scale and trim loaded images, add borders if needed and return surface or
- * pixbuf of requested size.
- *
- * If one of the size requests is 0, the other one will be calculated from
- * first one with aspect ratio calculation. If both dimensions are 0, image
- * will be loaded from disk at original size (this is mainly used for export,
- * when we want to have images at their best quality).
- *
- * Return value: TRUE if image loading succeded, FALSE otherwise.
- */
-gboolean
-img_scale_image( const gchar      *filename,
-				 gdouble           ratio,
-				 gint              width,
-				 gint              height,
-				 gboolean          distort,
-				 gdouble          *color,
-				 GdkPixbuf       **pixbuf,
-				 cairo_surface_t **surface )
-{
-	GdkPixbuf *loader;             /* Pixbuf used for loading */
-	gint       i_width, i_height;  /* Image dimensions */
-	gint       offset_x, offset_y; /* Offset values for borders */
-	gdouble    i_ratio;            /* Export and image aspect ratios */
-	gdouble    skew;               /* Transformation between ratio and
-											 i_ratio */
-	GError     *error = NULL;
-	gboolean   transform = FALSE;  /* Flag that controls scalling */
-
-	/* MAximal distortion values */
-	gdouble max_stretch = 0.1280;
-	gdouble max_crop    = 0.8500;
-
-	/* Borderline skew values */
-	gdouble max_skew = ( 1 + max_stretch ) / max_crop;
-	gdouble min_skew = ( 1 - max_stretch ) * max_crop;
-
-	/* Obtain information about image being loaded */
-	if (!filename) {
-	    return FALSE;
-	}
-	if (!gdk_pixbuf_get_file_info( filename, &i_width, &i_height )) {
-	    g_message("Cannot load image info from %s", filename);
-	    return FALSE;
-	}
-
-	/* How distorted images would be if we scaled them */
-	i_ratio = (gdouble)i_width / i_height;
-	skew = ratio / i_ratio;
-
-	if( width > 0 )
-	{
-		/* Calculate height according to width */
-		height = width / ratio;
-	}
-	else if( height > 0 )
-	{
-		/* Calculate width from height */
-		width = height * ratio;
-	}
-	else
-	{
-		if( ( ! distort )       || /* Don't distort */
-			( skew > max_skew ) || /* Image is too wide */
-			( skew < min_skew )  ) /* Image is too tall */
-		{
-			/* User doesn't want images to be distorted or distortion would be
-			 * too intrusive. */
-			if( ratio < i_ratio )
-			{
-				/* Borders will be added on left and right */
-				width = i_width;
-				height = width / ratio;
-			}
-			else
-			{
-				/* Borders will be added on top and bottom */
-				height = i_height;
-				width = height * ratio;
-			}
-		}
-		else
-		{
-			/* User wants images to be distorted and we're able to do it
-			 * without ruining images. */
-			if( ratio < i_ratio )
-			{
-				/* Image will be distorted horizontally */
-				height = i_height;
-				width = height * ratio;
-			}
-			else
-			{
-				/* Image will be distorted vertically */
-				width = i_width;
-				height = width / ratio;
-			}
-		}
-	}
-
-	transform = distort && skew < max_skew && skew > min_skew &&
-				( i_width >= width || i_height >= height );
-
-	/* Load image into pixbuf at proper size */
-	if( transform )
-	{
-		gint lw, lh;
-
-		/* Images will be loaded at slightly modified dimensions */
-		if( ratio < i_ratio )
-		{
-			/* Horizontal scaling */
-			lw = (gdouble)width / ( skew + 1 ) * 2;
-			lh = height;
-		}
-		else
-		{
-			/* Vertical scaling */
-			lw = width;
-			lh = (gdouble)height * ( skew + 1 ) / 2;
-		}
-		loader = gdk_pixbuf_new_from_file_at_scale( filename, lw, lh, FALSE, &error );
-	}
-	else
-	{
-		/* Simply load image into pixbuf at size */
-		loader = gdk_pixbuf_new_from_file_at_size( filename, width, height, &error );
-	}
-	if( ! loader ) {
-		g_message( "While loading image data from %s: %s.", filename, error->message );
-		g_error_free( error );
-		return( FALSE );
-	}
-
-	i_width  = gdk_pixbuf_get_width( loader );
-	i_height = gdk_pixbuf_get_height( loader );
-
-	/* Calculate offsets */
-	offset_x = ( width - i_width ) / 2;   /* CAN BE NEGATIVE!!! */
-	offset_y = ( height - i_height ) / 2; /* CAN BE NEGATIVE!!! */
-
-	/* Prepare output
-	 *
-	 * We can give two different output formats: cairo_surface_t and GdkPixbuf.
-	 */
-	if( pixbuf )
-	{
-		/* Create new pixbuf with loaded image */
-		GdkPixbuf *tmp_pix;   /* Pixbuf used for loading */
-		guint32    tmp_color; /* Background color */
-
-		tmp_color = ( (gint)( color[0] * 0xff ) << 24 ) |
-					( (gint)( color[1] * 0xff ) << 16 ) |
-					( (gint)( color[2] * 0xff ) <<  8 );
-		tmp_pix = gdk_pixbuf_new( GDK_COLORSPACE_RGB, FALSE, 8, width, height );
-		gdk_pixbuf_fill( tmp_pix, tmp_color );
-		gdk_pixbuf_composite( loader, tmp_pix,
-							  MAX( 0, offset_x ), MAX( 0, offset_y ),
-							  MIN( i_width, width ), MIN( i_height, height ),
-							  offset_x, offset_y, 1, 1,
-							  GDK_INTERP_BILINEAR, 255 );
-
-		*pixbuf = tmp_pix;
-	}
-	if( surface )
-	{
-		/* Paint surface with loaded image
-		 * 
-		 * If image cannot be scalled, transform is FALSE. In this case, just
-		 * borders are added. If transform is not 0, than scale image before
-		 * painting it. */
-		cairo_t         *cr;       /* Cairo, used to transform image */
-		cairo_surface_t *tmp_surf; /* Surface to draw on */
-
-		/* Create image surface with proper dimensions */
-		tmp_surf = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-											   width, height );
-
-		cr = cairo_create( tmp_surf );
-		
-		if( ! transform )
-		{
-			/* Fill with background color */
-			cairo_set_source_rgb( cr, color[0], color[1], color[2] );
-			cairo_paint( cr );
-		}
-		
-		/* Paint image */
-		gdk_cairo_set_source_pixbuf( cr, loader, offset_x, offset_y );
-		cairo_paint( cr );
-		
-		cairo_destroy( cr );
-
-		/* Return surface */
-		*surface = tmp_surf;
-	}
-
-	/* Free temporary pixbuf */
-	g_object_unref( G_OBJECT( loader ) );
-
-	return( TRUE );
-}
-
 void img_taint_project(img_window_struct *img)
 {
     if (!img->project_is_modified) {
@@ -1365,4 +1158,27 @@ gint find_nearest_major_tick(gint pixels_per_second, gint x)
     gint nearest_tick = round(x / tick_pixels) * tick_pixels;
     
     return nearest_tick;
+}
+
+const gchar *img_get_media_id_and_filename(img_window_struct *img, gint id, gint *media_type)
+{
+	GtkTreeIter iter;
+	const gchar *filename;
+	media_struct *entry;
+
+	if( gtk_tree_model_get_iter_first(GTK_TREE_MODEL(img->media_model), &iter) )
+	{
+		do
+		{
+			gtk_tree_model_get(GTK_TREE_MODEL(img->media_model), &iter, 2, &entry, -1);
+			if (entry->id == id)
+			{
+				*media_type = entry->media_type;
+				return entry->full_path;
+			}
+		}
+		while( gtk_tree_model_iter_next(GTK_TREE_MODEL(img->media_model), &iter) );
+	}
+	
+	return NULL; 
 }

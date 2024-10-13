@@ -175,16 +175,16 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 		g_key_file_set_boolean(img_key_file, conf, "is_default", track->is_default);
 		if (track->items)
 		{
-			for (gint q = 0; q < track->items->len; q++)
+			GString *string_values = g_string_new(NULL);
+			if (track->items->len > 0)
 			{
-				item = g_array_index(track->items, media_timeline  *, q);
-				gchar *string = g_strdup_printf("media_%d", item->id);
-				gint values[3];
-				values[0] = item->id;
-				values[1] = item->start_time;
-				values[2] = item->duration;
-				g_key_file_set_integer_list(img_key_file, conf, string, values, 3);
-				g_free(string);
+				for (gint q = 0; q < track->items->len; q++)
+				{
+					item = g_array_index(track->items, media_timeline  *, q);
+					g_string_append_printf(string_values, "%d;%d;%d;", item->id, item->start_time, item->duration);
+				}
+				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
+				g_string_free(string_values, TRUE);
 			}
 		}
 		g_free(conf);
@@ -216,11 +216,10 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 	GtkTreeIter 				iter;
 	GKeyFile 					*img_key_file;
 	gchar 						*dummy, *media_filename, *time, *mime_type, *full_path = NULL, *subtitle = NULL, *pattern_name = NULL, *font_desc, *background_color;
-	gchar      					*spath, *conf, *conf2, *project_current_dir;
-	gchar						**keys;
+	gchar      					*spath, *conf, *conf2, *project_current_dir, *value_string;
+	gchar						**values;
 	GtkWidget 				*dialog, *menu;
 	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, width;
-	gint							*values;
 	GtkTreeModel 		*model;
 	void 						(*render);
 	GHashTable 			*table;
@@ -535,45 +534,47 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 			background_color = (number == 0) ? "#CCCCFF" : "#d6d1cd";
 			img_timeline_add_track(img->timeline, number, background_color); 
 		}
-		keys = g_key_file_get_keys(img_key_file, conf, &num_keys, NULL);
-		for (int q = 0; q < num_keys; q++)
+		value_string = g_key_file_get_string(img_key_file, conf, "media_sequence", NULL);
+
+		// If no media are placed on track process next one
+		if (value_string == NULL)
+			continue;
+
+		values = g_strsplit(value_string, ";", -1);
+		number = g_strv_length(values);
+		for (gsize q = 0; q < number -2 ; q+=3)
 		{
-			if (g_str_has_prefix(keys[q], "media_"))
-			{
-				track = &g_array_index(priv->tracks, Track, i);
-				values = g_key_file_get_integer_list(img_key_file, conf, keys[q], NULL, NULL);
-				
-				item = g_new0(media_timeline, 1);
-				item->id = values[0];
-				item->start_time = values[1];
-				item->duration = values[2];
-				g_array_append_val(track->items, item);
-				g_free(values);
+			track = &g_array_index(priv->tracks, Track, i);
+			item = g_new0(media_timeline, 1);
+			item->id 				=	g_ascii_strtoll(values[q+0], NULL, 10);
+			item->start_time =	g_ascii_strtoll(values[q+1], NULL, 10);
+			item->duration 	=	g_ascii_strtoll(values[q+2], NULL, 10);
+			g_array_append_val(track->items, item);
 
-				// Read the media filename again to create the image in the toggle button
-				conf2 = g_strdup_printf("media %d", item->id);
-				media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
-				media_type = g_key_file_get_integer(img_key_file, conf2, "media_type",  NULL);
-				g_free(conf2);
+			// Read the media filename and type again to create the image in the toggle button
+			conf2 = g_strdup_printf("media %d", item->id);
+			media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
+			media_type = g_key_file_get_integer(img_key_file, conf2, "media_type",  NULL);
+			g_free(conf2);
 				
-				img_timeline_create_toggle_button(item, media_type, media_filename, img);
-				g_free(media_filename);
+			img_timeline_create_toggle_button(item, media_type, media_filename, img);
+			g_free(media_filename);
 				
-				//Position the toggle button in the timeline
-				width = item->duration * BASE_SCALE * priv->zoom_scale;
-				gtk_widget_set_size_request(item->button, width, 50);
+			//Position the toggle button in the timeline
+			width = item->duration * BASE_SCALE * priv->zoom_scale;
+			gtk_widget_set_size_request(item->button, width, 50);
 				
-				posx = item->start_time * BASE_SCALE *priv->zoom_scale;
-				if (i == 0)
-					posy = 32;
-				else
-					posy += TRACK_HEIGHT + TRACK_GAP;
+			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
+			if (i == 0)
+				posy = 32;
+			else
+				posy += TRACK_HEIGHT + TRACK_GAP;
 
-				gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
-				item->y = posy;
-				item->old_x = posx;
-			}
+			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
+			item->y = posy;
+			item->old_x = posx;
 		}
+		g_strfreev(values);
 		g_free(conf);
 	}
 	

@@ -19,7 +19,6 @@
 #include "img_timeline.h"
 #include "callbacks.h"
 
-static guint timeline_signals[N_SIGNALS] = { 0 };
 static int next_order = 0;
 
 //Private functions.
@@ -49,16 +48,7 @@ static void img_timeline_class_init(ImgTimelineClass *klass)
 	widget_class->draw = img_timeline_draw;
 
 	g_object_class_install_property(object_class, TOTAL_TIME,       			g_param_spec_int		("total_time", "total_time", "total_time", 0, G_MAXINT, 60, G_PARAM_READWRITE));
-	g_object_class_install_property(object_class, TIME_MARKER_POS, 	g_param_spec_int		("time_marker_pos", "Time Marker Position", "Position of the time marker", 0, G_MAXINT, 0, G_PARAM_READWRITE));
-
-	// Install signals
-    timeline_signals[SIGNAL_TIME_CHANGED] = g_signal_new("time-changed",
-        G_TYPE_FROM_CLASS(klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL,
-        g_cclosure_marshal_VOID__INT,
-        G_TYPE_NONE, 1, G_TYPE_INT);
+	g_object_class_install_property(object_class, TIME_MARKER_POS, 	g_param_spec_double("time_marker_pos", "Time Marker Position", "Position of the time marker", 0, G_MAXDOUBLE, 0, G_PARAM_READWRITE));
 }
 
 static void img_timeline_init(ImgTimeline *timeline)
@@ -69,7 +59,7 @@ static void img_timeline_init(ImgTimeline *timeline)
     priv->zoom_scale = 6.12;
     priv->pixels_per_second = 61.2;
     priv->total_time = 0;
-    priv->time_marker_pos = 0;
+    priv->time_marker_pos = 0.0;
 	priv->tracks = g_array_new(FALSE, TRUE, sizeof(Track));
 
 	// Add default image and audio tracks
@@ -102,7 +92,7 @@ static void img_timeline_set_property(GObject *object, guint prop_id, const GVal
 			img_timeline_set_total_time(da, g_value_get_int(value));
 		break; 
 		case TIME_MARKER_POS:
-			img_timeline_set_time_marker(da, g_value_get_int(value));
+			img_timeline_set_time_marker(da, g_value_get_double(value));
 		break;
 
 		default:
@@ -118,19 +108,18 @@ void img_timeline_set_total_time(ImgTimeline *da, gint total_time)
 	priv->total_time = total_time;
 }
 
-void img_timeline_set_time_marker(ImgTimeline *timeline, gint posx)
+void img_timeline_set_time_marker(ImgTimeline *timeline, gdouble posx)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
 
 	priv->time_marker_pos = posx;
 	gtk_widget_queue_draw(GTK_WIDGET(timeline));
-    
-	g_signal_emit(timeline, timeline_signals[SIGNAL_TIME_CHANGED], 0, posx);
 }
 
 ImgTimelinePrivate *img_timeline_get_private_struct(GtkWidget *timeline)
 {
 	ImgTimelinePrivate *priv =  img_timeline_get_instance_private((ImgTimeline*)timeline);
+	
 	return priv;
 }
 
@@ -143,6 +132,10 @@ static void img_timeline_get_property(GObject *object, guint prop_id, GValue *va
 	{
 		case TOTAL_TIME:
 			g_value_set_int(value, priv->total_time);
+		break;
+
+		case TIME_MARKER_POS:
+			g_value_set_double(value, (priv->time_marker_pos / priv->pixels_per_second) + 0.1);
 		break;
 
 		default:
@@ -314,7 +307,7 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	item = g_new0(media_timeline, 1);
 	item->id = entry->id;
 	
-	item->start_time = floor((gdouble)x / (BASE_SCALE * priv->zoom_scale) * 1000) / 1000;
+	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
 	item->duration = (entry->media_type == 1) ? img_convert_time_string_to_seconds(entry->audio_duration) : 2; 	// Default to 2 seconds
 	
 	img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
@@ -400,7 +393,7 @@ void img_timeline_add_track(GtkWidget *timeline, gint type, gchar *hexcode)
 	new_track.is_selected = FALSE;
 	new_track.is_default = FALSE;
 	new_track.order = next_order++;
-	new_track.items = g_array_new(FALSE, TRUE, sizeof(media_timeline));
+	new_track.items = g_array_new(FALSE, TRUE, sizeof(media_timeline *));
 	new_track.background_color = hexcode;
 	g_array_append_val(priv->tracks, new_track);
 	
@@ -454,24 +447,17 @@ void img_timeline_media_drag_data_get(GtkWidget *widget, GdkDragContext *drag_co
 	g_print("Drag data get\n");
 }
 
-void img_timeline_adjust_marker_posx(GtkWidget *da, gint posx)
+gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *event, img_window_struct *img)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
-
-	priv->time_marker_pos = posx;
-	gtk_widget_queue_draw((GtkWidget*)da);
-}
-
-gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *event, ImgTimeline *da)
-{
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
 	if (event->y < 12.0 || event->y > 32.0)
 		return FALSE;
 
 	if (event->button == 1)
 	{
 		priv->button_pressed_on_needle = TRUE;
-		img_timeline_adjust_marker_posx(timeline, event->x - 5);
+		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
+		gtk_widget_queue_draw(img->image_area);
 	}
 	return TRUE;
 }
@@ -517,13 +503,15 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 	return TRUE;
 }
 
-gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, ImgTimeline *da)
+gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, img_window_struct *img)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private(da);
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)timeline);
 
 	if (priv->button_pressed_on_needle)
-			img_timeline_adjust_marker_posx(timeline, event->x - 5);
-
+	{
+		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
+		gtk_widget_queue_draw(img->image_area);
+	}
    return TRUE;
 }
 
@@ -886,7 +874,7 @@ void img_timeline_free_media(ImgTimeline *timeline)
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
 		track = &g_array_index(priv->tracks, Track, i);
-		if (track->items)
+		if (track->items->len > 0)
 		{
 			for (gint q = track->items->len - 1; q >= 0; q--)
 			{
@@ -897,4 +885,44 @@ void img_timeline_free_media(ImgTimeline *timeline)
 			}
 		}
 	}
+}
+
+GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+    Track *track;
+    GArray* active_elements;
+    media_timeline *item;
+	double item_end;
+
+    active_elements = g_array_new(FALSE, FALSE, sizeof(media_timeline *));
+    for (gint i = 0; i < priv->tracks->len; i++)
+    {
+        track = &g_array_index(priv->tracks, Track, i);
+		if (track == NULL)
+			return  NULL;
+
+        for (gint j = 0; j < track->items->len; j++)
+        {
+            item = g_array_index(track->items, media_timeline *, j);
+			item_end = item->start_time + item->duration;
+			//g_print("**\n");
+            if (current_time >= item->start_time && current_time < item_end)
+            {
+				//g_print("Inserisco %d\n",item->id);
+                item->track_index = track->order;
+                g_array_append_val(active_elements, item);
+            }
+        }
+    }
+    return active_elements;
+}
+
+// Compare function for sorting elements by track index
+gint img_sort_tracks_ascendant(gconstpointer a, gconstpointer b)
+{
+    const media_timeline* elem_a = a;
+    const media_timeline* elem_b = b;
+
+    return elem_a->track_index - elem_b->track_index;
 }

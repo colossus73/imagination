@@ -48,8 +48,6 @@
 #  define N_(String) (String)
 #endif
 
-#define BASE_SCALE 10
-
 GtkWidget *img_load_icon(gchar *, GtkIconSize );
 gchar *img_convert_seconds_to_time(gint );
 GtkWidget *_gtk_combo_box_new_text(gint);
@@ -96,19 +94,9 @@ void img_set_slide_ken_burns_info( media_struct *slide,
 void img_free_media_struct( media_struct * );
 void img_save_relative_filenames(GtkCheckButton *togglebutton, img_window_struct *img);
 gint img_calc_slide_duration_points( GList *list, gint   length );
-
-gboolean img_scale_image( const gchar      *filename,
-				 gdouble           ratio,
-				 gint              width,
-				 gint              height,
-				 gboolean          distort,
-				 gdouble          *color,
-				 GdkPixbuf       **pixbuf,
-				 cairo_surface_t **surface );
-
+GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 void img_taint_project(img_window_struct *);
 void img_sync_timings( media_struct  *, img_window_struct * );
-GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 
 gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					gdouble          *p_start,
@@ -132,5 +120,6 @@ void to_upper(gchar **);
 gint img_convert_time_string_to_seconds(gchar *);
 gchar *img_convert_time_to_string(gint );
 gint find_nearest_major_tick(gint, gint x);
+const gchar *img_get_media_id_and_filename(img_window_struct *, gint, gint *);
 
 #endif
