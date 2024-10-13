@@ -25,7 +25,7 @@ GtkWidget		*height;
 void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property)
 {
 	GtkListStore	*liststore;
-	GtkTreeIter 	iter;
+	GtkTreeIter 		iter;
 	GtkWidget		*dialog1;
 	GtkWidget		*dialog_vbox1;
 	GtkWidget		*vbox1;
@@ -41,16 +41,16 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	GtkWidget		*image;
 	GdkRGBA   		color;
 	GdkPixbuf		*icon_pixbuf;
-	gint       		response;
-	gchar			*title;
-    gboolean		c_color;
+	gint       			response, old_width, old_height;
+	gchar				*title;
+    gboolean			c_color;
 
     if (property)
-		title = _("<b><span font='13'>Edit the slideshow</span></b>");
+		title = _("<b><span font='13'>Edit the project</span></b>");
 	else
-		title = _("<b><span font='13'>Create a new slideshow</span></b>");
+		title = _("<b><span font='13'>Create a new project</span></b>");
 	
-	dialog1 = gtk_dialog_new_with_buttons(_("Slideshow settings"),
+	dialog1 = gtk_dialog_new_with_buttons(_("Project settings"),
 										GTK_WINDOW(img->imagination_window),
 										GTK_DIALOG_DESTROY_WITH_PARENT,
 										"_Cancel", GTK_RESPONSE_CANCEL,
@@ -166,12 +166,13 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 		img->background_color[0] = (gdouble)new.red;
 		img->background_color[1] = (gdouble)new.green;
 		img->background_color[2] = (gdouble)new.blue;
-		c_color = ( color.red   != new.red   ) ||
-				  ( color.green != new.green ) ||
-				  ( color.blue  != new.blue  );
-
-	if (c_color)
-		img_taint_project(img);
+		c_color = ( color.red   != new.red   ) ||  ( color.green != new.green ) || ( color.blue  != new.blue  );
+	
+		if (old_width != img->video_size[0] || old_height != img->video_size[1])
+			img_taint_project(img);
+		
+		if (c_color)
+			img_taint_project(img);
 	}
 
 	img_zoom_fit(NULL, img);

@@ -106,6 +106,8 @@ void img_timeline_add_track						(GtkWidget *, gint, gchar *);
 void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint, gint);
 void img_timeline_set_time_marker			(ImgTimeline *, gdouble );
 void img_timeline_free_media						(ImgTimeline *);
+void img_timeline_delete_additional_tracks(ImgTimeline *);
+void img_timeline_center_button_image		(GtkWidget *);
 GArray *img_timeline_get_active_media		(GtkWidget *, double );
 gint img_sort_tracks_ascendant					(gconstpointer , gconstpointer );
 

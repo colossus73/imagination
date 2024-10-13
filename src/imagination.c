@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
 
 	/* Reads the arguments passed from the cmd line */
  	if (argc > 1)
-		img_load_slideshow( img_window, NULL, argv[1] );
+		img_load_project( img_window, NULL, argv[1] );
 
 	gtk_main ();
 

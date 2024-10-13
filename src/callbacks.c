@@ -35,16 +35,16 @@ static void img_rotate_selected_slides( img_window_struct *, gboolean );
 
 static void img_update_textbox_boundaries(img_window_struct *img)
 {
-    int width = gtk_widget_get_allocated_width(img->image_area);
-    int height = gtk_widget_get_allocated_height(img->image_area);
+	int width = gtk_widget_get_allocated_width(img->image_area);
+	int height = gtk_widget_get_allocated_height(img->image_area);
 
 	pango_layout_get_size(img->textbox->layout, &img->textbox->lw, &img->textbox->lh);
 	
 	img->textbox->lw /= PANGO_SCALE;
 	img->textbox->lh /= PANGO_SCALE;
   
-    // Adjust textbox width and height if needed
-    if (img->textbox->lw > img->textbox->width - 15 && img->textbox->lw + 50 <= width)
+	// Adjust textbox width and height if needed
+	if (img->textbox->lw > img->textbox->width - 15 && img->textbox->lw + 50 <= width)
 		img->textbox->width = img->textbox->lw + 50;
 	
 	if (img->textbox->lh > img->textbox->height && img->textbox->lh + 20 <= height)
@@ -62,12 +62,12 @@ img_image_area_change_zoom( gdouble            step,
 gboolean img_can_discard_unsaved_project(img_window_struct *img) {
 	if (!img->project_is_modified)
 	{
-	    return TRUE;
+		return TRUE;
 	}
 	int response = img_ask_user_confirmation( img,
 		_("You didn't save your slideshow yet.\nAre you sure you want to close it?"));
 	if (response == GTK_RESPONSE_OK)
-	    return TRUE;
+		return TRUE;
 	return FALSE;
 }
 
@@ -83,7 +83,7 @@ void img_refresh_window_title(img_window_struct *img)
 	}
 	else
 	{
-	    gchar *name = g_path_get_basename( img->project_filename );
+		gchar *name = g_path_get_basename( img->project_filename );
 		title = g_strconcat(
 			img->project_is_modified ? "*" : "",
 			name,
@@ -98,10 +98,10 @@ void img_refresh_window_title(img_window_struct *img)
 
 void img_new_slideshow(GtkMenuItem *item, img_window_struct *img_struct)
 {
-    if (!img_can_discard_unsaved_project(img_struct))
+	if (!img_can_discard_unsaved_project(img_struct))
 		return;
 
-    img_new_slideshow_settings_dialog(img_struct, FALSE);
+	img_new_slideshow_settings_dialog(img_struct, FALSE);
 }
 
 void img_project_properties(GtkMenuItem *item, img_window_struct *img_struct)
@@ -127,37 +127,37 @@ void img_detect_media_orientation_from_pixbuf(GdkPixbuf *image, gboolean *flippe
 
 	/* The meaning of orientation values 1-8 and the required transforms
 	   are defined by the TIFF and EXIF (for JPEGs) standards. */
-        switch (transform) {
+		switch (transform) {
 	case 1:
-	    break;
-        case 2:
-	    *flipped = TRUE;
-	    break;
-        case 3:
-	    *angle = ANGLE_180;
-	    break;
-        case 4:
-	    *angle = ANGLE_180;
-	    *flipped = TRUE;
-	    break;
-        case 5:
-	    *angle = ANGLE_90;
-	    /* cannot flip image vertically */
-	    break;
-        case 6:
-	    *angle = ANGLE_270;
-	    break;
-        case 7:
-	    *angle = ANGLE_270;
-	    /* cannot flip image vertically */
-	    break;
-        case 8:
-	    *angle = ANGLE_90;
-	    break;
+		break;
+		case 2:
+		*flipped = TRUE;
+		break;
+		case 3:
+		*angle = ANGLE_180;
+		break;
+		case 4:
+		*angle = ANGLE_180;
+		*flipped = TRUE;
+		break;
+		case 5:
+		*angle = ANGLE_90;
+		/* cannot flip image vertically */
+		break;
+		case 6:
+		*angle = ANGLE_270;
+		break;
+		case 7:
+		*angle = ANGLE_270;
+		/* cannot flip image vertically */
+		break;
+		case 8:
+		*angle = ANGLE_90;
+		break;
 	default:
-	    /* if no orientation tag was present */
-	    break;
-        }
+		/* if no orientation tag was present */
+		break;
+		}
 }
 
 void img_add_media_items(GtkMenuItem *item, img_window_struct *img)
@@ -235,14 +235,14 @@ gboolean img_add_media(gchar *full_path, img_window_struct *img)
 	gtk_list_store_append (img->media_model, &iter);
 
 	switch (media_info->media_type)
-    {
+	{
 		case 0:
 			format = gdk_pixbuf_get_file_info(full_path, &media_info->width, &media_info->height);
 			media_info->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
 			to_upper(&media_info->image_type);
 			/* to get the orientation tag, load a tiny version of the image */
 			thumb = gdk_pixbuf_new_from_file_at_size(full_path, 1, 1, NULL);
-    		img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
+			img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
 			g_object_unref(thumb);
 			pb = gdk_pixbuf_new_from_file_at_scale(full_path, 120, 60, TRUE, NULL);
 			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media_info, -1);
@@ -259,7 +259,7 @@ gboolean img_add_media(gchar *full_path, img_window_struct *img)
 	g_free(filename);
 	
 next_media:
-	    g_free(mime_type);
+		g_free(mime_type);
 		g_object_unref(file_info);
 		g_object_unref(file);
 
@@ -350,6 +350,7 @@ void img_free_allocated_memory(img_window_struct *img)
 		gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
 		
 		img_timeline_free_media((ImgTimeline*)img->timeline);
+		img_timeline_delete_additional_tracks((ImgTimeline*)img->timeline);
 	}
 	img->media_nr = 0;
 
@@ -361,10 +362,10 @@ void img_free_allocated_memory(img_window_struct *img)
 	}
 	
 	if (img->project_current_dir)
-    {
-        g_free(img->project_current_dir);
-        img->project_current_dir = NULL;
-    }
+	{
+		g_free(img->project_current_dir);
+		img->project_current_dir = NULL;
+	}
 
 	if (img->project_filename)
 	{
@@ -418,22 +419,22 @@ gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_win
 	gboolean ctrl_pressed;
 	
 	if (!img->textbox->visible)
-        return FALSE;
+		return FALSE;
 
 	shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
 	ctrl_pressed = (event->state & GDK_CONTROL_MASK) != 0;
 
 	
 	switch (event->keyval)
-    {
+	{
 		case GDK_KEY_a:
 		case GDK_KEY_A:
-         if (ctrl_pressed)
-         {
+		 if (ctrl_pressed)
+		 {
 			img->textbox->selection_start = 0;
 			img->textbox->selection_end = img->textbox->text->len;
-         }
-        else
+		 }
+		else
 			goto handle;
 		break;
 	
@@ -486,30 +487,30 @@ gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_win
 				 img->textbox->selection_start = img->textbox->selection_end = -1; 
 		}
 		break;
-   		
-   		case GDK_KEY_Up:
+		
+		case GDK_KEY_Up:
 		case GDK_KEY_Down:
-            int index, trailing;
-            PangoRectangle pos;
-            
-            pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &pos, NULL);
-            int line = pango_layout_xy_to_index(img->textbox->layout, 
-                pos.x, 
-                pos.y + (event->keyval == GDK_KEY_Down ? pos.height : -pos.height),
-                &index, &trailing);
-            if (line != -1)
-            {
-                img->textbox->cursor_pos = index + trailing;
-                if (shift_pressed)
-                {
-                    if (img->textbox->selection_start == -1)
+			int index, trailing;
+			PangoRectangle pos;
+			
+			pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &pos, NULL);
+			int line = pango_layout_xy_to_index(img->textbox->layout, 
+				pos.x, 
+				pos.y + (event->keyval == GDK_KEY_Down ? pos.height : -pos.height),
+				&index, &trailing);
+			if (line != -1)
+			{
+				img->textbox->cursor_pos = index + trailing;
+				if (shift_pressed)
+				{
+					if (img->textbox->selection_start == -1)
 						img->textbox->selection_start = img->textbox->cursor_pos;
-                    
-                    img->textbox->selection_end = img->textbox->cursor_pos;
-                }
-                else
+					
+					img->textbox->selection_end = img->textbox->cursor_pos;
+				}
+				else
 					img->textbox->selection_start = img->textbox->selection_end = -1;
-            }
+			}
 		break;
 
 		case GDK_KEY_BackSpace:
@@ -578,15 +579,15 @@ handle:
 
 	pango_layout_set_text(img->textbox->layout, img->textbox->text->str, -1);
 	img->textbox->cursor_visible = TRUE;
-    if (img->textbox->cursor_source_id != 0)
+	if (img->textbox->cursor_source_id != 0)
 		g_source_remove(img->textbox->cursor_source_id);
 
 	img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
  
 	img_update_textbox_boundaries(img);
 	
-    gtk_widget_queue_draw(widget);
-    return TRUE;
+	gtk_widget_queue_draw(widget);
+	return TRUE;
 }
 
 void img_exit_fullscreen(img_window_struct *img)
@@ -645,7 +646,7 @@ gboolean img_quit_application(GtkWidget *widget, GdkEvent * event, img_window_st
 		gtk_widget_destroy(img_struct->no_recent_item_menu);
 
 	if (!img_can_discard_unsaved_project(img_struct)) {
-	    return TRUE;
+		return TRUE;
 	}
 	if( img_save_window_settings( img_struct ) )
 		return( TRUE );
@@ -700,8 +701,8 @@ static void img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_win
 	}
 	pixbuf2 = gdk_pixbuf_new_from_file_at_scale(filename, 93, 70, TRUE, NULL);
 	if (pixbuf2) {
-	    pixbuf = gdk_pixbuf_apply_embedded_orientation(pixbuf2);
-	    g_object_unref (pixbuf2);
+		pixbuf = gdk_pixbuf_apply_embedded_orientation(pixbuf2);
+		g_object_unref (pixbuf2);
 	}
 	has_preview = (pixbuf != NULL);
 	if (has_preview)
@@ -743,49 +744,49 @@ void img_rotate_slides_right( GtkWidget         *widget,
 static void img_rotate_selected_slides( img_window_struct *img,
 							gboolean           clockwise )
 {
-	GtkTreeModel *model;
-	GtkTreeIter   iter;
-	GList        *selected,
-				 *bak;
-	GdkPixbuf    *thumb;
-	media_struct *info_slide;
+GtkTreeModel *model;
+GtkTreeIter   iter;
+GList        *selected,
+			 *bak;
+GdkPixbuf    *thumb;
+media_struct *info_slide;
 
-	/* Obtain the selected slideshow filename */
-	//~ model = GTK_TREE_MODEL( img->media_model );
-	//~ selected = gtk_icon_view_get_selected_items(
-					//~ GTK_ICON_VIEW( img->media_iconview ) );
+/* Obtain the selected slideshow filename */
+//~ model = GTK_TREE_MODEL( img->media_model );
+//~ selected = gtk_icon_view_get_selected_items(
+				//~ GTK_ICON_VIEW( img->media_iconview ) );
 
-	//~ if( selected == NULL)
-		//~ return;
+//~ if( selected == NULL)
+	//~ return;
 
-	//~ img_taint_project(img);
+//~ img_taint_project(img);
 
-	//~ bak = selected;
-	//~ while (selected)
+//~ bak = selected;
+//~ while (selected)
+//~ {
+	//~ ImgAngle angle;
+
+	//~ gtk_tree_model_get_iter( model, &iter, selected->data );
+	//~ gtk_tree_model_get( model, &iter, 2, &info_slide, -1 );
+
+	//~ /* Avoid seg-fault when dealing with text/gradient slides */
+	//~ if (info_slide->full_path != NULL)
 	//~ {
-		//~ ImgAngle angle;
+		//~ angle = ( info_slide->angle + ( clockwise ? 1 : -1 ) ) % 4;
+		//~ img_rotate_flip_slide( info_slide, angle, info_slide->flipped );
 
-		//~ gtk_tree_model_get_iter( model, &iter, selected->data );
-		//~ gtk_tree_model_get( model, &iter, 2, &info_slide, -1 );
-
-		//~ /* Avoid seg-fault when dealing with text/gradient slides */
-		//~ if (info_slide->full_path != NULL)
-		//~ {
-			//~ angle = ( info_slide->angle + ( clockwise ? 1 : -1 ) ) % 4;
-			//~ img_rotate_flip_slide( info_slide, angle, info_slide->flipped );
-
-			//~ /* Display the rotated image in thumbnails iconview */
-			//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
-							 //~ FALSE, img->background_color,
-							 //~ &thumb, NULL );
-			//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
-		//~ }
-		//~ selected = selected->next;
+		//~ /* Display the rotated image in thumbnails iconview */
+		//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
+						 //~ FALSE, img->background_color,
+						 //~ &thumb, NULL );
+		//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
 	//~ }
-	GList *node12;
-	for(node12 = bak;node12 != NULL;node12 = node12->next) {
-		gtk_tree_path_free(node12->data);
-	}
+	//~ selected = selected->next;
+//~ }
+GList *node12;
+for(node12 = bak;node12 != NULL;node12 = node12->next) {
+	gtk_tree_path_free(node12->data);
+}
 	g_list_free(bak);
 
 	/* If no slide is selected currently, simply return */
@@ -807,10 +808,10 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 {
 	static GtkWidget *about = NULL;
 	static gchar version[] = VERSION;
-    const char *authors[] = {"\nDevelopers:\nGiuseppe Torelli <colossus73@gmail.com>",
+	const char *authors[] = {"\nDevelopers:\nGiuseppe Torelli <colossus73@gmail.com>",
 								NULL
 							};
-    
+	
 	if (about == NULL)
 	{
 		about = gtk_about_dialog_new ();
@@ -828,21 +829,21 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 			"logo_icon_name","imagination",
 			"website","http://imagination.sf.net",
 			"license","Copyright \xC2\xA9 2009-2024 Giuseppe Torelli - Colossus <colossus73@gmail.com>\n\n"
-		    			"This is free software; you can redistribute it and/or\n"
-    					"modify it under the terms of the GNU Library General Public License as\n"
-    					"published by the Free Software Foundation; either version 2 of the\n"
-    					"License,or (at your option) any later version.\n"
-    					"\n"
-    					"This software is distributed in the hope that it will be useful,\n"
-    					"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-    					"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
-    					"Library General Public License for more details.\n"
-    					"\n"
-    					"You should have received a copy of the GNU Library General Public\n"
-    					"License along with the Gnome Library; see the file COPYING.LIB.  If not,\n"
-    					"write to the Free Software Foundation,Inc.,59 Temple Place - Suite 330,\n"
-    					"Boston,MA 02111-1307,USA.\n",
-		      NULL);
+						"This is free software; you can redistribute it and/or\n"
+						"modify it under the terms of the GNU Library General Public License as\n"
+						"published by the Free Software Foundation; either version 2 of the\n"
+						"License,or (at your option) any later version.\n"
+						"\n"
+						"This software is distributed in the hope that it will be useful,\n"
+						"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+						"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
+						"Library General Public License for more details.\n"
+						"\n"
+						"You should have received a copy of the GNU Library General Public\n"
+						"License along with the Gnome Library; see the file COPYING.LIB.  If not,\n"
+						"write to the Free Software Foundation,Inc.,59 Temple Place - Suite 330,\n"
+						"Boston,MA 02111-1307,USA.\n",
+			  NULL);
 	}
 	gtk_dialog_run ( GTK_DIALOG(about));
 	gtk_widget_hide (about);
@@ -915,34 +916,34 @@ void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, 
 	media_struct *media;
 	GtkTreeModel *model;
 	GList *selected_items, *item;
-    GPtrArray *media_structs;
+	GPtrArray *media_structs;
 	GtkTreePath *path;
 	GtkTreeIter iter;
 
 	model = gtk_icon_view_get_model(GTK_ICON_VIEW(widget));
-    selected_items = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(widget));
+	selected_items = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(widget));
 
-    media_structs = g_ptr_array_new();
+	media_structs = g_ptr_array_new();
 
-    for (item = selected_items; item != NULL; item = g_list_next(item))
-    {
-        path = (GtkTreePath *)item->data;
-        if (gtk_tree_model_get_iter(model, &iter, path))
-        {
-            gtk_tree_model_get(model, &iter, 2, &media, -1);
+	for (item = selected_items; item != NULL; item = g_list_next(item))
+	{
+		path = (GtkTreePath *)item->data;
+		if (gtk_tree_model_get_iter(model, &iter, path))
+		{
+			gtk_tree_model_get(model, &iter, 2, &media, -1);
 			g_ptr_array_add(media_structs, media);
-        }
-    }
-    // Set the data
-    gtk_selection_data_set(selection_data,
-                           gdk_atom_intern( "application/x-media-item", FALSE),
-                           32,  // 32 bits per unit for pointers
-                           (guchar *)media_structs->pdata,
-                           media_structs->len * sizeof(media_struct*));
+		}
+	}
+	// Set the data
+	gtk_selection_data_set(selection_data,
+						   gdk_atom_intern( "application/x-media-item", FALSE),
+						   32,  // 32 bits per unit for pointers
+						   (guchar *)media_structs->pdata,
+						   media_structs->len * sizeof(media_struct*));
 
-    // Free allocated memory
-    g_ptr_array_free(media_structs, TRUE);
-    g_list_free_full(selected_items, (GDestroyNotify)gtk_tree_path_free);
+	// Free allocated memory
+	g_ptr_array_free(media_structs, TRUE);
+	g_list_free_full(selected_items, (GDestroyNotify)gtk_tree_path_free);
 }
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
@@ -950,42 +951,42 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	GdkPixbuf *pix = NULL;
 	GArray* active_media = NULL;
 	gdouble current_time;
-	gint media_type;
+	gint media_type, img_width = 0, img_height = 0;
 	media_timeline* media;
 	const gchar *media_filename;
 
 	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
-{
-	/* If we're previewing or exporting, only paint frame that is being
-	 * currently produced. 
-	if( img->preview_is_running || img->export_is_running )
 	{
-		gdouble factor;
-		
-		factor = (gdouble)allocation.width / img->video_size[0];
-		cairo_scale( cr, factor, factor );
-		cairo_set_source_surface( cr, img->exported_image, 0, 0 );
-		cairo_paint( cr );
-	}*/
+		/* If we're previewing or exporting, only paint frame that is being
+		 * currently produced. 
+		if( img->preview_is_running || img->export_is_running )
+		{
+			gdouble factor;
+			
+			factor = (gdouble)allocation.width / img->video_size[0];
+			cairo_scale( cr, factor, factor );
+			cairo_set_source_surface( cr, img->exported_image, 0, 0 );
+			cairo_paint( cr );
+		}
 
-		/* Do the drawing */
-		//img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
+			/* Do the drawing 
+			//img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
 
-		/* Render subtitle if present 
-		if( img->current_media->subtitle )
-			img_render_subtitle( img,
-								 cr,
-								 img->image_area_zoom,
-								 img->current_media->posX,
-								 img->current_media->posY,
-								 img->current_media->subtitle_angle,
-								 img->current_media->alignment,
-								 img->current_point.zoom,
-								 img->current_point.offx,
-								 img->current_point.offy,
-								 FALSE,
-								 FALSE,
-								 1.0 ); */
+			Render subtitle if present 
+			if( img->current_media->subtitle )
+				img_render_subtitle( img,
+									 cr,
+									 img->image_area_zoom,
+									 img->current_media->posX,
+									 img->current_media->posY,
+									 img->current_media->subtitle_angle,
+									 img->current_media->alignment,
+									 img->current_point.zoom,
+									 img->current_point.offx,
+									 img->current_point.offy,
+									 FALSE,
+									 FALSE,
+									 1.0 ); */
 	}
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(img->image_area, &allocation);
@@ -993,7 +994,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	//Paint the canvas with the user chosen background color
 	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
 	cairo_paint(cr);
- 
+	 
 	int center_x = allocation.width /2;
 	int center_y = allocation.height /2;
 
@@ -1002,200 +1003,212 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	cairo_rotate(cr, img->textbox->angle);
 	cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
 
-	// Get the list of active media on all tracks under the red needle
+	// Get the list of active media on all tracks according to the position of the red needle
 	active_media = img_timeline_get_active_media(img->timeline, current_time);
 
-    // Sort active elements by track index (lower tracks drawn first)
+	// Sort active elements by track index (lower tracks drawn first)
 	g_array_sort(active_media, img_sort_tracks_ascendant);
 
 	// Draw all the active elements on the tracks
 	for (guint i = 0; i < active_media->len; i++)
 	{
 		media = g_array_index(active_media, media_timeline *, i);
-		media_filename = img_get_media_id_and_filename(img, media->id, &media_type);
-
+		media_filename = img_get_media_info_from_media_library(img, media->id, &media_type, &img_width, &img_height);
+		cairo_save(cr);
 		switch (media_type)
 		{
 			case 0:
-				pix = gdk_pixbuf_new_from_file_at_scale (media_filename, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, FALSE, NULL);
-				gdk_cairo_set_source_pixbuf(cr, pix, 0,0);
-				cairo_paint(cr);
+			gdouble off_x = 0, off_y = 0;
+
+			pix = gdk_pixbuf_new_from_file_at_scale(media_filename, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
+
+			// Calculate offset x and y to center the image in the image area
+			img_width = gdk_pixbuf_get_width(pix);
+			img_height = gdk_pixbuf_get_height(pix);
+				
+			if (img_width < allocation.width)
+				off_x = (allocation.width - img_width ) / 2;
+			else if (img_height < allocation.height)
+				off_y = (allocation.height - img_height) / 2;
+
+			gdk_cairo_set_source_pixbuf(cr, pix, off_x, off_y);
+			cairo_paint(cr);
+			g_object_unref(pix);
 			break;
 		}
+		cairo_restore(cr);
 	}
-        
 	g_array_free(active_media, FALSE);
-	
-	
-	if (img->textbox->visible)
-	{
-		// Draw the angle
-		if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
+				
+		if (img->textbox->visible)
 		{
-			cairo_save(cr);
-			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-			cairo_rotate(cr, -img->textbox->angle);
-			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
-			
-			gchar buf[8];
-			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
-			cairo_rectangle(cr, 5, 5, 45, 25);
-			cairo_fill(cr);
+			// Draw the angle
+			if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
+			{
+				cairo_save(cr);
+				cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+				cairo_rotate(cr, -img->textbox->angle);
+				cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+				
+				gchar buf[8];
+				cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
+				cairo_rectangle(cr, 5, 5, 45, 25);
+				cairo_fill(cr);
+				cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+				cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+				cairo_set_font_size(cr, 16.0);
+				g_snprintf(buf, sizeof(buf), "%2.0f%s", round(img->textbox->angle * (180.0 / G_PI)), "\xC2\xB0");
+				cairo_move_to(cr, 15, 24);
+				cairo_show_text(cr, buf);
+				cairo_restore(cr);
+			}
+
+			// Set the color to white for the outline effect
 			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-			cairo_set_font_size(cr, 16.0);
-			g_snprintf(buf, sizeof(buf), "%2.0f%s", round(img->textbox->angle * (180.0 / G_PI)), "\xC2\xB0");
-			cairo_move_to(cr, 15, 24);
-			cairo_show_text(cr, buf);
-			cairo_restore(cr);
-		}
-
-		// Set the color to white for the outline effect
-		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-		cairo_set_line_width(cr, 3.5);
-		
-		// Draw the L shape
-		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-		cairo_rel_line_to(cr, 0, 6);
-		cairo_rel_line_to(cr, -6, 0);
-		cairo_stroke(cr);
-
-		// Draw the arc
-		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-		cairo_stroke(cr);
-
-		// Draw the vertical line under the rotate circle
-		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-		cairo_stroke(cr);
-
-		// Now draw the black lines on top
-		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-		cairo_set_line_width(cr, 1.5);  // Original line width
-
-		// Draw the L shape again
-		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-		cairo_rel_line_to(cr, 0, 6);
-		cairo_rel_line_to(cr, -6, 0);
-		cairo_stroke(cr);
-
-		// Draw the arc again
-		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-		cairo_stroke(cr);
-
-		// Draw the vertical line under the rotate circle again
-		cairo_set_line_width(cr, 1);
-		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-		cairo_stroke(cr);
-
-		// Draw the rectangle
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
-		cairo_stroke(cr);
-		cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
-		cairo_stroke_preserve(cr);
-		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-		cairo_fill(cr);
-
-		if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
-		{
-			cairo_save(cr);
-			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-			cairo_rotate(cr, -img->textbox->angle);
-			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
-
-			if (img->textbox->draw_horizontal_line)
-			{
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_set_line_width(cr, 1.0);
-				cairo_move_to(cr, 0, center_y);
-				cairo_line_to(cr, allocation.width, center_y - 2);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-				cairo_move_to(cr, 0, center_y);
-				cairo_line_to(cr, allocation.width, center_y);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_move_to(cr, 0, center_y + 2);
-				cairo_line_to(cr, allocation.width, center_y + 2);
-				cairo_stroke(cr);
-			}
-		
-			// Draw the vertical centering line
-			if (img->textbox->draw_vertical_line)
-			{
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_set_line_width(cr, 1.0);
-				cairo_move_to(cr, center_x - 2, 0);
-				cairo_line_to(cr, center_x - 2, allocation.height);// + menubar_height);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-				cairo_move_to(cr, center_x, 0);
-				cairo_line_to(cr, center_x, allocation.height);// + menubar_height);
-				cairo_stroke(cr);
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-				cairo_move_to(cr, center_x + 2, 0);
-				cairo_line_to(cr, center_x + 2, allocation.height );//+ menubar_height);
-				cairo_stroke(cr);
-			}
-			cairo_restore(cr);
-		}
-		cairo_set_line_width(cr, 2.5);
-		
-		// Draw the bottom right handle
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
-		cairo_stroke_preserve(cr);
-		cairo_set_source_rgb(cr, 1, 1, 1);
-		cairo_fill(cr);
-	
-		// Draw selection highlight
-		if (img->textbox->selection_start != img->textbox->selection_end)
-		{
-			int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-			int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
+			cairo_set_line_width(cr, 3.5);
 			
-			PangoRectangle start_pos, end_pos;
-			pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
-			pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
-
-			cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
-			cairo_rectangle(cr, 
-				img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
-				img->textbox->y + start_pos.y / PANGO_SCALE,
-				(end_pos.x - start_pos.x) / PANGO_SCALE, 
-				(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
-			cairo_fill(cr);
-		}
-
-		// Draw the cursor
-		if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
-		{
-			PangoRectangle strong_pos;
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
-			pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
-			cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
-			cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+			// Draw the L shape
+			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+			cairo_rel_line_to(cr, 0, 6);
+			cairo_rel_line_to(cr, -6, 0);
 			cairo_stroke(cr);
-		}
-	}
-	
-	// Draw the text
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
-	cairo_move_to(cr, img->textbox->x, img->textbox->y);
-	pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
-	pango_cairo_show_layout(cr, img->textbox->layout);
 
-	return FALSE;
+			// Draw the arc
+			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+			cairo_stroke(cr);
+
+			// Draw the vertical line under the rotate circle
+			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+			cairo_stroke(cr);
+
+			// Now draw the black lines on top
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			cairo_set_line_width(cr, 1.5);  // Original line width
+
+			// Draw the L shape again
+			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+			cairo_rel_line_to(cr, 0, 6);
+			cairo_rel_line_to(cr, -6, 0);
+			cairo_stroke(cr);
+
+			// Draw the arc again
+			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+			cairo_stroke(cr);
+
+			// Draw the vertical line under the rotate circle again
+			cairo_set_line_width(cr, 1);
+			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+			cairo_stroke(cr);
+
+			// Draw the rectangle
+			cairo_set_source_rgb(cr, 0, 0, 0);
+			cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
+			cairo_stroke(cr);
+			cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
+			cairo_stroke_preserve(cr);
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			cairo_fill(cr);
+
+			if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
+			{
+				cairo_save(cr);
+				cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+				cairo_rotate(cr, -img->textbox->angle);
+				cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+
+				if (img->textbox->draw_horizontal_line)
+				{
+					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+					cairo_set_line_width(cr, 1.0);
+					cairo_move_to(cr, 0, center_y);
+					cairo_line_to(cr, allocation.width, center_y - 2);
+					cairo_stroke(cr);
+					cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+					cairo_move_to(cr, 0, center_y);
+					cairo_line_to(cr, allocation.width, center_y);
+					cairo_stroke(cr);
+					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+					cairo_move_to(cr, 0, center_y + 2);
+					cairo_line_to(cr, allocation.width, center_y + 2);
+					cairo_stroke(cr);
+				}
+			
+				// Draw the vertical centering line
+				if (img->textbox->draw_vertical_line)
+				{
+					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+					cairo_set_line_width(cr, 1.0);
+					cairo_move_to(cr, center_x - 2, 0);
+					cairo_line_to(cr, center_x - 2, allocation.height);// + menubar_height);
+					cairo_stroke(cr);
+					cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+					cairo_move_to(cr, center_x, 0);
+					cairo_line_to(cr, center_x, allocation.height);// + menubar_height);
+					cairo_stroke(cr);
+					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+					cairo_move_to(cr, center_x + 2, 0);
+					cairo_line_to(cr, center_x + 2, allocation.height );//+ menubar_height);
+					cairo_stroke(cr);
+				}
+				cairo_restore(cr);
+			}
+			cairo_set_line_width(cr, 2.5);
+			
+			// Draw the bottom right handle
+			cairo_set_source_rgb(cr, 0, 0, 0);
+			cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
+			cairo_stroke_preserve(cr);
+			cairo_set_source_rgb(cr, 1, 1, 1);
+			cairo_fill(cr);
+		
+			// Draw selection highlight
+			if (img->textbox->selection_start != img->textbox->selection_end)
+			{
+				int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+				int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
+				
+				PangoRectangle start_pos, end_pos;
+				pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
+				pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
+
+				cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
+				cairo_rectangle(cr, 
+					img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
+					img->textbox->y + start_pos.y / PANGO_SCALE,
+					(end_pos.x - start_pos.x) / PANGO_SCALE, 
+					(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
+				cairo_fill(cr);
+			}
+
+			// Draw the cursor
+			if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
+			{
+				PangoRectangle strong_pos;
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
+				pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
+				cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
+				cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+				cairo_stroke(cr);
+			}
+		}
+		
+		// Draw the text
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
+		cairo_move_to(cr, img->textbox->x, img->textbox->y);
+		pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
+		pango_cairo_show_layout(cr, img->textbox->layout);
+
+		return TRUE;
 }
 
 void img_draw_image_on_surface( cairo_t           *cr,
-						   gint               width,
-						   cairo_surface_t   *surface,
-						   ImgStopPoint      *point,
-						   img_window_struct *img )
+							   gint               width,
+							   cairo_surface_t   *surface,
+							   ImgStopPoint      *point,
+							   img_window_struct *img )
 {
 	gdouble  offxr, offyr;  /* Relative offsets */
 	gdouble  factor_c;      /* Scaling factor for cairo context */
@@ -1256,7 +1269,7 @@ static gboolean img_still_timeout(img_window_struct *img)
 		{
 			img_calc_next_slide_time_offset( img, img->preview_fps );
 			img->source_id = g_timeout_add( 1000 / img->preview_fps,
-										    (GSourceFunc)img_transition_timeout,
+											(GSourceFunc)img_transition_timeout,
 											img );
 		
 		}
@@ -1334,41 +1347,41 @@ static void img_clean_after_preview(img_window_struct *img)
 
 void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 {
-    GtkWidget *fc;
-    GtkFileChooserAction action = 0;
-    gint	 response;
-    gboolean	 open_replace, save;
-    gchar *filename = NULL;
-    GtkFileFilter *project_filter, *all_files_filter;
+	GtkWidget *fc;
+	GtkFileChooserAction action = 0;
+	gint	 response;
+	gboolean	 open_replace, save;
+	gchar *filename = NULL;
+	GtkFileFilter *project_filter, *all_files_filter;
 
 
-    /* Determine what to do */
-    open_replace = widget == img->open_menu;
-    save = widget == img->save_as_menu || widget == img->save_menu;
-    /* Determine the mode of the chooser. */
-    if (open_replace) {
+	/* Determine what to do */
+	open_replace = widget == img->open_menu;
+	save = widget == img->save_as_menu || widget == img->save_menu;
+	/* Determine the mode of the chooser. */
+	if (open_replace) {
 	action = GTK_FILE_CHOOSER_ACTION_OPEN;
-    } else if (save) {
+	} else if (save) {
 	action = GTK_FILE_CHOOSER_ACTION_SAVE;
-    } else {
+	} else {
 	img_message(img, _("I do not know what to do with this slideshow filename."));
 	return;
-    }
+	}
 
-    /* close old slideshow if the user open a new one */
-    if (open_replace)
-    {
+	/* close old slideshow if the user open a new one */
+	if (open_replace)
+	{
 		if (!img_can_discard_unsaved_project(img))
 			return;
-    }
+	}
 
-    /* If user wants to save empty slideshow, do nothing */
-    if( img->media_nr == 0 && save )
+	/* If user wants to save empty slideshow, do nothing */
+	if( img->media_nr == 0 && save )
 		return;
 
-    /* ask for a file name if the project has never been saved yet, if we save as or if we open a project */
-    if (img->project_filename == NULL || widget == img->save_as_menu || action == GTK_FILE_CHOOSER_ACTION_OPEN)
-    {
+	/* ask for a file name if the project has never been saved yet, if we save as or if we open a project */
+	if (img->project_filename == NULL || widget == img->save_as_menu || action == GTK_FILE_CHOOSER_ACTION_OPEN)
+	{
 	fc = gtk_file_chooser_dialog_new (action == GTK_FILE_CHOOSER_ACTION_OPEN ? _("Load an Imagination slideshow project") : 
 		_("Save an Imagination slideshow project"),
 		GTK_WINDOW (img->imagination_window),
@@ -1393,66 +1406,66 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 	/* if we are saving, propose a default filename */
 	if (action == GTK_FILE_CHOOSER_ACTION_SAVE)
 	{
-	    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER (fc), "unknown.img");
-	    /* Add the checkbok to save filenames only */
-	    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	    gtk_box_set_homogeneous(GTK_BOX(box), TRUE);
-	    GtkWidget *relative_names = gtk_check_button_new_with_mnemonic(_("Don't include folder names in the filenames"));
-	    gtk_widget_set_tooltip_text(relative_names, _("If you check this button, be sure to include ALL the project files in the SAME folder before attempting to open it again."));
-	    gtk_box_pack_start (GTK_BOX (box), relative_names, FALSE, FALSE, 0);
-	    gtk_widget_show(relative_names);
-	    g_signal_connect (relative_names, "toggled", G_CALLBACK (img_save_relative_filenames), img);
-	    gtk_file_chooser_set_extra_widget (GTK_FILE_CHOOSER(fc), box );
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER (fc), "unknown.img");
+		/* Add the checkbok to save filenames only */
+		GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+		gtk_box_set_homogeneous(GTK_BOX(box), TRUE);
+		GtkWidget *relative_names = gtk_check_button_new_with_mnemonic(_("Don't include folder names in the filenames"));
+		gtk_widget_set_tooltip_text(relative_names, _("If you check this button, be sure to include ALL the project files in the SAME folder before attempting to open it again."));
+		gtk_box_pack_start (GTK_BOX (box), relative_names, FALSE, FALSE, 0);
+		gtk_widget_show(relative_names);
+		g_signal_connect (relative_names, "toggled", G_CALLBACK (img_save_relative_filenames), img);
+		gtk_file_chooser_set_extra_widget (GTK_FILE_CHOOSER(fc), box );
 	}
 	if (img->project_current_dir)
-	    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fc),img->project_current_dir);
+		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fc),img->project_current_dir);
 
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER (fc),TRUE);
 	response = gtk_dialog_run (GTK_DIALOG (fc));
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
-	    filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(fc));
-	    if( ! filename )
-	    {
+		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(fc));
+		if( ! filename )
+		{
 			gtk_widget_destroy(fc);
 			return;
-	    }
-	    
-	    if (img->project_current_dir)
+		}
+		
+		if (img->project_current_dir)
 			g_free(img->project_current_dir);
 
 		img->project_current_dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(fc));
 	}
 	else if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT)
 	{
-	    gtk_widget_destroy(fc);
-	    return;
+		gtk_widget_destroy(fc);
+		return;
 	}
 	gtk_widget_destroy(fc);
-    }
+	}
 
-    if( ! filename )
+	if( ! filename )
 		filename = g_strdup( img->project_filename );
 
-    if (open_replace)
-		img_load_slideshow(img, NULL, filename);
-    else if (save)
-		img_save_slideshow( img, filename, img->relative_filenames );
+	if (open_replace)
+		img_load_project(img, NULL, filename);
+	else if (save)
+		img_save_project( img, filename, img->relative_filenames );
 
-    img_refresh_window_title(img);
+	img_refresh_window_title(img);
 
-    g_free( filename );
+	g_free( filename );
 }
 
 void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 {
-    /* When called from close_menu, ask for confirmation */
-    if (widget && widget == img->close_menu && ! img_can_discard_unsaved_project(img))
+	/* When called from close_menu, ask for confirmation */
+	if (widget && widget == img->close_menu && ! img_can_discard_unsaved_project(img))
 		return;
 
 	img_free_allocated_memory(img);
 	img->project_is_modified = FALSE;
-	
+		
 	img_refresh_window_title(img);
 	if( img->current_image )
 		cairo_surface_destroy( img->current_image );
@@ -1466,7 +1479,7 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	img->background_color[1] = 0;
 	img->background_color[2] = 0;
 	
-	// This is neede to reset the id counter when loading a new slideshow without quitting Imagination
+	// This is needed to reset the id counter when loading a new slideshow without quitting Imagination
 	next_id = 1;
 }
 
@@ -1547,7 +1560,7 @@ gboolean img_image_area_button_release(	GtkWidget *widget, GdkEventButton *event
 	img_update_stop_point(NULL, img);
 	
 	if (event->button == GDK_BUTTON_PRIMARY)
-    {
+	{
 		if (img->textbox->action == IS_DRAGGING && (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line == TRUE))
 			img->textbox->draw_horizontal_line = img->textbox->draw_vertical_line = FALSE;
 
@@ -1566,11 +1579,11 @@ gboolean img_image_area_button_release(	GtkWidget *widget, GdkEventButton *event
 			img->textbox->height = img->textbox->orig_height;
 			img->textbox->y= event->y;
 		}
-        img->textbox->button_pressed = FALSE;
-        img->textbox->action = NONE;
-        if (img->textbox->corner != GDK_FLEUR)
-            gdk_window_set_cursor(gtk_widget_get_window(img->image_area), NULL);
-    }
+		img->textbox->button_pressed = FALSE;
+		img->textbox->action = NONE;
+		if (img->textbox->corner != GDK_FLEUR)
+			gdk_window_set_cursor(gtk_widget_get_window(img->image_area), NULL);
+	}
 
 	return TRUE;
 }
@@ -1579,7 +1592,7 @@ gboolean img_image_area_motion( GtkWidget * widget,  GdkEventMotion *event,  img
 {
 	gdouble deltax, deltay;
 	gint width, height;
-    double x, y;
+	double x, y;
 	int snap_zone = 10;
 
 	deltax = ( event->x - img->x ) / img->image_area_zoom;
@@ -1591,20 +1604,20 @@ gboolean img_image_area_motion( GtkWidget * widget,  GdkEventMotion *event,  img
 	if (img->textbox->visible == FALSE)
 		return FALSE;
 
-    transform_coords(img->textbox, event->x, event->y, &x, &y);
+	transform_coords(img->textbox, event->x, event->y, &x, &y);
 
-    if (img->textbox->button_pressed)
-    {
+	if (img->textbox->button_pressed)
+	{
 		//This to draw the center lines to ease the img->textbox centering
 		//later in the IS_DRAGGING action
 		width  = gtk_widget_get_allocated_width(widget) / 2;
 		height = gtk_widget_get_allocated_height(widget) / 2;
 
-        switch (img->textbox->action)
-        {
-            case IS_RESIZING:
-                switch (img->textbox->corner)
-                {
+		switch (img->textbox->action)
+		{
+			case IS_RESIZING:
+				switch (img->textbox->corner)
+				{
 					 case GDK_BOTTOM_RIGHT_CORNER:
 					 {
 							if (img->textbox->cursor_source_id)
@@ -1648,100 +1661,100 @@ gboolean img_image_area_motion( GtkWidget * widget,  GdkEventMotion *event,  img
 							//This to automatically word wrap the text when the user resizes the img->textbox
 							pango_layout_set_width(img->textbox->layout, pango_units_from_double(img->textbox->width));
 					}
-                    break;
-                
-                    default:
-                        break;
-                }
-                break;
-                
-            case IS_DRAGGING:
-                 double textbox_center_x = img->textbox->x + img->textbox->width / 2;
-                 double textbox_center_y = img->textbox->y + img->textbox->height / 2;
-               
-                // Calculate the distance moved
-                double dx = event->x - img->textbox->dragx - img->textbox->x;
-                double dy = event->y - img->textbox->dragy - img->textbox->y;
-                
-                // Check if we're entering or leaving the x snap zone
-                if (!img->textbox->is_x_snapped && fabs(textbox_center_x - width) <= snap_zone)
-                {
-                    img->textbox->is_x_snapped = TRUE;
-                    img->textbox->x = width - img->textbox->width / 2;
-                    img->textbox->draw_vertical_line = TRUE;
-                }
-                else if (img->textbox->is_x_snapped && fabs(dx) > snap_zone)
-                {
-                    img->textbox->is_x_snapped = FALSE;
-                    img->textbox->draw_vertical_line = FALSE;
-                }
-                // Update position if not x snapped
-                if (!img->textbox->is_x_snapped)
-                    img->textbox->x = event->x - img->textbox->dragx;
+					break;
+				
+					default:
+						break;
+				}
+				break;
+				
+			case IS_DRAGGING:
+				 double textbox_center_x = img->textbox->x + img->textbox->width / 2;
+				 double textbox_center_y = img->textbox->y + img->textbox->height / 2;
+			   
+				// Calculate the distance moved
+				double dx = event->x - img->textbox->dragx - img->textbox->x;
+				double dy = event->y - img->textbox->dragy - img->textbox->y;
+				
+				// Check if we're entering or leaving the x snap zone
+				if (!img->textbox->is_x_snapped && fabs(textbox_center_x - width) <= snap_zone)
+				{
+					img->textbox->is_x_snapped = TRUE;
+					img->textbox->x = width - img->textbox->width / 2;
+					img->textbox->draw_vertical_line = TRUE;
+				}
+				else if (img->textbox->is_x_snapped && fabs(dx) > snap_zone)
+				{
+					img->textbox->is_x_snapped = FALSE;
+					img->textbox->draw_vertical_line = FALSE;
+				}
+				// Update position if not x snapped
+				if (!img->textbox->is_x_snapped)
+					img->textbox->x = event->x - img->textbox->dragx;
 
-                // Check if we're entering or leaving the x snap zone
-                if (!img->textbox->is_y_snapped && fabs(textbox_center_y - height) <= snap_zone)
-                {
-                    img->textbox->is_y_snapped = TRUE;
-                    img->textbox->y = height - img->textbox->height / 2;
-                    img->textbox->draw_horizontal_line = TRUE;
-                }
-                else if (img->textbox->is_y_snapped && fabs(dy) > snap_zone)
-                {
-                    img->textbox->is_y_snapped = FALSE;
-                    img->textbox->draw_horizontal_line = FALSE;
-                }
-                // Update position if not y snapped
-                if (!img->textbox->is_y_snapped)
+				// Check if we're entering or leaving the x snap zone
+				if (!img->textbox->is_y_snapped && fabs(textbox_center_y - height) <= snap_zone)
+				{
+					img->textbox->is_y_snapped = TRUE;
+					img->textbox->y = height - img->textbox->height / 2;
+					img->textbox->draw_horizontal_line = TRUE;
+				}
+				else if (img->textbox->is_y_snapped && fabs(dy) > snap_zone)
+				{
+					img->textbox->is_y_snapped = FALSE;
+					img->textbox->draw_horizontal_line = FALSE;
+				}
+				// Update position if not y snapped
+				if (!img->textbox->is_y_snapped)
 					img->textbox->y = event->y - img->textbox->dragy;
 
-                img->textbox->corner = GDK_FLEUR;
-                break;
-                
-            case IS_ROTATING:
-                dx = event->x - img->textbox->x;
-                dy = event->y - img->textbox->y - img->textbox->height;
-                img->textbox->angle = atan2(dy, dx);
-                img->textbox->corner = GDK_EXCHANGE;
-                break;
-        }
-        gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
+				img->textbox->corner = GDK_FLEUR;
+				break;
+				
+			case IS_ROTATING:
+				dx = event->x - img->textbox->x;
+				dy = event->y - img->textbox->y - img->textbox->height;
+				img->textbox->angle = atan2(dy, dx);
+				img->textbox->corner = GDK_EXCHANGE;
+				break;
+		}
+		gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
 
-        gtk_widget_queue_draw(img->image_area);
-        return TRUE;
-    }
+		gtk_widget_queue_draw(img->image_area);
+		return TRUE;
+	}
 
-    // Check if the mouse pointer is hovering the rotate circle
-    if (img->textbox->visible && 
-        x >= img->textbox->x + (img->textbox->width/2) - 5 && 
-        x <= (img->textbox->x + (img->textbox->width/2)) + 5 && 
-        y >= img->textbox->y + img->textbox->height + 10 && 
-        y <= img->textbox->y + img->textbox->height + 20)
-    {
-        img->textbox->action = IS_ROTATING;
-        img->textbox->corner = GDK_EXCHANGE;
-        gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
-    }
-    // If mouse pointer is inside the visible img->textbox change the cursor shape accordingly
-    else if (!img->textbox->button_pressed && img->textbox->visible && 
-             x >= img->textbox->x && x <= img->textbox->x + img->textbox->width && 
-             y >= img->textbox->y && y <= img->textbox->y + img->textbox->height)
-    {
-        if (x >= img->textbox->x + img->textbox->width - 5 && x <= img->textbox->x + img->textbox->width && 
-            y >= img->textbox->y + img->textbox->height - 5 && y <= img->textbox->y + img->textbox->height)
-        {
-            img->textbox->corner = GDK_BOTTOM_RIGHT_CORNER;
-            img->textbox->action = IS_RESIZING;
-        }
-        else
-        {
-            img->textbox->corner = GDK_XTERM;
-            img->textbox->action = IS_DRAGGING;
-        }
-        gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
-    }
-    else if (!img->textbox->button_pressed)
-        gdk_window_set_cursor(gtk_widget_get_window(img->image_area), NULL);
+	// Check if the mouse pointer is hovering the rotate circle
+	if (img->textbox->visible && 
+		x >= img->textbox->x + (img->textbox->width/2) - 5 && 
+		x <= (img->textbox->x + (img->textbox->width/2)) + 5 && 
+		y >= img->textbox->y + img->textbox->height + 10 && 
+		y <= img->textbox->y + img->textbox->height + 20)
+	{
+		img->textbox->action = IS_ROTATING;
+		img->textbox->corner = GDK_EXCHANGE;
+		gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
+	}
+	// If mouse pointer is inside the visible img->textbox change the cursor shape accordingly
+	else if (!img->textbox->button_pressed && img->textbox->visible && 
+			 x >= img->textbox->x && x <= img->textbox->x + img->textbox->width && 
+			 y >= img->textbox->y && y <= img->textbox->y + img->textbox->height)
+	{
+		if (x >= img->textbox->x + img->textbox->width - 5 && x <= img->textbox->x + img->textbox->width && 
+			y >= img->textbox->y + img->textbox->height - 5 && y <= img->textbox->y + img->textbox->height)
+		{
+			img->textbox->corner = GDK_BOTTOM_RIGHT_CORNER;
+			img->textbox->action = IS_RESIZING;
+		}
+		else
+		{
+			img->textbox->corner = GDK_XTERM;
+			img->textbox->action = IS_DRAGGING;
+		}
+		gdk_window_set_cursor(gtk_widget_get_window(img->image_area), gdk_cursor_new_for_display(gdk_display_get_default(), img->textbox->corner));
+	}
+	else if (!img->textbox->button_pressed)
+		gdk_window_set_cursor(gtk_widget_get_window(img->image_area), NULL);
 
 	return TRUE;
 }
@@ -2036,7 +2049,8 @@ gboolean img_load_window_settings( img_window_struct *img )
 	g_key_file_free( kf );
 
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), w, h );
-	
+	gtk_widget_set_size_request(img->image_area, w2, h2);
+
 	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
 	gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
 	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
@@ -2044,10 +2058,8 @@ gboolean img_load_window_settings( img_window_struct *img )
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
-	g_print("%12.19f\n",current_time);
 	img_timeline_set_time_marker((ImgTimeline *)img->timeline, current_time);
-	gtk_widget_set_size_request(img->image_area, w2, h2);
-
+	
 	return TRUE;
 }
 
@@ -2062,10 +2074,11 @@ void img_set_window_default_settings( img_window_struct *img )
 	gtk_window_set_default_size( GTK_WINDOW( img->imagination_window ), 800, 600 );
 }
 
-static void img_reset_rotation_flip( media_struct *slide) {
-    gchar *filename = g_strdup( slide->full_path );
-    slide->angle = 0;
-    slide->flipped = FALSE;
+static void img_reset_rotation_flip( media_struct *slide)
+{
+	gchar *filename = g_strdup( slide->full_path );
+	slide->angle = 0;
+	slide->flipped = FALSE;
 }
 
 void img_rotate_flip_slide( media_struct   *slide,
@@ -2080,8 +2093,8 @@ void img_rotate_flip_slide( media_struct   *slide,
 	 * copy original filename into rotated filename. */
 	if( (!angle) && (!flipped) )
 	{
-	    img_reset_rotation_flip(slide);
-	    return;
+		img_reset_rotation_flip(slide);
+		return;
 	}
 	GdkPixbuf *image;
 	gint       handle;
@@ -2101,13 +2114,13 @@ void img_rotate_flip_slide( media_struct   *slide,
 
 	// do the rotation, flipping
 	if (angle) {
-	    processed = gdk_pixbuf_rotate_simple( image, angle * 90 );
-	    g_object_unref(image);
-	    image = processed;
+		processed = gdk_pixbuf_rotate_simple( image, angle * 90 );
+		g_object_unref(image);
+		image = processed;
 	}
 	if (flipped) {
-	    processed = gdk_pixbuf_flip(image, TRUE);
-	    g_object_unref(image);
+		processed = gdk_pixbuf_flip(image, TRUE);
+		g_object_unref(image);
 	}
 
 	// save result
@@ -2302,7 +2315,7 @@ void img_open_recent_slideshow(GtkWidget *menu, img_window_struct *img)
 	
 	filename = gtk_menu_item_get_label(GTK_MENU_ITEM(menu));
 	if (img_can_discard_unsaved_project(img))
-		img_load_slideshow(img, menu, filename);
+		img_load_project(img, menu, filename);
 }
 
 void img_add_any_media_callback(GtkButton *button,  img_window_struct *img)
@@ -2313,8 +2326,8 @@ void img_add_any_media_callback(GtkButton *button,  img_window_struct *img)
 void img_zoom_fit( GtkWidget *item, img_window_struct *img)
 {
 	GtkAllocation allocation;
-    gdouble step, level1, level2;
-    
+	gdouble step, level1, level2;
+	
 	gtk_widget_get_allocation(gtk_widget_get_parent(GTK_WIDGET(img->image_area)), &allocation);
 
 	level1 = (float)allocation.width / img->video_size[0];

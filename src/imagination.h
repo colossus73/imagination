@@ -132,9 +132,9 @@ struct _media_struct
 	gchar		*audio_duration;
 	gchar		metadata[1024];
 
-	ImgAngle  angle;      /* Angle of rotated image */
-    gboolean  flipped;    /* flag for flipped images */
-
+	ImgAngle  angle;      		/* Angle of rotated image */
+    gboolean  flipped;    			/* flag for flipped images */
+    gboolean  to_be_deleted;
 	/* Fields that are filled if we create slide in memory */
 	gint  gradient;         			/* Gradient type */
 	gint 	countdown;					/* Slide countdown */
@@ -367,7 +367,6 @@ struct _img_window_struct
   	gboolean	preview_is_running;
   	GtkWidget	*import_slide_chooser;
 	GtkWidget	*total_stop_points_label;
-  	GtkWidget	*total_slide_number_label;
 	GtkWidget	*slide_number_entry;
 
 	/* Export dialog related stuff */
@@ -400,7 +399,6 @@ struct _img_window_struct
 	gint     preview_fps;     /* Preview frame rate */
 
 	/* Clipboard related stuff */
-	GList				*selected_paths;
 	ImgClipboardMode	clipboard_mode;
 };
 

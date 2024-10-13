@@ -20,7 +20,7 @@
 
 static gboolean img_populate_hash_table( GtkTreeModel *, GtkTreePath *, GtkTreeIter *, GHashTable ** );
 
-void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean relative )
+void img_save_project( img_window_struct *img,	const gchar *output,  gboolean relative )
 {
 	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
 	GKeyFile *img_key_file;
@@ -205,7 +205,7 @@ void img_save_slideshow( img_window_struct *img,	const gchar *output,  gboolean 
 	img_refresh_window_title(img);
 }
 
-void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gchar *input )
+void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar *input )
 {
 	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
 
@@ -551,7 +551,7 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 			item->duration 	=	g_ascii_strtoll(values[q+2], NULL, 10);
 			g_array_append_val(track->items, item);
 
-			// Read the media filename and type again to create the image in the toggle button
+			// Read the media filename and media type again to create the image in the toggle button
 			conf2 = g_strdup_printf("media %d", item->id);
 			media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
 			media_type = g_key_file_get_integer(img_key_file, conf2, "media_type",  NULL);
@@ -563,17 +563,13 @@ void img_load_slideshow( img_window_struct *img, GtkWidget *menuitem, const gcha
 			//Position the toggle button in the timeline
 			width = item->duration * BASE_SCALE * priv->zoom_scale;
 			gtk_widget_set_size_request(item->button, width, 50);
-				
-			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
-			if (i == 0)
-				posy = 32;
-			else
-				posy += TRACK_HEIGHT + TRACK_GAP;
 
+			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
 			item->y = posy;
 			item->old_x = posx;
 		}
+		posy += TRACK_HEIGHT + TRACK_GAP;
 		g_strfreev(values);
 		g_free(conf);
 	}

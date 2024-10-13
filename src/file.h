@@ -27,6 +27,6 @@
 #include "support.h"
 #include "callbacks.h"
 
-void img_save_slideshow( img_window_struct *, const gchar *, gboolean);
-void img_load_slideshow( img_window_struct *, GtkWidget *, const gchar * );
+void img_save_project( img_window_struct *, const gchar *, gboolean);
+void img_load_project( img_window_struct *, GtkWidget *, const gchar * );
 #endif

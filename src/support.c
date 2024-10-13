@@ -1160,7 +1160,7 @@ gint find_nearest_major_tick(gint pixels_per_second, gint x)
     return nearest_tick;
 }
 
-const gchar *img_get_media_id_and_filename(img_window_struct *img, gint id, gint *media_type)
+const gchar *img_get_media_info_from_media_library(img_window_struct *img, gint id, gint *media_type, gint *width, gint *height)
 {
 	GtkTreeIter iter;
 	const gchar *filename;
@@ -1174,6 +1174,11 @@ const gchar *img_get_media_id_and_filename(img_window_struct *img, gint id, gint
 			if (entry->id == id)
 			{
 				*media_type = entry->media_type;
+				if (*media_type <= 2)
+				{
+					*width = entry->width;
+					*height = entry->height;
+				}
 				return entry->full_path;
 			}
 		}
@@ -1182,3 +1187,4 @@ const gchar *img_get_media_id_and_filename(img_window_struct *img, gint id, gint
 	
 	return NULL; 
 }
+

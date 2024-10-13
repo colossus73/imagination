@@ -328,7 +328,7 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	gtk_widget_set_size_request(item->button, width, 50);
 
 	gtk_layout_move(GTK_LAYOUT(da), item->button, pos, new_y);
-	
+
 	item->old_x = pos;
 	item->y = new_y;
     priv->last_media_posX += 95;
@@ -361,7 +361,8 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	}
 	// Add the image to the layout
 	gtk_layout_put(GTK_LAYOUT(layout), image, 0, 0);
-
+	img_timeline_center_button_image(item->button);
+		
     gtk_widget_add_events(item->button, GDK_POINTER_MOTION_MASK
                                       | GDK_LEAVE_NOTIFY_MASK
                                       | GDK_BUTTON1_MASK 
@@ -375,6 +376,7 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img->timeline);
 	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img->timeline);
 	g_signal_connect(item->button, "query-tooltip",					G_CALLBACK(img_timeline_media_button_tooltip), item);
+	g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
 
 	gtk_container_add(GTK_CONTAINER(img->timeline), item->button);
 	gtk_widget_show_all(item->button);
@@ -887,6 +889,21 @@ void img_timeline_free_media(ImgTimeline *timeline)
 	}
 }
 
+void img_timeline_delete_additional_tracks(ImgTimeline *timeline)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	Track *track;
+	
+	for (gint i = priv->tracks->len -1; i>=0; i--)
+	{
+		track = &g_array_index(priv->tracks, Track, i);
+		if (! track->is_default)
+			g_array_remove_index(priv->tracks, i);
+	}
+	next_order = 2;
+	gtk_widget_queue_draw(GTK_WIDGET(timeline));
+}
+
 GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
@@ -899,8 +916,6 @@ GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
     for (gint i = 0; i < priv->tracks->len; i++)
     {
         track = &g_array_index(priv->tracks, Track, i);
-		if (track == NULL)
-			return  NULL;
 
         for (gint j = 0; j < track->items->len; j++)
         {
@@ -925,4 +940,25 @@ gint img_sort_tracks_ascendant(gconstpointer a, gconstpointer b)
     const media_timeline* elem_b = b;
 
     return elem_a->track_index - elem_b->track_index;
+}
+
+void img_timeline_center_button_image(GtkWidget *button)
+{
+	GtkWidget *image;
+	GtkWidget *layout;
+	GtkAllocation button_allocation, image_allocation;
+    gint x, y;
+	GList *children;
+
+	layout = gtk_bin_get_child(GTK_BIN(button));
+	children = gtk_container_get_children(GTK_CONTAINER(layout));
+ 
+	image = GTK_WIDGET(children->data);
+    g_list_free(children);
+    
+    gtk_widget_get_allocation(GTK_WIDGET(layout), &button_allocation);
+    gtk_widget_get_allocation(image, &image_allocation);
+
+    x = (button_allocation.width - image_allocation.width) / 2;
+    gtk_layout_move(GTK_LAYOUT(layout), image, x, -1);
 }

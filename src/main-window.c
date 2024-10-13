@@ -225,7 +225,7 @@ img_window_struct *img_create_window (void)
 	img_struct->menubar = gtk_menu_bar_new ();
 	gtk_box_pack_start (GTK_BOX (main_vertical_box), img_struct->menubar, FALSE, FALSE, 0);
 
-	menuitem1 = gtk_menu_item_new_with_mnemonic (_("_Slideshow"));
+	menuitem1 = gtk_menu_item_new_with_mnemonic (_("Project"));
 	gtk_container_add (GTK_CONTAINER (img_struct->menubar), menuitem1);
 
 	menu1 = gtk_menu_new ();
@@ -870,6 +870,7 @@ img_window_struct *img_create_window (void)
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	g_object_set(G_OBJECT(vbox), "valign", GTK_ALIGN_FILL);
 	gtk_box_pack_start (GTK_BOX (right_horizontal_box), vbox, TRUE, TRUE, 0);
+	
 	img_struct->image_area = gtk_drawing_area_new();
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->image_area, TRUE, TRUE, 0);
 	
@@ -1335,80 +1336,93 @@ static gboolean img_iconview_popup(GtkWidget *widget,  GdkEvent  *event, img_win
 
 static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *img)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
-	GtkTreeModel	*model;
-	GtkTreeIter iter;
-	GList *selected;
-	gint deletion_count = 0;
-	media_struct *media;
-	media_timeline *item;
-	Track *track;
-	gboolean delete;
+    ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GList *selected, *current;
+    gint deletion_count = 0;
+    media_struct *media;
+    media_timeline *item;
+    Track *track;
 
-	model = GTK_TREE_MODEL(img->media_model);
-	selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
+    model = GTK_TREE_MODEL(img->media_model);
+    selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
+    if (selected == NULL || img->preview_is_running)
+        return;
 
-	if (selected == NULL || img->preview_is_running)
-		return;
+    // First pass: mark items for deletion and ask for confirmation
+    for (current = selected; current != NULL; current = current->next)
+    {
+        gtk_tree_model_get_iter(model, &iter, current->data);
+        gtk_tree_model_get(model, &iter, 2, &media, -1);
+        
+        gboolean on_timeline = FALSE;
+        for (gint i = 0; i < priv->tracks->len; i++)
+        {
+            track = &g_array_index(priv->tracks, Track, i);
+            if (track->items)
+            {
+                for (gint q = 0; q < track->items->len; q++)
+                {
+                    item = g_array_index(track->items, media_timeline *, q);
+                    if (item->id == media->id)
+                    {
+                        on_timeline = TRUE;
+                        break;
+                    }
+                }
+                if (on_timeline) break;
+            }
+        }
 
-	while (selected)
-	{
-		delete = TRUE;
-		gtk_tree_model_get_iter(model, &iter, selected->data);
-		gtk_tree_model_get(model, &iter,2 ,&media, -1);
-		for (gint i = 0; i < priv->tracks->len; i++)
-		{
-			deletion_count = 0;
-			track = &g_array_index(priv->tracks, Track, i);
-			if (track->items)
-			{
-				for (gint q = track->items->len - 1; q >= 0; q--)
-				{
-					item = g_array_index(track->items, media_timeline  *, q);
-					if (item->id == media->id)
-					{
-						deletion_count++;
-						item->to_be_deleted = TRUE;
-					}
-				}
-				if (deletion_count > 0)
-				{
-					gchar *msg = g_strdup_printf(_("The media <b>%s</b> is currently placed on the timeline. Deleting it will remove all of its instances from the timeline. " \
-						"Are you sure you want to do this?"), media->full_path, NULL); 
-					int response = img_ask_user_confirmation( img, msg);
-					g_free(msg);
-					if (response == GTK_RESPONSE_OK)
-					{
-						g_print("%d to be delted\n",deletion_count);
-						for (gint q = track->items->len - 1; q >= 0; q--)
-						{
-							item = g_array_index(track->items, media_timeline  *, q);
-							if (item->to_be_deleted)
-							{
-								gtk_widget_destroy(item->button);
-								g_array_remove_index(track->items, q);
-								g_free(item);
-							}
-						}
-					}
-					else
-					{
-						delete = FALSE;
-						break;
-					}
-				}
-			}
+        if (on_timeline)
+        {
+            gchar *msg = g_strdup_printf(_("The media <b>%s</b> is currently placed on the timeline. Deleting it will remove all of its instances from the timeline. " \
+                "Are you sure you want to do this?"), media->full_path);
+            int response = img_ask_user_confirmation(img, msg);
+            g_free(msg);
+            
+            media->to_be_deleted = (response == GTK_RESPONSE_OK);
+        }
+        else
+            media->to_be_deleted = TRUE;
+    }
+    // Second pass: perform deletions
+    current = selected;
+    while (current)
+    {
+        gtk_tree_model_get_iter(model, &iter, current->data);
+        gtk_tree_model_get(model, &iter, 2, &media, -1);
+
+        if (media->to_be_deleted)
+        {
+            for (gint i = 0; i < priv->tracks->len; i++)
+            {
+                track = &g_array_index(priv->tracks, Track, i);
+                if (track->items)
+                {
+                    for (gint q = track->items->len - 1; q >= 0; q--)
+                    {
+                        item = g_array_index(track->items, media_timeline *, q);
+                        if (item->id == media->id)
+                        {
+                            gtk_widget_destroy(item->button);
+                            g_array_remove_index(track->items, q);
+                            g_free(item);
+                        }
+                    }
+                }
+            }
+            img_free_media_struct(media);
+            img->media_nr--;
+            gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+            img_taint_project(img);
+            
+            gtk_tree_path_free(current->data);
 		}
-		if (delete)
-		{
-			img_free_media_struct(media);
-			img->media_nr--;
-			gtk_list_store_remove(GTK_LIST_STORE(model),&iter);
-			img_taint_project(img);
-		}
-		selected = selected->next;
-	}
-	g_list_free_full(selected, (GDestroyNotify)gtk_tree_path_free);
+        current = current->next;
+    }
+		g_list_free(selected);
 }
 
 static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
