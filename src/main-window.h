@@ -29,12 +29,12 @@
 #include "text.h"
 
 img_window_struct *img_create_window(void);
-gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type,  img_window_struct *img);
-void img_text_font_set( GtkFontChooser  *button, img_window_struct *img );
-void img_font_color_changed( GtkColorChooser   *button, img_window_struct *img );
-void img_font_bg_color_changed( GtkColorChooser    *button,  img_window_struct *img );                   
+void img_change_image_area_size(GtkPaned *, GParamSpec *,  img_window_struct *);
+void img_text_font_set( GtkFontChooser  *, img_window_struct *);
+void img_font_color_changed( GtkColorChooser   *, img_window_struct *);
+void img_font_bg_color_changed( GtkColorChooser    *,  img_window_struct *);                   
 void img_combo_box_transition_type_changed (GtkComboBox *, img_window_struct *);
-void img_combo_box_anim_speed_changed( GtkSpinButton  *spinbutton, img_window_struct *img );
-void img_text_anim_set( GtkComboBox *combo, img_window_struct *img );
+void img_combo_box_anim_speed_changed( GtkSpinButton  *, img_window_struct * );
+void img_text_anim_set( GtkComboBox *, img_window_struct * );
 
 #endif

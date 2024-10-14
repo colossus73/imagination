@@ -326,13 +326,13 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 
 	width *= priv->pixels_per_second;
 	gtk_widget_set_size_request(item->button, width, 50);
-
 	gtk_layout_move(GTK_LAYOUT(da), item->button, pos, new_y);
 
 	item->old_x = pos;
 	item->y = new_y;
     priv->last_media_posX += 95;
-    
+
+    img_timeline_center_button_image(item->button);
 	img_taint_project(img);
 }
 
@@ -376,7 +376,7 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img->timeline);
 	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img->timeline);
 	g_signal_connect(item->button, "query-tooltip",					G_CALLBACK(img_timeline_media_button_tooltip), item);
-	g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
+	//g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
 
 	gtk_container_add(GTK_CONTAINER(img->timeline), item->button);
 	gtk_widget_show_all(item->button);
@@ -406,7 +406,6 @@ void img_timeline_add_track(GtkWidget *timeline, gint type, gchar *hexcode)
 void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx, gint length)
 {
 	cairo_save(cr);
-	cairo_set_source_rgb(cr, 1,0,0);
 	cairo_translate(cr, posx,6);
 
 	// Top horizontal line
@@ -431,7 +430,7 @@ void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx, gi
     cairo_close_path(cr);
 
     // Set color and stroke
-    cairo_set_source_rgb(cr, 1, 0, 0);  // Red color
+    cairo_set_source_rgba(cr, 1, 0, 0, 0.5);
     cairo_set_line_width(cr, 2);
     cairo_fill(cr);
 
@@ -452,6 +451,8 @@ void img_timeline_media_drag_data_get(GtkWidget *widget, GdkDragContext *drag_co
 gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *event, img_window_struct *img)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	gchar *time;
+	
 	if (event->y < 12.0 || event->y > 32.0)
 		return FALSE;
 
@@ -459,6 +460,11 @@ gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *e
 	{
 		priv->button_pressed_on_needle = TRUE;
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
+		
+		time = img_convert_time_to_string((gint) event->x);
+		gtk_label_set_text(GTK_LABEL(img->current_time), time);
+		g_free(time);
+		
 		gtk_widget_queue_draw(img->image_area);
 	}
 	return TRUE;
@@ -508,10 +514,19 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, img_window_struct *img)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)timeline);
+	gchar *time;
+
+	if (event->x < 0)
+		return FALSE;
 
 	if (priv->button_pressed_on_needle)
 	{
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
+		
+		time = img_convert_time_to_string((gint) event->x);
+		gtk_label_set_text(GTK_LABEL(img->current_time), time);
+		g_free(time);
+		
 		gtk_widget_queue_draw(img->image_area);
 	}
    return TRUE;
@@ -600,6 +615,7 @@ gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *eve
 				item->initial_width = new_width;
 				item->start_time = (x + 10)/ priv->pixels_per_second;
 				item->duration = (new_width + 20) / (BASE_SCALE * priv->zoom_scale);
+				 img_timeline_center_button_image(item->button);
 			break;
 
 			case RESIZE_RIGHT:
@@ -609,6 +625,7 @@ gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *eve
                     new_width = nearest_tick - item->old_x;
 				gtk_widget_set_size_request(button, new_width, 50);
 				item->duration = (new_width +10) / (BASE_SCALE * priv->zoom_scale);
+				 img_timeline_center_button_image(item->button);
 			break;
 
 			case RESIZE_NONE:
@@ -906,40 +923,25 @@ void img_timeline_delete_additional_tracks(ImgTimeline *timeline)
 
 GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
     Track *track;
     GArray* active_elements;
     media_timeline *item;
-	double item_end;
+    double item_end;
 
     active_elements = g_array_new(FALSE, FALSE, sizeof(media_timeline *));
     for (gint i = 0; i < priv->tracks->len; i++)
     {
         track = &g_array_index(priv->tracks, Track, i);
-
         for (gint j = 0; j < track->items->len; j++)
         {
             item = g_array_index(track->items, media_timeline *, j);
-			item_end = item->start_time + item->duration;
-			//g_print("**\n");
+            item_end = item->start_time + item->duration;
             if (current_time >= item->start_time && current_time < item_end)
-            {
-				//g_print("Inserisco %d\n",item->id);
-                item->track_index = track->order;
                 g_array_append_val(active_elements, item);
-            }
         }
     }
     return active_elements;
-}
-
-// Compare function for sorting elements by track index
-gint img_sort_tracks_ascendant(gconstpointer a, gconstpointer b)
-{
-    const media_timeline* elem_a = a;
-    const media_timeline* elem_b = b;
-
-    return elem_a->track_index - elem_b->track_index;
 }
 
 void img_timeline_center_button_image(GtkWidget *button)
@@ -960,5 +962,7 @@ void img_timeline_center_button_image(GtkWidget *button)
     gtk_widget_get_allocation(image, &image_allocation);
 
     x = (button_allocation.width - image_allocation.width) / 2;
-    gtk_layout_move(GTK_LAYOUT(layout), image, x, -1);
+    y = (button_allocation.height - image_allocation.height) / 2;
+
+    gtk_layout_move(GTK_LAYOUT(layout), image, x, y);
 }

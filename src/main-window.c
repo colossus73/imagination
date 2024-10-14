@@ -458,7 +458,6 @@ img_window_struct *img_create_window (void)
 	gtk_icon_view_set_columns(GTK_ICON_VIEW (img_struct->media_iconview), 2);
 	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
 	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
-	
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (img_struct->media_iconview), GTK_SELECTION_MULTIPLE);
 	
@@ -963,9 +962,10 @@ img_window_struct *img_create_window (void)
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
         ".timeline-button { border-width: 0; outline-width: 0; background: #606060; padding: 0; margin: 0; }"
-        ".timeline-button:focus { outline-width: 0; }"
+        ".timeline-button:focus { outline-width: 0;border-width: 0; background: #606060; padding: 0; margin: 0;  }"
+        ".timeline-button:not(:focus) { outline-width: 0;border-width: 0; background: #606060; padding: 0; margin: 0;  }" // AI line
         ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
-        ".timeline-button:checked { border-top-color: #FFD700; border-bottom-color: #FFD700; }"
+        ".timeline-button:checked { outline-width: 0;border-width: 0; background: #0000FF; padding: 0; margin: 0; }"
         "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
         "tooltip * {  color: #000000;  padding: 0; margin: 0 }", -1, NULL);
     
@@ -1587,7 +1587,7 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 	gtk_widget_show_all(media_property_dialog);
 }
 
-gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type,  img_window_struct *img)
+void img_change_image_area_size (GtkPaned *widget, GParamSpec *unused,  img_window_struct *img)
 {
 	GtkAllocation allocation;
 	GtkWidget *vbox;
@@ -1596,7 +1596,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
 	// The image area is resized too small
 	 
 	if (img->media_nr == 0)
-		return FALSE;
+		return;
 	
 	vbox = gtk_widget_get_parent(GTK_WIDGET(img->image_area));
 	gtk_widget_get_allocation(vbox, &allocation);
@@ -1605,7 +1605,7 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
 	gint actual_pos = gtk_paned_get_position(GTK_PANED(img->vpaned));
     gint paned_height = gtk_widget_get_allocated_height(GTK_WIDGET(img->vpaned));
 
-	  // Calculate zoom change based on paned movement relative to its total height
+	 // Calculate zoom change based on paned movement relative to its total height
     gdouble zoom_change = (gdouble)(actual_pos - last_pos) / paned_height;
     
     // Adjust zoom factor
@@ -1633,6 +1633,4 @@ gboolean img_change_image_area_size (GtkPaned *widget, GtkScrollType scroll_type
     
     gtk_widget_set_size_request(img->image_area, new_width, new_height);
 	g_object_set_data(G_OBJECT(widget), "last-position", GINT_TO_POINTER(actual_pos));
-
-	return FALSE;
 }

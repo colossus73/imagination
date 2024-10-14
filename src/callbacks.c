@@ -990,31 +990,22 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	}
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(img->image_area, &allocation);
-
-	//Paint the canvas with the user chosen background color
-	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
-	cairo_paint(cr);
 	 
 	int center_x = allocation.width /2;
 	int center_y = allocation.height /2;
 
-	// Apply rotation for the entire textbox
-	cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-	cairo_rotate(cr, img->textbox->angle);
-	cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+	//Paint the canvas with the user chosen project background color
+	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
+	cairo_paint(cr);
 
 	// Get the list of active media on all tracks according to the position of the red needle
 	active_media = img_timeline_get_active_media(img->timeline, current_time);
 
-	// Sort active elements by track index (lower tracks drawn first)
-	g_array_sort(active_media, img_sort_tracks_ascendant);
-
-	// Draw all the active elements on the tracks
-	for (guint i = 0; i < active_media->len; i++)
+	// Draw all the placed media items on the tracks
+	for (gint i = active_media->len-1; i >=0; i--)
 	{
 		media = g_array_index(active_media, media_timeline *, i);
 		media_filename = img_get_media_info_from_media_library(img, media->id, &media_type, &img_width, &img_height);
-		cairo_save(cr);
 		switch (media_type)
 		{
 			case 0:
@@ -1033,175 +1024,181 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 
 			gdk_cairo_set_source_pixbuf(cr, pix, off_x, off_y);
 			cairo_paint(cr);
+
 			g_object_unref(pix);
 			break;
 		}
-		cairo_restore(cr);
 	}
 	g_array_free(active_media, FALSE);
-				
-		if (img->textbox->visible)
+	
+	
+	// Apply rotation for the entire textbox
+	cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+	cairo_rotate(cr, img->textbox->angle);
+	cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+			
+	if (img->textbox->visible)
+	{
+		// Draw the angle
+		if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
 		{
-			// Draw the angle
-			if (img->textbox->action == IS_ROTATING && img->textbox->button_pressed)
-			{
-				cairo_save(cr);
-				cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-				cairo_rotate(cr, -img->textbox->angle);
-				cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
-				
-				gchar buf[8];
-				cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
-				cairo_rectangle(cr, 5, 5, 45, 25);
-				cairo_fill(cr);
-				cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-				cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-				cairo_set_font_size(cr, 16.0);
-				g_snprintf(buf, sizeof(buf), "%2.0f%s", round(img->textbox->angle * (180.0 / G_PI)), "\xC2\xB0");
-				cairo_move_to(cr, 15, 24);
-				cairo_show_text(cr, buf);
-				cairo_restore(cr);
-			}
-
-			// Set the color to white for the outline effect
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-			cairo_set_line_width(cr, 3.5);
+			cairo_save(cr);
+			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+			cairo_rotate(cr, -img->textbox->angle);
+			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
 			
-			// Draw the L shape
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-			cairo_rel_line_to(cr, 0, 6);
-			cairo_rel_line_to(cr, -6, 0);
-			cairo_stroke(cr);
-
-			// Draw the arc
-			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-			cairo_stroke(cr);
-
-			// Draw the vertical line under the rotate circle
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-			cairo_stroke(cr);
-
-			// Now draw the black lines on top
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-			cairo_set_line_width(cr, 1.5);  // Original line width
-
-			// Draw the L shape again
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
-			cairo_rel_line_to(cr, 0, 6);
-			cairo_rel_line_to(cr, -6, 0);
-			cairo_stroke(cr);
-
-			// Draw the arc again
-			cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
-			cairo_stroke(cr);
-
-			// Draw the vertical line under the rotate circle again
-			cairo_set_line_width(cr, 1);
-			cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
-			cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
-			cairo_stroke(cr);
-
-			// Draw the rectangle
-			cairo_set_source_rgb(cr, 0, 0, 0);
-			cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
-			cairo_stroke(cr);
-			cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
-			cairo_stroke_preserve(cr);
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			gchar buf[8];
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
+			cairo_rectangle(cr, 5, 5, 45, 25);
 			cairo_fill(cr);
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			cairo_set_font_size(cr, 16.0);
+			g_snprintf(buf, sizeof(buf), "%2.0f%s", round(img->textbox->angle * (180.0 / G_PI)), "\xC2\xB0");
+			cairo_move_to(cr, 15, 24);
+			cairo_show_text(cr, buf);
+			cairo_restore(cr);
+		}
 
-			if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
-			{
-				cairo_save(cr);
-				cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
-				cairo_rotate(cr, -img->textbox->angle);
-				cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
-
-				if (img->textbox->draw_horizontal_line)
-				{
-					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-					cairo_set_line_width(cr, 1.0);
-					cairo_move_to(cr, 0, center_y);
-					cairo_line_to(cr, allocation.width, center_y - 2);
-					cairo_stroke(cr);
-					cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-					cairo_move_to(cr, 0, center_y);
-					cairo_line_to(cr, allocation.width, center_y);
-					cairo_stroke(cr);
-					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-					cairo_move_to(cr, 0, center_y + 2);
-					cairo_line_to(cr, allocation.width, center_y + 2);
-					cairo_stroke(cr);
-				}
+		// Set the color to white for the outline effect
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_set_line_width(cr, 3.5);
 			
-				// Draw the vertical centering line
-				if (img->textbox->draw_vertical_line)
-				{
-					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-					cairo_set_line_width(cr, 1.0);
-					cairo_move_to(cr, center_x - 2, 0);
-					cairo_line_to(cr, center_x - 2, allocation.height);// + menubar_height);
-					cairo_stroke(cr);
-					cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
-					cairo_move_to(cr, center_x, 0);
-					cairo_line_to(cr, center_x, allocation.height);// + menubar_height);
-					cairo_stroke(cr);
-					cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-					cairo_move_to(cr, center_x + 2, 0);
-					cairo_line_to(cr, center_x + 2, allocation.height );//+ menubar_height);
-					cairo_stroke(cr);
-				}
-				cairo_restore(cr);
-			}
-			cairo_set_line_width(cr, 2.5);
-			
-			// Draw the bottom right handle
-			cairo_set_source_rgb(cr, 0, 0, 0);
-			cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
-			cairo_stroke_preserve(cr);
-			cairo_set_source_rgb(cr, 1, 1, 1);
-			cairo_fill(cr);
-		
-			// Draw selection highlight
-			if (img->textbox->selection_start != img->textbox->selection_end)
-			{
-				int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-				int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
-				
-				PangoRectangle start_pos, end_pos;
-				pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
-				pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
+		// Draw the L shape
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
 
-				cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
-				cairo_rectangle(cr, 
-					img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
-					img->textbox->y + start_pos.y / PANGO_SCALE,
-					(end_pos.x - start_pos.x) / PANGO_SCALE, 
-					(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
-				cairo_fill(cr);
-			}
+		// Draw the arc
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
 
-			// Draw the cursor
-			if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
+		// Draw the vertical line under the rotate circle
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+		// Now draw the black lines on top
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		cairo_set_line_width(cr, 1.5);  // Original line width
+
+		// Draw the L shape again
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2) + 6, img->textbox->y + img->textbox->height + 8);
+		cairo_rel_line_to(cr, 0, 6);
+		cairo_rel_line_to(cr, -6, 0);
+		cairo_stroke(cr);
+
+		// Draw the arc again
+		cairo_arc(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 15, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+		cairo_stroke(cr);
+
+		// Draw the vertical line under the rotate circle again
+		cairo_set_line_width(cr, 1);
+		cairo_move_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height + 10);
+		cairo_line_to(cr, img->textbox->x + (img->textbox->width / 2), img->textbox->y + img->textbox->height);
+		cairo_stroke(cr);
+
+		// Draw the rectangle
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_rectangle(cr, img->textbox->x, img->textbox->y, img->textbox->width, img->textbox->height);
+		cairo_stroke(cr);
+		cairo_rectangle(cr, img->textbox->x , img->textbox->y , img->textbox->width , img->textbox->height );
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_fill(cr);
+
+		if (img->textbox->draw_horizontal_line || img->textbox->draw_vertical_line)
+		{
+			cairo_save(cr);
+			cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
+			cairo_rotate(cr, -img->textbox->angle);
+			cairo_translate(cr, -(img->textbox->x + img->textbox->width / 2), -(img->textbox->y + img->textbox->height / 2));
+
+			if (img->textbox->draw_horizontal_line)
 			{
-				PangoRectangle strong_pos;
-				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
-				pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
-				cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
-				cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_set_line_width(cr, 1.0);
+				cairo_move_to(cr, 0, center_y);
+				cairo_line_to(cr, allocation.width, center_y - 2);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+				cairo_move_to(cr, 0, center_y);
+				cairo_line_to(cr, allocation.width, center_y);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_move_to(cr, 0, center_y + 2);
+				cairo_line_to(cr, allocation.width, center_y + 2);
 				cairo_stroke(cr);
 			}
+			
+			// Draw the vertical centering line
+			if (img->textbox->draw_vertical_line)
+			{
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_set_line_width(cr, 1.0);
+				cairo_move_to(cr, center_x - 2, 0);
+				cairo_line_to(cr, center_x - 2, allocation.height);// + menubar_height);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+				cairo_move_to(cr, center_x, 0);
+				cairo_line_to(cr, center_x, allocation.height);// + menubar_height);
+				cairo_stroke(cr);
+				cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+				cairo_move_to(cr, center_x + 2, 0);
+				cairo_line_to(cr, center_x + 2, allocation.height );//+ menubar_height);
+				cairo_stroke(cr);
+			}
+			cairo_restore(cr);
 		}
-		
-		// Draw the text
+		cairo_set_line_width(cr, 2.5);
+			
+		// Draw the bottom right handle
 		cairo_set_source_rgb(cr, 0, 0, 0);
-		pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
-		cairo_move_to(cr, img->textbox->x, img->textbox->y);
-		pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
-		pango_cairo_show_layout(cr, img->textbox->layout);
+		cairo_arc(cr, img->textbox->x + img->textbox->width, img->textbox->y + img->textbox->height, 3, 0.0, 2 * G_PI);
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1, 1, 1);
+		cairo_fill(cr);
+		
+		// Draw selection highlight
+		if (img->textbox->selection_start != img->textbox->selection_end)
+		{
+			int start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
+			int end_index = MAX(img->textbox->selection_start, img->textbox->selection_end);
+				
+			PangoRectangle start_pos, end_pos;
+			pango_layout_get_cursor_pos(img->textbox->layout, start_index, &start_pos, NULL);
+			pango_layout_get_cursor_pos(img->textbox->layout, end_index, &end_pos, NULL);
 
-		return TRUE;
+			cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
+			cairo_rectangle(cr, 
+				img->textbox->x + 3 + start_pos.x / PANGO_SCALE, 
+				img->textbox->y + start_pos.y / PANGO_SCALE,
+				(end_pos.x - start_pos.x) / PANGO_SCALE, 
+				(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
+			cairo_fill(cr);
+		}
+
+		// Draw the cursor
+		if (img->textbox->cursor_visible && img->textbox->cursor_source_id)
+		{
+			PangoRectangle strong_pos;
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
+			pango_layout_get_cursor_pos(img->textbox->layout, img->textbox->cursor_pos, &strong_pos, NULL);
+			cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)strong_pos.y / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + img->textbox->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + img->textbox->y);
+			cairo_stroke(cr);
+		}
+	}
+		
+	// Draw the text
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	pango_layout_set_attributes(img->textbox->layout, img->textbox->attr_list);
+	cairo_move_to(cr, img->textbox->x, img->textbox->y);
+	pango_layout_context_changed(img->textbox->layout); //This for having the PangoAttr to work
+	pango_cairo_show_layout(cr, img->textbox->layout);
+
+	return TRUE;
 }
 
 void img_draw_image_on_surface( cairo_t           *cr,

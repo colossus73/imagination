@@ -65,7 +65,6 @@ typedef struct _media
 	gdouble width;
 	gint start_time;
     gint duration;
-    gint track_index;					//This is for ordering the track with items to draw in the image area draw event in ascendent order
     gboolean to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
 	enum {	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
 	gboolean button_pressed;
@@ -109,7 +108,6 @@ void img_timeline_free_media						(ImgTimeline *);
 void img_timeline_delete_additional_tracks(ImgTimeline *);
 void img_timeline_center_button_image		(GtkWidget *);
 GArray *img_timeline_get_active_media		(GtkWidget *, double );
-gint img_sort_tracks_ascendant					(gconstpointer , gconstpointer );
 
 //Timeline events
 gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);

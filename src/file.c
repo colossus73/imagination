@@ -538,7 +538,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 		// If no media are placed on track process next one
 		if (value_string == NULL)
-			continue;
+			goto next;
 
 		values = g_strsplit(value_string, ";", -1);
 		number = g_strv_length(values);
@@ -569,8 +569,9 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			item->y = posy;
 			item->old_x = posx;
 		}
-		posy += TRACK_HEIGHT + TRACK_GAP;
 		g_strfreev(values);
+next:
+		posy += TRACK_HEIGHT + TRACK_GAP;
 		g_free(conf);
 	}
 	
@@ -600,7 +601,7 @@ static gboolean img_populate_hash_table( GtkTreeModel *model, GtkTreePath *path,
 
 	gtk_tree_model_get( model, iter, 3, &id, -1 );
 
-	/* Leave out family names, since hey don't get saved. */
+	/* Leave out family names, since they don't get saved. */
 	if( ! id )
 		return( FALSE );
 
