@@ -102,9 +102,6 @@ static void img_toggle_button_callback(GtkToggleButton *button, img_window_struc
 
 static GtkWidget *img_create_subtitle_animation_combo( void );
 
-/* ****************************************************************************
- * Function definitions
- * ************************************************************************* */
 img_window_struct *img_create_window (void)
 {
 	img_window_struct *img_struct = NULL;
@@ -141,7 +138,7 @@ img_window_struct *img_create_window (void)
 	GtkCellRenderer *pixbuf_cell;
 	GdkPixbuf *icon;
 	GtkWidget  *main_horizontal_box;
-	GtkWidget *vbox, *hbox, *right_horizontal_box;
+	GtkWidget *vbox, *hbox;
 	GtkWidget *content_area;
 	GtkWidget *preview_menu;
 	GtkWidget *import_menu;
@@ -423,21 +420,23 @@ img_window_struct *img_create_window (void)
 	
 	content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_pack_start (GTK_BOX(main_horizontal_box), content_area, TRUE, TRUE, 0);
-	
+		
 	//Create the vertical paned widget to allow the timeline to resize upwards
 	img_struct->vpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
 	gtk_box_pack_start (GTK_BOX (content_area), img_struct->vpaned, TRUE, TRUE, 0);
 	g_signal_connect (img_struct->vpaned , "notify::position", G_CALLBACK (img_change_image_area_size),img_struct);
-	
-	right_horizontal_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_paned_pack1(GTK_PANED( img_struct->vpaned ), right_horizontal_box, TRUE, FALSE);
+
+	// Create horizontal paned widget for top pane
+    img_struct->hpaned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_paned_pack1(GTK_PANED(img_struct->vpaned), img_struct->hpaned, TRUE, FALSE);
+    g_signal_connect (img_struct->hpaned , "notify::position", G_CALLBACK (img_change_media_library_size),img_struct);
 
    //Create the hidden notebook widget
 	img_struct->side_notebook = gtk_notebook_new();
 	gtk_widget_set_can_focus(img_struct->side_notebook, FALSE);
 	g_object_set (G_OBJECT (img_struct->side_notebook),"show-border", FALSE,"show-tabs", FALSE,"enable-popup",FALSE,NULL);
-	gtk_box_pack_start (GTK_BOX(right_horizontal_box), img_struct->side_notebook, FALSE, FALSE, 0);
-
+	gtk_paned_pack1(GTK_PANED(img_struct->hpaned), img_struct->side_notebook, TRUE, TRUE);
+	
 	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(img_struct->toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
@@ -455,12 +454,11 @@ img_window_struct *img_create_window (void)
 
 	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (img_struct->media_iconview), GTK_ORIENTATION_VERTICAL);
 	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (img_struct->media_iconview), 0);
-	gtk_icon_view_set_columns(GTK_ICON_VIEW (img_struct->media_iconview), 2);
 	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
 	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (img_struct->media_iconview), GTK_SELECTION_MULTIPLE);
-	
+
 	// Enable Dnd functionality
 	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(img_struct->media_iconview), dest_target, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
 	gtk_icon_view_enable_model_drag_source(GTK_ICON_VIEW(img_struct->media_iconview), GDK_BUTTON1_MASK, source_target, 1, GDK_ACTION_COPY);
@@ -508,18 +506,6 @@ img_window_struct *img_create_window (void)
 	gtk_grid_attach (GTK_GRID (grid), img_struct->random_button, 1, 0, 1, 1);
 	gtk_widget_set_sensitive(img_struct->random_button, FALSE);
 	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
-
-	/* Slide duration */
-	duration_label = gtk_label_new (_("Still slide duration in sec:"));
-	gtk_grid_attach (GTK_GRID (grid), duration_label, 0, 3, 1, 1);
-	gtk_label_set_xalign(GTK_LABEL(duration_label), 0);
-	gtk_label_set_yalign(GTK_LABEL(duration_label), 0.5);
-
-	img_struct->duration = gtk_spin_button_new_with_range (1,60, 1);
-	gtk_grid_attach (GTK_GRID (grid), img_struct->duration, 1, 3, 1, 1);
-	gtk_widget_set_sensitive(img_struct->duration, FALSE);
-	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->duration),TRUE);
-	g_signal_connect (G_OBJECT (img_struct->duration),"value-changed",G_CALLBACK (img_spinbutton_value_changed),img_struct);
 
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
@@ -868,7 +854,7 @@ img_window_struct *img_create_window (void)
 	/* Create the image area */
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	g_object_set(G_OBJECT(vbox), "valign", GTK_ALIGN_FILL);
-	gtk_box_pack_start (GTK_BOX (right_horizontal_box), vbox, TRUE, TRUE, 0);
+	gtk_paned_pack2(GTK_PANED(img_struct->hpaned), vbox, FALSE, FALSE);
 	
 	img_struct->image_area = gtk_drawing_area_new();
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->image_area, TRUE, TRUE, 0);
@@ -961,11 +947,13 @@ img_window_struct *img_create_window (void)
 	// Set up CSS styling
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
-        ".timeline-button { border-width: 0; outline-width: 0; background: #606060; padding: 0; margin: 0; }"
-        ".timeline-button:focus { outline-width: 0;border-width: 0; background: #606060; padding: 0; margin: 0;  }"
-        ".timeline-button:not(:focus) { outline-width: 0;border-width: 0; background: #606060; padding: 0; margin: 0;  }" // AI line
+		"popover {border: 1px solid #f4d27b; padding: 0px;}"
+		"popover.background { background-color: #FAECC6;}"
+        ".timeline-button { border-width: 0; outline-width: 0; background: #808080; padding: 0; margin: 0; }"
+        ".timeline-button:focus { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
+        ".timeline-button:not(:focus) { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
         ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
-        ".timeline-button:checked { outline-width: 0;border-width: 0; background: #0000FF; padding: 0; margin: 0; }"
+        ".timeline-button:checked { outline-width: 0;border-width: 0; background: #3584e4; padding: 0; margin: 0; }"
         "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
         "tooltip * {  color: #000000;  padding: 0; margin: 0 }", -1, NULL);
     
@@ -1107,13 +1095,13 @@ static GdkPixbuf *img_set_random_transition( img_window_struct *img,  media_stru
 	gtk_tree_model_get_iter_from_string( model, &iter, path );
 
 	gtk_tree_model_get( model, &iter, 0, &pix, 2, &address, 3, &transition_id, -1 );
-	info_slide->transition_id = transition_id;
-	info_slide->render = (ImgRender)address;
+	//info_slide->transition_id = transition_id;
+	//info_slide->render = (ImgRender)address;
 
-	/* Prevent leak here */
-	if( info_slide->path )
-		g_free( info_slide->path );
-	info_slide->path = g_strdup( path );
+	//~ /* Prevent leak here */
+	//~ if( info_slide->path )
+		//~ g_free( info_slide->path );
+	//~ info_slide->path = g_strdup( path );
 
 	g_signal_handlers_block_by_func((gpointer)img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);	
 	gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter);
@@ -1601,11 +1589,11 @@ void img_change_image_area_size (GtkPaned *widget, GParamSpec *unused,  img_wind
 	vbox = gtk_widget_get_parent(GTK_WIDGET(img->image_area));
 	gtk_widget_get_allocation(vbox, &allocation);
 	
-	gint last_pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(img->vpaned), "last-position"));
-	gint actual_pos = gtk_paned_get_position(GTK_PANED(img->vpaned));
-    gint paned_height = gtk_widget_get_allocated_height(GTK_WIDGET(img->vpaned));
+	gint last_pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "last-position"));
+	gint actual_pos = gtk_paned_get_position(GTK_PANED(widget));
+    gint paned_height = gtk_widget_get_allocated_height(GTK_WIDGET(widget));
 
-	 // Calculate zoom change based on paned movement relative to its total height
+	// Calculate zoom change based on paned movement relative to its total height
     gdouble zoom_change = (gdouble)(actual_pos - last_pos) / paned_height;
     
     // Adjust zoom factor
@@ -1633,4 +1621,14 @@ void img_change_image_area_size (GtkPaned *widget, GParamSpec *unused,  img_wind
     
     gtk_widget_set_size_request(img->image_area, new_width, new_height);
 	g_object_set_data(G_OBJECT(widget), "last-position", GINT_TO_POINTER(actual_pos));
+}
+
+void img_change_media_library_size(GtkPaned *widget, GParamSpec *unused, img_window_struct *img)
+{
+    gint paned_pos = gtk_paned_get_position(GTK_PANED(widget));
+    gint iconview_width = paned_pos / 2;
+    gint num_columns = iconview_width / 75;
+    
+    gtk_icon_view_set_columns(GTK_ICON_VIEW(img->media_iconview), num_columns);
+    gtk_widget_set_size_request(img->media_iconview, iconview_width, -1);
 }

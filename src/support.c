@@ -377,13 +377,6 @@ media_struct *img_create_new_media()
 	slide = g_new0( media_struct, 1 );
 	if(slide)
 	{
-		/* Still part */
-		slide->duration = 1.0;
-
-		/* Transition */
-		slide->path = g_strdup("0");
-		slide->transition_id = -1;
-
 		/* Ken Burns */
 		slide->cur_point = -1;
 
@@ -445,77 +438,66 @@ void img_set_empty_slide_info( media_struct *slide,
 	}
 }
 
-GdkPixbuf *img_set_fade_gradient(img_window_struct *img, gint gradient, media_struct *slide_info)
-{
-	GdkPixbuf		*pix = NULL;
-	GtkTreeIter 	iter;
-	GtkTreeModel 	*model;
-	gpointer     	address;
+//~ GdkPixbuf *img_set_fade_gradient(img_window_struct *img, gint gradient, media_struct *slide_info)
+//~ {
+	//~ GdkPixbuf		*pix = NULL;
+	//~ GtkTreeIter 	iter;
+	//~ GtkTreeModel 	*model;
+	//~ gpointer     	address;
 
-	if (gradient == 3)
-	{
-		model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
-		/* 10:0 is the path string pointing to the Cross Fade transition */
-		gtk_tree_model_get_iter_from_string( model, &iter, "10:0" );
-		gtk_tree_model_get( model, &iter, 0, &pix,
-										  2, &address,
-										 -1 );
-		slide_info->transition_id = 19;
-		slide_info->render = address;
-		if (slide_info->path)
-		{
-			g_free(slide_info->path);
-			slide_info->path = g_strdup("10:0");
-		}
-	}
-	else
-	{
-		if (slide_info->path)
-		{
-			g_free(slide_info->path);
-			slide_info->path = g_strdup("0");
-		}
-		slide_info->transition_id = -1;
-		slide_info->render = NULL;
-	}
-	return pix;
-}
+	//~ if (gradient == 3)
+	//~ {
+		//~ model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
+		//~ /* 10:0 is the path string pointing to the Cross Fade transition */
+		//~ gtk_tree_model_get_iter_from_string( model, &iter, "10:0" );
+		//~ gtk_tree_model_get( model, &iter, 0, &pix,
+										  //~ 2, &address,
+										 //~ -1 );
+		//~ slide_info->transition_id = 19;
+		//~ slide_info->render = address;
+		//~ if (slide_info->path)
+		//~ {
+			//~ g_free(slide_info->path);
+			//~ slide_info->path = g_strdup("10:0");
+		//~ }
+	//~ }
+	//~ else
+	//~ {
+		//~ if (slide_info->path)
+		//~ {
+			//~ g_free(slide_info->path);
+			//~ slide_info->path = g_strdup("0");
+		//~ }
+		//~ slide_info->transition_id = -1;
+		//~ slide_info->render = NULL;
+	//~ }
+	//~ return pix;
+//~ }
 
-void
-img_set_slide_still_info( media_struct      *slide,
-						  gdouble           duration,
-						  img_window_struct *img )
-{
-	if( slide->duration != duration )
-	{
-		slide->duration = duration;
-	}
-}
+//~ void
+//~ img_set_slide_transition_info( media_struct      *slide,
+							   //~ GtkListStore      *store,
+							   //~ GtkTreeIter       *iter,
+							   //~ GdkPixbuf         *pix,
+							   //~ const gchar       *path,
+							   //~ gint               transition_id,
+							   //~ ImgRender          render,
+							   //~ img_window_struct *img )
+//~ {
+	//~ /* Set transition render. */
+	//~ if( path && ( slide->transition_id != transition_id ) )
+	//~ {
+		//~ if( slide->path )
+			//~ g_free( slide->path );
 
-void
-img_set_slide_transition_info( media_struct      *slide,
-							   GtkListStore      *store,
-							   GtkTreeIter       *iter,
-							   GdkPixbuf         *pix,
-							   const gchar       *path,
-							   gint               transition_id,
-							   ImgRender          render,
-							   img_window_struct *img )
-{
-	/* Set transition render. */
-	if( path && ( slide->transition_id != transition_id ) )
-	{
-		if( slide->path )
-			g_free( slide->path );
+		//~ slide->path = g_strdup( path );
+		//~ slide->transition_id = transition_id;
+		//~ slide->render = render;
 
-		slide->path = g_strdup( path );
-		slide->transition_id = transition_id;
-		slide->render = render;
+		//~ gtk_list_store_set( store, iter, 2, pix, -1 );
+	//~ }
 
-		gtk_list_store_set( store, iter, 2, pix, -1 );
-	}
-
-}
+//~ }
 
 void
 img_set_slide_ken_burns_info( media_struct *slide,
@@ -551,8 +533,8 @@ img_set_slide_ken_burns_info( media_struct *slide,
 
 	full = img_calc_slide_duration_points( slide->points,
 										   slide->no_points );
-	if( full )
-		slide->duration = full;
+	//~ if( full )
+		//~ slide->duration = full;
 }
 
 void img_free_media_struct( media_struct *entry )
@@ -579,9 +561,6 @@ void img_free_media_struct( media_struct *entry )
 	
 	if (entry->font_desc)
 		g_free(entry->font_desc);
-
-	if (entry->path)
-		g_free(entry->path);
 
 	/* Free stop point list */
 	for( tmp = entry->points; tmp; tmp = g_list_next( tmp ) )
@@ -619,31 +598,31 @@ void img_taint_project(img_window_struct *img)
     }
 }
 
-void
-img_sync_timings( media_struct  *slide, img_window_struct *img )
-{
-	/* If times are already synchronized, return */
-	if( slide->duration >= slide->anim_duration )
-		return;
+//~ void
+//~ img_sync_timings( media_struct  *slide, img_window_struct *img )
+//~ {
+	//~ /* If times are already synchronized, return */
+	//~ if( slide->duration >= slide->anim_duration )
+		//~ return;
 
-	/* Do the right thing;) */
-	if( slide->no_points )
-	{
-		gint          diff;
-		ImgStopPoint *point;
+	//~ /* Do the right thing;) */
+	//~ if( slide->no_points )
+	//~ {
+		//~ gint          diff;
+		//~ ImgStopPoint *point;
 
-		/* Calculate difference that we need to accomodate */
-		diff = slide->anim_duration - slide->duration;
+		//~ /* Calculate difference that we need to accomodate */
+		//~ diff = slide->anim_duration - slide->duration;
 
-		/* Elongate last point */
-		point = (ImgStopPoint *)g_list_last( slide->points )->data;
-		point->time += diff;
+		//~ /* Elongate last point */
+		//~ point = (ImgStopPoint *)g_list_last( slide->points )->data;
+		//~ point->time += diff;
 		
-		/* Update Ken Burns display */
-		gtk_spin_button_set_value( GTK_SPIN_BUTTON( img->ken_duration ),
-								   point->time );
-	}
-}
+		//~ /* Update Ken Burns display */
+		//~ gtk_spin_button_set_value( GTK_SPIN_BUTTON( img->ken_duration ),
+								   //~ point->time );
+	//~ }
+//~ }
 
 GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface )
 {

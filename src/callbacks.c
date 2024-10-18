@@ -349,7 +349,7 @@ void img_free_allocated_memory(img_window_struct *img)
 		while (gtk_tree_model_iter_next (model,&iter));
 		gtk_list_store_clear(GTK_LIST_STORE(img->media_model));
 		
-		img_timeline_free_media((ImgTimeline*)img->timeline);
+		img_timeline_delete_all_media((ImgTimeline*)img->timeline);
 		img_timeline_delete_additional_tracks((ImgTimeline*)img->timeline);
 	}
 	img->media_nr = 0;
@@ -1778,7 +1778,7 @@ void img_add_stop_point( GtkButton  *button, img_window_struct *img )
 	img->current_media->no_points++;
 
 	/* Sync timings */
-	img_sync_timings( img->current_media, img );
+	//img_sync_timings( img->current_media, img );
 	
 	img_taint_project(img);
 }
@@ -1805,11 +1805,11 @@ img_update_stop_point( GtkSpinButton  *button,
 	full = img_calc_slide_duration_points(img->current_media->points,
 										img->current_media->no_points);
 
-	img->current_media->duration = full;
+	//img->current_media->duration = full;
 
 
 	/* Sync timings */
-	img_sync_timings( img->current_media, img );
+	//img_sync_timings( img->current_media, img );
 
 	img_taint_project(img);
 }
@@ -1840,10 +1840,10 @@ img_delete_stop_point( GtkButton         *button,
 	full = img_calc_slide_duration_points(img->current_media->points,
 										img->current_media->no_points);
 
-	img->current_media->duration = full;
+	//img->current_media->duration = full;
 	
 	/* Sync timings */
-	img_sync_timings( img->current_media, img );
+	//img_sync_timings( img->current_media, img );
 	
 	img_taint_project(img);
 }
@@ -1929,8 +1929,8 @@ gboolean img_save_window_settings( img_window_struct *img )
 	GKeyFile *kf;
 	gchar    *group = "Interface settings";
 	gchar    *rc_file, *rc_path, *contents;
-	/* Width, height, gutter, flags, time marker */
-	int       w, h, g, f;
+	/* Width, height, v_paned, h_paned, flags */
+	int       w, h, g, m, f;
 	gdouble current_time;
 	gboolean  max;
 
@@ -1944,6 +1944,7 @@ gboolean img_save_window_settings( img_window_struct *img )
 
 	gtk_window_get_size( GTK_WINDOW( img->imagination_window ), &w, &h );
 	g = gtk_paned_get_position( GTK_PANED( img->vpaned));
+	m = gtk_paned_get_position( GTK_PANED( img->hpaned));
 	f = gdk_window_get_state( gtk_widget_get_window( img->imagination_window ) );
 	max = f & GDK_WINDOW_STATE_MAXIMIZED;
 
@@ -1954,11 +1955,12 @@ gboolean img_save_window_settings( img_window_struct *img )
 		w -= 100;
 		h -= 100;
 	}
-	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
+
 	kf = g_key_file_new();
 	g_key_file_set_integer( kf, group, "width",   w );
 	g_key_file_set_integer( kf, group, "height",  h );
-	g_key_file_set_integer( kf, group, "paned",  g );
+	g_key_file_set_integer( kf, group, "v_paned",  g );
+	g_key_file_set_integer( kf, group, "h_paned",  m );
 	g_key_file_set_double(  kf, group, "zoom_p",  img->image_area_zoom );
 	g_key_file_set_integer( kf, group, "image_area_width",   gtk_widget_get_allocated_width(img->image_area));
 	g_key_file_set_integer( kf, group, "image_area_height",  gtk_widget_get_allocated_height(img->image_area));
@@ -1991,7 +1993,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 	gchar     *group = "Interface settings";
 	gchar	  **recent_slideshows;
 	gchar     *rc_file, *recent_files = NULL;
-	gint      w, h, g, w2,h2;
+	gint      w, h, g, m, w2,h2;
 	gint	  i;
 	gboolean  max;
 	gdouble current_time;
@@ -2005,7 +2007,8 @@ gboolean img_load_window_settings( img_window_struct *img )
 
 	w                   	= g_key_file_get_integer( kf, group, "width",   NULL );
 	h                    	= g_key_file_get_integer( kf, group, "height",  NULL );
-	g                    	= g_key_file_get_integer( kf, group, "paned",  NULL );
+	g                    	= g_key_file_get_integer( kf, group, "v_paned",  NULL );
+	m                    	= g_key_file_get_integer( kf, group, "h_paned",  NULL );
 	img->image_area_zoom = g_key_file_get_double(  kf, group, "zoom_p",  NULL );
 	w2                  	= g_key_file_get_integer( kf, group, "image_area_width",   NULL );
 	h2                  	= g_key_file_get_integer( kf, group, "image_area_height",  NULL );
@@ -2051,7 +2054,11 @@ gboolean img_load_window_settings( img_window_struct *img )
 	g_signal_handlers_block_by_func(img->vpaned, img_change_image_area_size, img);  
 	gtk_paned_set_position( GTK_PANED( img->vpaned ), g );
 	g_signal_handlers_unblock_by_func(img->vpaned, img_change_image_area_size, img);
-		
+	
+	g_signal_handlers_block_by_func(img->hpaned, img_change_media_library_size, img);  
+	gtk_paned_set_position( GTK_PANED( img->hpaned ), m );	
+	g_signal_handlers_unblock_by_func(img->hpaned, img_change_media_library_size, img);  
+
 	if( max )
 		gtk_window_maximize( GTK_WINDOW( img->imagination_window ) );
 
@@ -2212,41 +2219,6 @@ void img_pattern_clicked(GtkMenuItem *item,
 	}
 	if (GTK_IS_WIDGET(fc))
 		gtk_widget_destroy(fc);
-}
-
-void img_spinbutton_value_changed (GtkSpinButton *spinbutton, img_window_struct *img)
-{
-	gdouble duration = 0;
-	GList *selected, *bak;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	media_struct *info_slide;
-
-	//~ model = GTK_TREE_MODEL( img->thumbnail_model );
-	//~ selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->thumbnail_iconview));
-	//~ if (selected == NULL)
-		//~ return;
-
-	//~ duration = gtk_spin_button_get_value(spinbutton);
-	//~ bak = selected;
-	//~ while (selected)
-	//~ {
-		//~ gtk_tree_model_get_iter(model, &iter,selected->data);
-		//~ gtk_tree_model_get(model, &iter,1,&info_slide,-1);
-		//~ img_set_slide_still_info( info_slide, duration, img );
-		//~ selected = selected->next;
-		//~ img_taint_project(img);
-	//~ }
-
-	GList *node19;
-	for(node19 = bak;node19 != NULL;node19 = node19->next) {
-		gtk_tree_path_free(node19->data);
-	}
-	g_list_free(bak);
-
-	/* Sync timings */
-	img_sync_timings( img->current_media, img );
-	img_taint_project(img);
 }
 
 void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct *img)

@@ -286,13 +286,13 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 								&thumb, NULL );
 
 		
-				/* Add empty slide */
-				if (GTK_WIDGET(item) != img->edit_empty_slide)
-				{
-					pix = img_set_fade_gradient(img, slide.gradient, slide_info);
-					//gtk_list_store_append( img->thumbnail_model, &iter );
-					//gtk_list_store_set(img->thumbnail_model, &iter, 0, thumb, 1, slide_info, 2, pix, 3, FALSE, -1 );
-				}
+				//~ /* Add empty slide */
+				//~ if (GTK_WIDGET(item) != img->edit_empty_slide)
+				//~ {
+					//~ pix = img_set_fade_gradient(img, slide.gradient, slide_info);
+					//~ //gtk_list_store_append( img->thumbnail_model, &iter );
+					//~ //gtk_list_store_set(img->thumbnail_model, &iter, 0, thumb, 1, slide_info, 2, pix, 3, FALSE, -1 );
+				//~ }
 			
 				
 			if (GTK_WIDGET(item) != img->edit_empty_slide)

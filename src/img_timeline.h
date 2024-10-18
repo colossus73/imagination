@@ -56,19 +56,22 @@ enum
 
 typedef struct _media
 {
-	gint		id;							//This has the same id value in the media_struct in imagination.h
-	gdouble x;
-	gdouble y;
-	gdouble drag_x;
-	gdouble old_x;
-	gdouble initial_width;
-	gdouble width;
-	gint start_time;
-    gint duration;
-    gboolean to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
-	enum {	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
-	gboolean button_pressed;
-	GtkWidget *button;
+	gint					id;							//This has the same id value in the media_struct in imagination.h
+	gdouble		 	x;
+	gdouble 			y;
+	gdouble 			drag_x;
+	gdouble			old_x;
+	gdouble			initial_width;
+	gdouble			width;
+	gint					start_time;
+    gint					duration;
+    gboolean 		to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
+	enum 				{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
+	gboolean 		button_pressed;
+	GtkWidget 		*button;
+	gchar    			*tree_path;          			/* Transition model path to transition */
+	gint       			transition_id; 		/* Transition id */
+	ImgRender  render;        	/* Transition render function */
 } media_timeline;
 
 typedef struct _Track
@@ -76,7 +79,6 @@ typedef struct _Track
 	GArray *items;
 	gchar *background_color;
 	gint type;
-	gint items_nr;
 	gint order;
 	gboolean is_selected;
 	gboolean is_default;
@@ -104,9 +106,10 @@ void img_timeline_create_toggle_button		(media_timeline *, gint, gchar *, img_wi
 void img_timeline_add_track						(GtkWidget *, gint, gchar *);
 void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint, gint);
 void img_timeline_set_time_marker			(ImgTimeline *, gdouble );
-void img_timeline_free_media						(ImgTimeline *);
+void img_timeline_delete_all_media						(ImgTimeline *);
 void img_timeline_delete_additional_tracks(ImgTimeline *);
 void img_timeline_center_button_image		(GtkWidget *);
+gint img_timeline_get_final_time(img_window_struct *);
 GArray *img_timeline_get_active_media		(GtkWidget *, double );
 
 //Timeline events
@@ -122,7 +125,7 @@ void 		img_timeline_drag_data_get				(GtkWidget *, GdkDragContext *, GtkSelectio
 
 //Media button events
 gboolean img_timeline_media_button_press_event 	(GtkWidget *, GdkEventButton *event, ImgTimeline *);
-gboolean img_timeline_media_button_release_event (GtkWidget *, GdkEventButton *event, ImgTimeline *);
+gboolean img_timeline_media_button_release_event (GtkWidget *, GdkEventButton *event, img_window_struct *);
 gboolean img_timeline_media_motion_notify				(GtkWidget *, GdkEventMotion *, ImgTimeline *);
 gboolean img_timeline_media_leave_event 				(GtkWidget *, GdkEventCrossing *, ImgTimeline *);
 gboolean img_timeline_media_button_tooltip				(GtkWidget *, gint , gint , gboolean , GtkTooltip *,  media_timeline *);

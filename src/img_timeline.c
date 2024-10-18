@@ -295,7 +295,8 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 
     Track *track;
 	media_timeline *item;
-    gint pos, track_nr, new_y, width;
+    gint pos, track_nr, new_y;
+    double width;
 
 	//Calculate the track to move the media to later according to the dropped y coord
 	track_nr = img_timeline_get_track_at_position(da, y, &new_y);
@@ -310,6 +311,9 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
 	item->duration = (entry->media_type == 1) ? img_convert_time_string_to_seconds(entry->audio_duration) : 2; 	// Default to 2 seconds
 	
+	item->tree_path = g_strdup("0");
+	item->transition_id = -1;
+
 	img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
     g_array_append_val(track->items, item);
 	
@@ -334,6 +338,8 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 
     img_timeline_center_button_image(item->button);
 	img_taint_project(img);
+	
+	gint test = img_timeline_get_final_time(img);
 }
 
 void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gchar *filename, img_window_struct *img)
@@ -374,7 +380,7 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	g_signal_connect(item->button, "motion-notify-event",		G_CALLBACK(img_timeline_media_motion_notify), img->timeline);
 	g_signal_connect(item->button, "leave-notify-event", 		G_CALLBACK(img_timeline_media_leave_event), img->timeline);
 	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img->timeline);
-	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img->timeline);
+	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img);
 	g_signal_connect(item->button, "query-tooltip",					G_CALLBACK(img_timeline_media_button_tooltip), item);
 	//g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
 
@@ -461,7 +467,7 @@ gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *e
 		priv->button_pressed_on_needle = TRUE;
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
 		
-		time = img_convert_time_to_string((gint) event->x);
+		time = img_convert_time_to_string((event->x + 10) / priv->pixels_per_second);
 		gtk_label_set_text(GTK_LABEL(img->current_time), time);
 		g_free(time);
 		
@@ -507,6 +513,7 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 			}
 		}
 		img_taint_project(img);
+		gint unused =	img_timeline_get_final_time(img);
 	}
 	return TRUE;
 }
@@ -523,7 +530,7 @@ gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, 
 	{
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
 		
-		time = img_convert_time_to_string((gint) event->x);
+		time = img_convert_time_to_string((event->x + 10) / priv->pixels_per_second);
 		gtk_label_set_text(GTK_LABEL(img->current_time), time);
 		g_free(time);
 		
@@ -569,13 +576,17 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 	  return FALSE;
 }
 
-gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButton *event, ImgTimeline *timeline)
+gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButton *event, img_window_struct *img)
 {
 	 media_timeline *item;
 	 item = g_object_get_data(G_OBJECT(button), "mem_address");
 	 item->button_pressed = FALSE;
 	 item->resizing = RESIZE_NONE;
-
+	gint posx;
+	
+	posx = img_timeline_get_final_time(img);
+	img_timeline_set_time_marker((ImgTimeline *)img->timeline, posx);
+	
 	return FALSE;
 }
 
@@ -682,7 +693,7 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 	GtkAdjustment *scroll_x = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(viewport));
 	step 								 = gtk_adjustment_get_step_increment(scroll_x);
 	position							 = gtk_adjustment_get_value(scroll_x);
-		
+
 	if ( (event->state & accel_mask) == GDK_CONTROL_MASK)
 	{
 		if (dy > 0)
@@ -708,6 +719,7 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 						gtk_widget_set_size_request(GTK_WIDGET(item->button), width, 50);
 						new_x = (gint)(item->start_time * priv->pixels_per_second);
 						gtk_layout_move(GTK_LAYOUT(timeline), item->button, new_x, item->y);
+						img_timeline_center_button_image(item->button);
 					}
 				}
 			}
@@ -884,7 +896,7 @@ static void img_timeline_unhighlight_track(GArray *tracks)
 	}
 }
 
-void img_timeline_free_media(ImgTimeline *timeline)
+void img_timeline_delete_all_media(ImgTimeline *timeline)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
 	Track *track;
@@ -899,6 +911,8 @@ void img_timeline_free_media(ImgTimeline *timeline)
 			{
 				item = g_array_index(track->items, media_timeline  *, q);
 				gtk_widget_destroy(item->button);
+				if (item->tree_path)
+					g_free(item->tree_path);
 				g_array_remove_index(track->items, q);
 				g_free(item);
 			}
@@ -965,4 +979,34 @@ void img_timeline_center_button_image(GtkWidget *button)
     y = (button_allocation.height - image_allocation.height) / 2;
 
     gtk_layout_move(GTK_LAYOUT(layout), image, x, y);
+}
+
+gint img_timeline_get_final_time(img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+	Track *track;
+	media_timeline *item;
+	gint total_time = 0;
+	gint last_duration = 0;
+	gchar* total_time_string;
+
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = &g_array_index(priv->tracks, Track, i);
+		if (track->items)
+		{
+			for (gint q = track->items->len - 1; q >= 0; q--)
+			{
+				item = g_array_index(track->items, media_timeline *, q);
+				last_duration = item->start_time + item->duration;
+				if (last_duration > total_time)
+					total_time = last_duration;
+			}
+		}
+	}
+	total_time_string = img_convert_time_to_string(total_time);
+	gtk_label_set_text(GTK_LABEL(img->total_time), total_time_string);
+	g_free(total_time_string);
+
+	return total_time;
 }

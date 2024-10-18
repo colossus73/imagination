@@ -138,7 +138,7 @@ static gboolean img_start_export( img_window_struct *img)
 
 	gtk_widget_show_all( dialog );
 
-	/* Create first slide */
+	/* Create first media */
 	img->image1 = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
 											  img->video_size[0],
 											  img->video_size[1] );
@@ -149,7 +149,7 @@ static gboolean img_start_export( img_window_struct *img)
 	cairo_paint( cr );
 	cairo_destroy( cr );
 
-	//~ /* Load first image from model */
+	//~ /* Load first media item from timeline */
 	//~ model = GTK_TREE_MODEL( img->media_model );
 	//~ gtk_tree_model_get_iter_first( model, &iter );
 	//~ gtk_tree_model_get( model, &iter, 1, &entry, -1 );
@@ -375,16 +375,16 @@ img_calc_next_slide_time_offset( img_window_struct *img,
 {
 	int transition_speed = 3;
 	
-	if( img->current_media->render )
-	{
-		img->next_slide_off += img->current_media->duration + transition_speed;
-		img->slide_trans_frames = transition_speed * rate;
-	}
-	else
-	{
-		img->next_slide_off += img->current_media->duration;
-		img->slide_trans_frames = 0;
-	}
+	//~ if( img->current_media->render )
+	//~ {
+		//~ img->next_slide_off += img->current_media->duration + transition_speed;
+		//~ img->slide_trans_frames = transition_speed * rate;
+	//~ }
+	//~ else
+	//~ {
+		//~ img->next_slide_off += img->current_media->duration;
+		//~ img->slide_trans_frames = 0;
+	//~ }
 
 	img->slide_nr_frames = img->next_slide_off * rate - img->displayed_frame;
 	img->slide_cur_frame = 0;
@@ -484,11 +484,7 @@ img_export_still( img_window_struct *img )
 			img_calc_next_slide_time_offset( img, img->export_fps );
 			img->export_slide++;
 
-			/* Make dialog more informative */
-			if( img->current_media->duration == 0 )
-				string = g_strdup_printf( _("Final transition export progress:") );
-			else
-				string = g_strdup_printf( _("Slide %d export progress:"),
+			string = g_strdup_printf( _("Slide %d export progress:"),
 										  img->export_slide );
 			gtk_label_set_label( GTK_LABEL( img->export_label ), string );
 			g_free( string );
@@ -639,7 +635,7 @@ img_render_transition_frame( img_window_struct *img )
 	progress = (gdouble)img->slide_cur_frame / ( img->slide_trans_frames - 1 );
 	cr = cairo_create( img->exported_image );
 	cairo_save( cr );
-	img->current_media->render( cr, img->image_from, img->image_to, progress );
+	//img->current_media->render( cr, img->image_from, img->image_to, progress );
 	cairo_restore( cr );
 	
 	/* Export frame */

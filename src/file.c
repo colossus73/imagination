@@ -137,7 +137,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 			
 			// Transition
 			case 4:
-				g_key_file_set_integer(img_key_file,conf, "transition_id",	entry->transition_id);
+				//g_key_file_set_integer(img_key_file,conf, "transition_id",	entry->transition_id);
 			break;
 			
 		} // End swith entry->media type
@@ -396,8 +396,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			
 			// Transition
 			case 4:
-				media->duration	 		= g_key_file_get_double(img_key_file, conf, "duration", NULL);
-				media->transition_id 	= g_key_file_get_integer(img_key_file, conf, "transition_id", NULL);
+				//media->duration	 		= g_key_file_get_double(img_key_file, conf, "duration", NULL);
+				//media->transition_id 	= g_key_file_get_integer(img_key_file, conf, "transition_id", NULL);
 			break;
 			
 			//~ else
@@ -593,6 +593,8 @@ next:
 	img->project_current_dir = project_current_dir;
 	img_refresh_window_title(img);
 	img_zoom_fit(NULL, img);
+	
+	gint unused = img_timeline_get_final_time(img);
 }
 
 static gboolean img_populate_hash_table( GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, GHashTable **table )

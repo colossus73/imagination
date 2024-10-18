@@ -145,14 +145,6 @@ struct _media_struct
 	gdouble g_start_point[2]; /* x, y coordinates of start point */
 	gdouble g_stop_point[2];  /* x, y coordinates of stop point */
 
-	/* Still part of the slide params */
-	gdouble duration; /* Duration of still part */ /* NOTE: sub1 */
-
-	/* Transition params */
-	gchar     *path;          			/* Transition model path to transition */
-	gint       transition_id; 		/* Transition id */
-	ImgRender  render;        	/* Transition render function */
-
 	/* Ken Burns effect variables */
 	GList *points;    /* List with stop points */
 	gint   no_points; /* Number of stop points in list */
@@ -252,6 +244,7 @@ struct _img_window_struct
   	gchar		*current_dir;
   	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
 	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
+	GtkWidget   *hpaned;										/* Widget to allow media library to be shrinked */
 
 	/* Ken Burns related controls */
 	GtkWidget *ken_left;     /* Go to left stop point button */
@@ -385,18 +378,18 @@ struct _img_window_struct
 	GTimer		 *elapsed_timer;	/* GTimer for the elapsed time */
 
 	/* AV library stuff */
-	AVFrame 		*video_frame;
-	AVFrame 		*audio_frame;
-	AVStream		*video_stream;
-	AVCodecContext	*codec_context;
-	AVPacket		*video_packet;
-	AVPacket		*audio_packet;
+	AVFrame 				*video_frame;
+	AVFrame 				*audio_frame;
+	AVStream				*video_stream;
+	AVCodecContext		*codec_context;
+	AVPacket					*video_packet;
+	AVPacket					*audio_packet;
 	AVFormatContext	*video_format_context;
 	struct SwsContext *sws_ctx;
 
 	/* Application related stuff */
-	gdouble  image_area_zoom; /* Zoom to be applied to image area */
-	gint     preview_fps;     /* Preview frame rate */
+	gdouble  	image_area_zoom; 	/* Zoom to be applied to image area */
+	gint    		preview_fps;     			/* Preview frame rate */
 
 	/* Clipboard related stuff */
 	ImgClipboardMode	clipboard_mode;
