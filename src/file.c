@@ -181,7 +181,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				for (gint q = 0; q < track->items->len; q++)
 				{
 					item = g_array_index(track->items, media_timeline  *, q);
-					g_string_append_printf(string_values, "%d;%d;%d;", item->id, item->start_time, item->duration);
+					g_string_append_printf(string_values, "%d;%.0f;%.0f;%d;", item->id, item->start_time, item->duration, item->transition_id);
 				}
 				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
 				g_string_free(string_values, TRUE);
@@ -287,9 +287,9 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	project_current_dir = g_path_get_dirname(input);
 
 	/* Create hash table for efficient searching */
-	table = g_hash_table_new_full( g_direct_hash, g_direct_equal, NULL, g_free );
-	model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
-	gtk_tree_model_foreach( model, (GtkTreeModelForeachFunc)img_populate_hash_table, &table );
+	table = g_hash_table_new_full( g_direct_hash, g_direct_equal, NULL, g_free);
+	model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type));
+	gtk_tree_model_foreach( model, (GtkTreeModelForeachFunc)img_populate_hash_table, &table);
 
 	/* Video Size */
 	img->video_size[0] = g_key_file_get_integer(img_key_file, "slideshow settings", "video width", NULL);
@@ -393,13 +393,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 					media->font_outline_color[i] = my_points[i];
                 media->alignment 				= g_key_file_get_integer(img_key_file, conf, "alignment", NULL);
 			break;
-			
-			// Transition
-			case 4:
-				//media->duration	 		= g_key_file_get_double(img_key_file, conf, "duration", NULL);
-				//media->transition_id 	= g_key_file_get_integer(img_key_file, conf, "transition_id", NULL);
-			break;
-			
+	
 			//~ else
 			//~ {
 				//~ angle = 0;
@@ -443,13 +437,6 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				//~ if (no_points > 0)
 					//~ my_points = g_key_file_get_double_list(img_key_file, conf, "points", &length, NULL);
 
-				//~ /* Get the mem address of the transition */
-				//~ spath = (gchar *)g_hash_table_lookup( table, GINT_TO_POINTER( transition_id ) );
-				//~ gtk_tree_model_get_iter_from_string( model, &iter, spath );
-				//~ gtk_tree_model_get( model, &iter, 2, &render, 0, &pix, -1 );
-				
-				
-
                   //~ /* If image has been flipped or rotated, do it now too. */
 					//~ if( (flipped || angle) && ! g_strrstr(icon_filename, "image-missing"))
 					//~ {
@@ -460,14 +447,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 										 //~ img->background_color, &thumb, NULL );
 					//~ }
 
-									/* Set duration */
-					//img_set_slide_still_info( media, duration, img );
-
-					/* Set transition */
-					//~ img_set_slide_transition_info( media,
-												   //~ img->thumbnail_model, &iter,
-												   //~ pix, spath, transition_id,
-												   //~ render,  img );
+		
 
 					/* Set stop points */
 					//~ if( no_points > 0 )
@@ -488,15 +468,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 							//~ pattern_name = _pattern_filename;
 						//~ }
 
-						//~ img_set_slide_text_info( media, img->thumbnail_model,
-												 //~ &iter, NULL, pattern_name, anim_id,
-												 //~ anim_duration, posx, posy, subtitle_angle,
-												 //~ font_desc, font_color, font_bg_color, font_shadow_color, font_outline_color, 
-												//~ alignment, img);
-				
-			
-				//~ if (pix)
-					//~ g_object_unref( G_OBJECT( pix ) );
+		
 				//~ g_free( font_desc );
 			//~ }
 			//~ else
@@ -535,26 +507,36 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			img_timeline_add_track(img->timeline, number, background_color); 
 		}
 		value_string = g_key_file_get_string(img_key_file, conf, "media_sequence", NULL);
-
 		// If no media are placed on track process next one
 		if (value_string == NULL)
 			goto next;
 
 		values = g_strsplit(value_string, ";", -1);
 		number = g_strv_length(values);
-		for (gsize q = 0; q < number -2 ; q+=3)
+		for (gsize q = 0; q < number -2 ; q+=4)
 		{
 			track = &g_array_index(priv->tracks, Track, i);
 			item = g_new0(media_timeline, 1);
 			item->id 				=	g_ascii_strtoll(values[q+0], NULL, 10);
-			item->start_time =	g_ascii_strtoll(values[q+1], NULL, 10);
-			item->duration 	=	g_ascii_strtoll(values[q+2], NULL, 10);
-			g_array_append_val(track->items, item);
+			item->start_time 	=	g_ascii_strtod(values[q+1], NULL);
+			item->duration 		=	g_ascii_strtod(values[q+2], NULL);
+			item->transition_id=	g_ascii_strtoll(values[q+3], NULL, 10);
 
 			// Read the media filename and media type again to create the image in the toggle button
 			conf2 = g_strdup_printf("media %d", item->id);
 			media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
 			media_type = g_key_file_get_integer(img_key_file, conf2, "media_type",  NULL);
+			item->media_type = media_type;
+			if (media_type == 0)
+			{
+				spath = (gchar *)g_hash_table_lookup(table, GINT_TO_POINTER(item->transition_id));
+				gtk_tree_model_get_iter_from_string(model, &iter, spath);
+				gtk_tree_model_get(model, &iter, 2, &render, 0, &pix, -1);
+				item->render = render;
+				item->tree_path = g_strdup(spath);
+			}
+
+			g_array_append_val(track->items, item);
 			g_free(conf2);
 				
 			img_timeline_create_toggle_button(item, media_type, media_filename, img);
@@ -566,8 +548,11 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
+			
+			img_timeline_center_button_image(item->button);
 			item->y = posy;
 			item->old_x = posx;
+			
 		}
 		g_strfreev(values);
 next:

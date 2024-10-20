@@ -42,6 +42,12 @@ typedef struct _ImgTimelinePrivate
 	gboolean button_pressed_on_needle;
 	gdouble pixels_per_second;
 	GArray *tracks;
+	
+	gboolean rubber_band_active;
+    gdouble rubber_band_start_x;
+    gdouble rubber_band_start_y;
+    gdouble rubber_band_end_x;
+    gdouble rubber_band_end_y;
 } ImgTimelinePrivate;
 
 enum
@@ -57,21 +63,22 @@ enum
 typedef struct _media
 {
 	gint					id;							//This has the same id value in the media_struct in imagination.h
+	gint					media_type;
 	gdouble		 	x;
 	gdouble 			y;
 	gdouble 			drag_x;
 	gdouble			old_x;
-	gdouble			initial_width;
-	gdouble			width;
-	gint					start_time;
-    gint					duration;
+	gint					initial_width;
+	gint					width;
+	gdouble			start_time;
+    gdouble			duration;
     gboolean 		to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
 	enum 				{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
 	gboolean 		button_pressed;
 	GtkWidget 		*button;
-	gchar    			*tree_path;          			/* Transition model path to transition */
+	gchar    			*tree_path; 			/* Transition model path to transition */
 	gint       			transition_id; 		/* Transition id */
-	ImgRender  render;        	/* Transition render function */
+	ImgRender  render;        			/* Transition render function */
 } media_timeline;
 
 typedef struct _Track
@@ -111,6 +118,8 @@ void img_timeline_delete_additional_tracks(ImgTimeline *);
 void img_timeline_center_button_image		(GtkWidget *);
 gint img_timeline_get_final_time(img_window_struct *);
 GArray *img_timeline_get_active_media		(GtkWidget *, double );
+void img_timeline_go_start_time(GtkWidget *, img_window_struct *);
+void img_timeline_go_final_time(GtkWidget *, img_window_struct *);
 
 //Timeline events
 gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);
@@ -124,9 +133,9 @@ void		img_timeline_drag_data_received 	(GtkWidget *, GdkDragContext *, gint , gi
 void 		img_timeline_drag_data_get				(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , img_window_struct *);
 
 //Media button events
-gboolean img_timeline_media_button_press_event 	(GtkWidget *, GdkEventButton *event, ImgTimeline *);
+gboolean img_timeline_media_button_press_event 	(GtkWidget *, GdkEventButton *event, img_window_struct *);
 gboolean img_timeline_media_button_release_event (GtkWidget *, GdkEventButton *event, img_window_struct *);
-gboolean img_timeline_media_motion_notify				(GtkWidget *, GdkEventMotion *, ImgTimeline *);
+gboolean img_timeline_media_motion_notify				(GtkWidget *, GdkEventMotion *, img_window_struct *);
 gboolean img_timeline_media_leave_event 				(GtkWidget *, GdkEventCrossing *, ImgTimeline *);
 gboolean img_timeline_media_button_tooltip				(GtkWidget *, gint , gint , gboolean , GtkTooltip *,  media_timeline *);
 void 		img_timeline_media_drag_data_get				(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint, ImgTimeline *);

@@ -27,6 +27,8 @@ static void img_timeline_set_property(GObject *, guint , const GValue *, GParamS
 static void img_timeline_get_property(GObject *, guint , GValue *, GParamSpec *);
 static void img_timeline_init(ImgTimeline *);
 static void img_timeline_draw_ticks(GtkWidget *widget, cairo_t *);
+static void img_timeline_draw_rubber_band(cairo_t *, ImgTimelinePrivate *);
+static void img_timeline_select_items_in_rubber_band(GtkWidget *);
 static void img_timeline_finalize(GObject *);
 static gboolean img_timeline_draw(GtkWidget *, cairo_t *);
 static gint img_timeline_calculate_total_tracks_height(GtkWidget *);
@@ -62,6 +64,12 @@ static void img_timeline_init(ImgTimeline *timeline)
     priv->time_marker_pos = 0.0;
 	priv->tracks = g_array_new(FALSE, TRUE, sizeof(Track));
 
+	priv->rubber_band_active = FALSE;
+    priv->rubber_band_start_x = 0;
+    priv->rubber_band_start_y = 0;
+    priv->rubber_band_end_x = 0;
+    priv->rubber_band_end_y = 0;
+    
 	// Add default image and audio tracks
 	Track image_track;
 	image_track.type = 0;
@@ -178,13 +186,38 @@ static gboolean img_timeline_draw(GtkWidget *da, cairo_t *cr)
 		y += TRACK_HEIGHT + TRACK_GAP;
 	}
 
-	  //This is necessary to draw the media represented by the GtkButtons
+	  //This is necessary to draw the media represented by the GtkToggleButtons
 	  GTK_WIDGET_CLASS (img_timeline_parent_class)->draw (da, cr);
 
-	  //Draw the red time marker 
-	  img_timeline_draw_time_marker(da, cr, priv->time_marker_pos, img_timeline_calculate_total_tracks_height(da));
+	//Draw the red time marker 
+	img_timeline_draw_time_marker(da, cr, priv->time_marker_pos, img_timeline_calculate_total_tracks_height(da));
+	
+	img_timeline_draw_rubber_band(cr, priv);
+	return TRUE;
+}
 
-	  return TRUE;
+static void img_timeline_draw_rubber_band(cairo_t *cr, ImgTimelinePrivate *priv)
+{
+	if (!priv->rubber_band_active)
+		return;
+
+	// Set semi-transparent blue for the rubber band
+	cairo_set_source_rgba(cr, 0.2, 0.4, 0.9, 0.2);
+	
+	// Calculate rectangle dimensions
+	gdouble x = MIN(priv->rubber_band_start_x, priv->rubber_band_end_x);
+	gdouble y = MIN(priv->rubber_band_start_y, priv->rubber_band_end_y);
+	gdouble width = ABS(priv->rubber_band_end_x - priv->rubber_band_start_x);
+	gdouble height = ABS(priv->rubber_band_end_y - priv->rubber_band_start_y);
+	
+	// Draw filled rectangle
+	cairo_rectangle(cr, x, y, width, height);
+	cairo_fill_preserve(cr);
+	
+	// Draw border
+	cairo_set_source_rgba(cr, 0.2, 0.4, 0.9, 0.8);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
 }
 
 static void img_timeline_finalize(GObject *object)
@@ -238,6 +271,7 @@ void img_timeline_draw_ticks(GtkWidget *da, cairo_t *cr)
     else tick_interval = 1.0;                                         							// 1 second
 
     gdouble label_interval = tick_interval * 2;
+    gdouble max_time = width / priv->pixels_per_second;
 
     // Calculate the minimum width needed for a label
     char min_time_str[20];
@@ -245,12 +279,12 @@ void img_timeline_draw_ticks(GtkWidget *da, cairo_t *cr)
     cairo_text_extents(cr, min_time_str, &extents);
     gdouble min_label_width = extents.width * 1.0;  // Add padding
 
-    for (gdouble t = 0; t <= total_time; t += tick_interval)
+    for (gdouble t = 0; t <= max_time; t += tick_interval)
     {
         gdouble x = t * priv->pixels_per_second;
         if (x > width)
 			break;
-        if (fmod(t, label_interval) < 0.001)
+        if (fmod(t, label_interval) < 0.05)
         {
             // Draw major tick and label
             cairo_set_line_width(cr, 2.0);
@@ -307,6 +341,7 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 
 	item = g_new0(media_timeline, 1);
 	item->id = entry->id;
+	item->media_type = entry->media_type;
 	
 	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
 	item->duration = (entry->media_type == 1) ? img_convert_time_string_to_seconds(entry->audio_duration) : 2; 	// Default to 2 seconds
@@ -377,9 +412,9 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
                                       | GDK_BUTTON_RELEASE_MASK);
                                       
 	g_signal_connect(item->button, "drag-data-get", 				G_CALLBACK(img_timeline_media_drag_data_get), NULL);
-	g_signal_connect(item->button, "motion-notify-event",		G_CALLBACK(img_timeline_media_motion_notify), img->timeline);
+	g_signal_connect(item->button, "motion-notify-event",		G_CALLBACK(img_timeline_media_motion_notify), img);
 	g_signal_connect(item->button, "leave-notify-event", 		G_CALLBACK(img_timeline_media_leave_event), img->timeline);
-	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img->timeline);
+	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img);
 	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img);
 	g_signal_connect(item->button, "query-tooltip",					G_CALLBACK(img_timeline_media_button_tooltip), item);
 	//g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
@@ -435,8 +470,7 @@ void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx, gi
     // Left vertical line (closing the path)
     cairo_close_path(cr);
 
-    // Set color and stroke
-    cairo_set_source_rgba(cr, 1, 0, 0, 0.5);
+    cairo_set_source_rgb(cr, 1, 0, 0);
     cairo_set_line_width(cr, 2);
     cairo_fill(cr);
 
@@ -460,7 +494,18 @@ gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *e
 	gchar *time;
 	
 	if (event->y < 12.0 || event->y > 32.0)
-		return FALSE;
+	{
+		if (event->button == 1)
+        {
+			priv->rubber_band_active = TRUE;
+			priv->rubber_band_start_x = event->x;
+			priv->rubber_band_start_y = event->y;
+			priv->rubber_band_end_x = event->x;
+			priv->rubber_band_end_y = event->y;
+			gtk_widget_queue_draw(timeline);
+			return TRUE;
+        }
+	}
 
 	if (event->button == 1)
 	{
@@ -480,6 +525,12 @@ gboolean img_timeline_mouse_button_release (GtkWidget *timeline, GdkEvent *event
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
 
+	if (priv->rubber_band_active)
+    {
+        priv->rubber_band_active = FALSE;
+        gtk_widget_queue_draw(GTK_WIDGET(da));
+    }
+    
 	if (priv->button_pressed_on_needle)
 		priv->button_pressed_on_needle = FALSE;
 
@@ -491,6 +542,24 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)widget);
 	Track *track;
 	media_timeline *item;
+
+	gboolean shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
+
+	if ( shift_pressed && event->keyval == GDK_KEY_A)
+	{
+		for (gint i = 0; i < priv->tracks->len; i++)
+		{
+			track = &g_array_index(priv->tracks, Track, i);
+			if (track->type == 0)
+			{
+				for (gint q = track->items->len - 1; q >= 0; q--)
+				{
+					item = g_array_index(track->items, media_timeline  *, q);
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), TRUE);
+				}
+			}
+		}
+	}
 
 	if (event->keyval == GDK_KEY_Delete)
 	{
@@ -523,6 +592,18 @@ gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, 
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)timeline);
 	gchar *time;
 
+	if (priv->rubber_band_active)
+    {
+        priv->rubber_band_end_x = event->x;
+        priv->rubber_band_end_y = event->y;
+        
+        // Select media items within the rubber band
+        img_timeline_select_items_in_rubber_band(timeline);
+        
+        gtk_widget_queue_draw(timeline);
+        return TRUE;
+    }
+    
 	if (event->x < 0)
 		return FALSE;
 
@@ -537,6 +618,37 @@ gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, 
 		gtk_widget_queue_draw(img->image_area);
 	}
    return TRUE;
+}
+
+static void img_timeline_select_items_in_rubber_band(GtkWidget *timeline)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	Track *track;
+	media_timeline *item;
+	GtkAllocation button_allocation;
+
+	gdouble band_left = MIN(priv->rubber_band_start_x, priv->rubber_band_end_x);
+	gdouble band_right = MAX(priv->rubber_band_start_x, priv->rubber_band_end_x);
+	gdouble band_top = MIN(priv->rubber_band_start_y, priv->rubber_band_end_y);
+	gdouble band_bottom = MAX(priv->rubber_band_start_y, priv->rubber_band_end_y);
+
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = &g_array_index(priv->tracks, Track, i);
+		for (gint j = 0; j < track->items->len; j++)
+		{
+			item = g_array_index(track->items, media_timeline *, j);
+			gtk_widget_get_allocation(item->button, &button_allocation);
+			
+			// Check if the media item intersects with the rubber band
+			gboolean intersects = !(button_allocation.x + button_allocation.width < band_left ||
+								button_allocation.x > band_right ||
+								button_allocation.y + button_allocation.height < band_top ||
+								button_allocation.y > band_bottom);
+		
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), intersects);
+		}
+	}
 }
 
 gboolean img_timeline_media_button_tooltip(GtkWidget *widget, gint x, gint y, gboolean keyboard_mode, GtkTooltip *tooltip, media_timeline *item)
@@ -554,14 +666,15 @@ gboolean img_timeline_media_button_tooltip(GtkWidget *widget, gint x, gint y, gb
 	return TRUE;
 }
 
-gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton *event, ImgTimeline *timeline)
+gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton *event, img_window_struct *img)
 {
-	//ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
+	GtkTreeIter   iter;
+	GtkTreeModel *model;
 	media_timeline *item;
 	  
 	item = g_object_get_data(G_OBJECT(button), "mem_address");
 	item->button_pressed = TRUE;
-	  
+	 
 	// Store the initial mouse position and button width
 	item->drag_x = event->x;
 	item->initial_width = gtk_widget_get_allocated_width(button);
@@ -572,8 +685,18 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 		item->resizing = RESIZE_RIGHT;
 	else
 		item->resizing = RESIZE_NONE;
-	  
-	  return FALSE;
+
+	// Update the transition combo box with the transition set on the media item
+	if (item->media_type == 0)
+	{
+		model = gtk_combo_box_get_model(GTK_COMBO_BOX(img->transition_type));
+		g_signal_handlers_block_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
+		model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
+		gtk_tree_model_get_iter_from_string( model, &iter, item->tree_path );
+		gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter );
+		g_signal_handlers_unblock_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
+	}
+	 return FALSE;
 }
 
 gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButton *event, img_window_struct *img)
@@ -583,89 +706,100 @@ gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButt
 	 item->button_pressed = FALSE;
 	 item->resizing = RESIZE_NONE;
 	gint posx;
-	
-	posx = img_timeline_get_final_time(img);
-	img_timeline_set_time_marker((ImgTimeline *)img->timeline, posx);
-	
+
 	return FALSE;
 }
 
-gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *event, ImgTimeline *timeline)
+gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *event, img_window_struct *img)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)img->timeline);
+    gdouble x, new_width, button_width, timeline_width, nearest_tick;
+    GdkCursor *cursor;
+    GdkWindow *window;
+    media_timeline *item;
+	gint posx;
 
-	gchar *string, *string2;
-	gint x, new_width, button_width, timeline_width, nearest_tick;
-	GdkCursor *cursor;
-	GdkWindow *window;
-	media_timeline *item;
+    item = g_object_get_data(G_OBJECT(button), "mem_address");
+    window = gtk_widget_get_window(button);
+    button_width = gtk_widget_get_allocated_width(button);
+	
+    if (item->button_pressed)
+    {
+        switch (item->resizing)
+        {
+            case RESIZE_LEFT:
+				if (item->media_type !=0)
+					return FALSE;
+                new_width = item->initial_width + (item->drag_x - event->x);
+                new_width = MAX(new_width, 1);
+                x = item->old_x + (item->initial_width - new_width);
 
-	item = g_object_get_data(G_OBJECT(button), "mem_address");
-	  
-	window = gtk_widget_get_window(button);
-	button_width = gtk_widget_get_allocated_width(button);
-
-	 if (item->button_pressed)
-	{
-		switch (item->resizing)
-		{
-			case RESIZE_LEFT:
-				new_width = item->initial_width + (item->drag_x - event->x);
-				new_width = MAX(new_width, 1); // Ensure a minimum width of 1 pixel
-				x = item->old_x + (item->initial_width - new_width);
-				// Snap to nearest tick
-				nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
+                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
                 if (abs(x - nearest_tick) < 10)
                 {
                     x = nearest_tick;
                     new_width = item->old_x + item->initial_width - x;
                 }
-				gtk_widget_set_size_request(button, new_width, 50);
-				gtk_layout_move(GTK_LAYOUT(timeline), button, x, item->y);
-				item->old_x = x;
-				item->initial_width = new_width;
-				item->start_time = (x + 10)/ priv->pixels_per_second;
-				item->duration = (new_width + 20) / (BASE_SCALE * priv->zoom_scale);
-				 img_timeline_center_button_image(item->button);
-			break;
+                
+                gtk_widget_set_size_request(button, new_width, 50);
+                gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
+                item->old_x = x;
+                item->initial_width = new_width;
 
-			case RESIZE_RIGHT:
-				new_width = MAX(event->x,1); 
-				 nearest_tick = find_nearest_major_tick(priv->pixels_per_second, item->old_x + new_width);
+                item->start_time = x / priv->pixels_per_second;
+                item->duration = new_width / priv->pixels_per_second;
+                img_timeline_center_button_image(item->button);
+               
+                //Update the final time
+                posx = img_timeline_get_final_time(img);
+                break;
+
+            case RESIZE_RIGHT:
+				if (item->media_type !=0)
+					return FALSE;
+                new_width = MAX(event->x, 1);
+                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, item->old_x + new_width);
                 if (abs((item->old_x + new_width) - nearest_tick) < 10)
                     new_width = nearest_tick - item->old_x;
-				gtk_widget_set_size_request(button, new_width, 50);
-				item->duration = (new_width +10) / (BASE_SCALE * priv->zoom_scale);
-				 img_timeline_center_button_image(item->button);
-			break;
 
-			case RESIZE_NONE:
-				x = item->old_x + (event->x - item->drag_x);
-				timeline_width = gtk_widget_get_allocated_width(GTK_WIDGET(timeline));
-				x = CLAMP(x, 0, timeline_width - button_width);
-				nearest_tick = find_nearest_major_tick(priv->pixels_per_second,  x);
-				if (abs(x - nearest_tick) < 10)
-					x = nearest_tick;
-				gtk_layout_move(GTK_LAYOUT(timeline), button, x, item->y);
-				item->start_time = (x + 10)/ priv->pixels_per_second;
+                gtk_widget_set_size_request(button, new_width, 50);
+                item->duration = new_width / priv->pixels_per_second;
+                img_timeline_center_button_image(item->button);
+                
+                 //Update the final time
+                posx = img_timeline_get_final_time(img);
+                break;
 
-				// Update old_x for the next movement
-				item->old_x = x;
-			break;
-		}
-		gtk_widget_trigger_tooltip_query(GTK_WIDGET(item->button));
-	}
+            case RESIZE_NONE:
+                x = item->old_x + (event->x - item->drag_x);
+                timeline_width = gtk_widget_get_allocated_width(GTK_WIDGET(img->timeline));
+                x = CLAMP(x, 0, timeline_width - button_width);
+                
+                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
+                if (abs(x - nearest_tick) < 10)
+                    x = nearest_tick;
+                
+                gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
+                item->start_time = x / priv->pixels_per_second;
+                item->old_x = x;
+                
+                 //Update the final time
+                posx = img_timeline_get_final_time(img);
+                break;
+        }
+        gtk_widget_trigger_tooltip_query(GTK_WIDGET(item->button));
+    }
 
-	// Update cursor based on mouse position
-	if (event->x <= 10 || (event->x >= button_width - 10 && event->x <= button_width))
-		cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_SB_H_DOUBLE_ARROW);
-	else
-		cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_ARROW);
-	
-	gdk_window_set_cursor(window, cursor);
-	g_object_unref(cursor);
+    // Update cursor based on mouse position
+    if (event->x <= 10 || (event->x >= button_width - 10 && event->x <= button_width))
+        cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_SB_H_DOUBLE_ARROW);
+    else
+        cursor = gdk_cursor_new_for_display(gdk_display_get_default(), GDK_ARROW);
+    
+    gdk_window_set_cursor(window, cursor);
+    g_object_unref(cursor);
 
-	return TRUE;
+    return TRUE;
 }
 
 gboolean img_timeline_media_leave_event(GtkWidget *button, GdkEventCrossing *event, ImgTimeline *timeline)
@@ -684,17 +818,16 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
 	Track *track;
 	media_timeline *item;
-	gdouble step, position, dx, dy;
-	gint width, new_x;
-	
-	GdkModifierType accel_mask = gtk_accelerator_get_default_mod_mask();
+	gdouble step, position, dx, dy, width, new_x;
+
+	gboolean ctrl_pressed = (event->state & GDK_CONTROL_MASK) != 0;
 	gdk_event_get_scroll_deltas((GdkEvent *)event, &dx, &dy);
 
 	GtkAdjustment *scroll_x = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(viewport));
 	step 								 = gtk_adjustment_get_step_increment(scroll_x);
 	position							 = gtk_adjustment_get_value(scroll_x);
 
-	if ( (event->state & accel_mask) == GDK_CONTROL_MASK)
+	if (ctrl_pressed)
 	{
 		if (dy > 0)
 			priv->zoom_scale *= 1.1;
@@ -715,9 +848,9 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 					item = g_array_index(track->items, media_timeline  *, q);
 					if (item)
 					{
-						width = (gint)(item->duration * priv->pixels_per_second);
+						width = item->duration * priv->pixels_per_second;
 						gtk_widget_set_size_request(GTK_WIDGET(item->button), width, 50);
-						new_x = (gint)(item->start_time * priv->pixels_per_second);
+						new_x = item->start_time * priv->pixels_per_second;
 						gtk_layout_move(GTK_LAYOUT(timeline), item->button, new_x, item->y);
 						img_timeline_center_button_image(item->button);
 					}
@@ -1009,4 +1142,47 @@ gint img_timeline_get_final_time(img_window_struct *img)
 	g_free(total_time_string);
 
 	return total_time;
+}
+
+void img_timeline_go_start_time(GtkWidget *button, img_window_struct *img)
+{
+	GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(img->timeline_scrolled_window));
+	gdouble lower = gtk_adjustment_get_lower(hadj);
+	gtk_adjustment_set_value(hadj, lower);
+
+	gtk_label_set_text(GTK_LABEL(img->current_time), "00:00:00");
+	img_timeline_set_time_marker((ImgTimeline*)img->timeline, 0.0);
+	gtk_widget_queue_draw(img->timeline);
+}
+
+void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+	gint time;
+	GtkAllocation allocation;
+	GtkAdjustment *hadj;
+	GtkWidget *viewport;
+	gdouble pixel_position, viewport_width, upper, page_size, max_scroll, scroll_position;
+
+	time = img_timeline_get_final_time(img);
+	
+	hadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(img->timeline_scrolled_window));
+	pixel_position = time * priv->pixels_per_second;
+	
+	viewport = gtk_bin_get_child(GTK_BIN(img->timeline_scrolled_window));
+	gtk_widget_get_allocation(viewport, &allocation);
+	viewport_width = allocation.width;
+	
+	// Calculate the scroll position to center the scroll in the middle of the timeline
+	scroll_position = pixel_position - (viewport_width / 2);
+    
+	// Ensure we don't scroll beyond bounds
+	upper = gtk_adjustment_get_upper(hadj);
+	page_size = gtk_adjustment_get_page_size(hadj);
+	max_scroll = upper - page_size;
+    scroll_position = CLAMP(scroll_position, 0, max_scroll);
+	gtk_adjustment_set_value(hadj, scroll_position);
+    
+	img_timeline_set_time_marker((ImgTimeline*)img->timeline, (gdouble)time * priv->pixels_per_second);
+	gtk_widget_queue_draw(img->timeline);
 }

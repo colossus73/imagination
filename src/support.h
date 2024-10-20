@@ -118,7 +118,7 @@ void transform_coords(img_textbox *, double , double , double *, double *);
 void select_word_at_position(img_textbox *, int );
 void to_upper(gchar **);
 gint img_convert_time_string_to_seconds(gchar *);
-gchar *img_convert_time_to_string(gint );
-gint find_nearest_major_tick(gint, gint x);
+gchar *img_convert_time_to_string(double);
+gdouble find_nearest_major_tick(double, double );
 const gchar *img_get_media_info_from_media_library(img_window_struct *, gint, gint *, gint *, gint *);
 #endif

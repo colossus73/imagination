@@ -1104,7 +1104,7 @@ gint img_convert_time_string_to_seconds(gchar *string)
 	return total_seconds;
 }
 
-gchar *img_convert_time_to_string(gint duration_seconds)
+gchar *img_convert_time_to_string(gdouble duration_seconds)
 {
 	gchar *string;
 	
@@ -1117,26 +1117,37 @@ gchar *img_convert_time_to_string(gint duration_seconds)
 	return string;
 }
 
-gint find_nearest_major_tick(gint pixels_per_second, gint x)
+gdouble find_nearest_major_tick(gdouble pixels_per_second, gdouble x) 
 {
+    // Use gdouble for better precision
     gdouble tick_interval = 1.0;
-
-    if (pixels_per_second < 0.05) tick_interval = 1800.0;
-    else if (pixels_per_second < 0.1) tick_interval = 900.0;
-    else if (pixels_per_second < 0.2) tick_interval = 600.0;
-    else if (pixels_per_second < 0.5) tick_interval = 300.0;
-    else if (pixels_per_second < 1) tick_interval = 120.0;
-    else if (pixels_per_second < 2) tick_interval = 60.0;
-    else if (pixels_per_second < 5) tick_interval = 30.0;
-    else if (pixels_per_second < 10) tick_interval = 15.0;
-    else if (pixels_per_second < 20) tick_interval = 5.0;
-    else if (pixels_per_second < 40) tick_interval = 2.0;
-    else tick_interval = 1.0;
-
-    gdouble tick_pixels = tick_interval * pixels_per_second;
-    gint nearest_tick = round(x / tick_pixels) * tick_pixels;
     
-    return nearest_tick;
+    // Determine tick interval based on zoom level
+    if (pixels_per_second < 0.05) tick_interval = 1800.0;         // 30 minutes
+    else if (pixels_per_second < 0.1) tick_interval = 900.0;      // 15 minutes
+    else if (pixels_per_second < 0.2) tick_interval = 600.0;      // 10 minutes
+    else if (pixels_per_second < 0.5) tick_interval = 300.0;      // 5 minutes
+    else if (pixels_per_second < 1) tick_interval = 120.0;        // 2 minutes
+    else if (pixels_per_second < 2) tick_interval = 60.0;         // 1 minute
+    else if (pixels_per_second < 5) tick_interval = 30.0;         // 30 seconds
+    else if (pixels_per_second < 10) tick_interval = 15.0;        // 15 seconds
+    else if (pixels_per_second < 20) tick_interval = 5.0;         // 5 seconds
+    else if (pixels_per_second < 40) tick_interval = 2.0;         // 2 seconds
+    else tick_interval = 1.0;                                     // 1 second
+
+    // Calculate pixels between ticks
+    gdouble tick_pixels = tick_interval * pixels_per_second;
+    
+    // Prevent division by zero
+    if (tick_pixels < 1.0) tick_pixels = 1.0;
+    
+    // Calculate nearest tick using double precision before rounding to int
+    gdouble exact_position = x / tick_pixels;
+    gdouble rounded_position = round(exact_position);
+    gdouble nearest_tick = rounded_position * tick_pixels;
+    
+    // Ensure we don't return negative values
+    return MAX(0, nearest_tick);
 }
 
 const gchar *img_get_media_info_from_media_library(img_window_struct *img, gint id, gint *media_type, gint *width, gint *height)

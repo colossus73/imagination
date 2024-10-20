@@ -46,7 +46,7 @@ static GtkTargetEntry timeline_drag_targets[] =
 };
 
 static void img_random_button_clicked(GtkButton *, img_window_struct *);
-static GdkPixbuf *img_set_random_transition(img_window_struct *, media_struct *);
+static GdkPixbuf *img_set_random_transition(img_window_struct *, media_timeline *);
 static void img_transition_speed_changed (GtkRange *,  img_window_struct *);
 static void img_clear_audio_files(GtkButton *, img_window_struct *);
 static void img_quit_menu(GtkMenuItem *, img_window_struct *);
@@ -130,7 +130,7 @@ img_window_struct *img_create_window (void)
 	GtkWidget *transition_label;
 	GtkWidget *vbox_slide_motion;
 	GtkWidget *viewport;
-	GtkWidget *grid;
+	//GtkWidget *grid;
 	GtkWidget *duration_label;
 	GtkWidget *hbox_motion, *stop_points_label;
 	GtkWidget  *time_offset_label;
@@ -474,37 +474,31 @@ img_window_struct *img_create_window (void)
 
 	/* Create the transition widget section */
 	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	g_object_set (vbox, "margin-right", 10, NULL);
+	g_object_set (vbox, "margin-right", 10, "valign", GTK_ALIGN_START, NULL);
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox);
 	
-	transition_label = gtk_label_new (_("Transition Type:"));
-	gtk_box_pack_start (GTK_BOX (vbox), transition_label, FALSE, FALSE, 0);
-	gtk_label_set_xalign(GTK_LABEL(transition_label), 0);
-	gtk_label_set_yalign(GTK_LABEL(transition_label), -1);
+	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
+	
+	transition_label = gtk_label_new(_("<span size='large'><b>Transition Type:</b></span>"));
+	gtk_box_pack_start (GTK_BOX (hbox), transition_label, TRUE, TRUE, 5);
+	gtk_label_set_use_markup(GTK_LABEL(transition_label), TRUE);
+	gtk_label_set_xalign(GTK_LABEL(transition_label), 0.0);
 
-	/* Slide selected, slide resolution, slide type and slide total duration */
-	grid = gtk_grid_new();
-	gtk_grid_set_column_homogeneous(GTK_GRID(grid), FALSE);
-	gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
-	gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
-	gtk_box_pack_start (GTK_BOX (vbox), grid, TRUE, FALSE, 0);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 10);
 
-	/* Transition type */
 	img_struct->transition_type = _gtk_combo_box_new_text( TRUE );
+	gtk_box_pack_start(GTK_BOX(hbox),img_struct->transition_type, FALSE, FALSE, 10);
 	atk = gtk_widget_get_accessible(img_struct->transition_type);
 	atk_object_set_description(atk, _("Transition type"));
-	gtk_grid_attach (GTK_GRID (grid), img_struct->transition_type, 0, 0, 1, 1);
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),
-										1, GTK_SORT_ASCENDING);
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))), 1, GTK_SORT_ASCENDING);
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),1, img_sort_none_before_other,NULL,NULL);
-
-	gtk_widget_set_sensitive(img_struct->transition_type, FALSE);
 	g_signal_connect (img_struct->transition_type, "changed",G_CALLBACK (img_combo_box_transition_type_changed),img_struct);
 
 	img_struct->random_button = gtk_button_new_with_mnemonic (_("Random"));
-	gtk_widget_set_tooltip_text(img_struct->random_button,_("Imagination randomly decides which transition to apply"));
-	gtk_grid_attach (GTK_GRID (grid), img_struct->random_button, 1, 0, 1, 1);
-	gtk_widget_set_sensitive(img_struct->random_button, FALSE);
+	gtk_box_pack_start(GTK_BOX(hbox), img_struct->random_button, FALSE, FALSE, 10);
+	gtk_widget_set_tooltip_text(img_struct->random_button,_("Press SHIFT+A to select/unselect all picture media items on the timeline"));
 	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
 
 	/*Create the text widget section */
@@ -538,12 +532,6 @@ img_window_struct *img_create_window (void)
 	g_signal_connect(img_struct->sub_font_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_color, FALSE, FALSE, 5);
 	gtk_widget_set_tooltip_text(img_struct->sub_font_color, _("Font color"));
-	GtkCssProvider *css = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(css, "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} \
-																	#nav_button {padding:0px;margin:0px} \
-																	#font_button {padding: 0px;} button {padding: 5px}",  -1, NULL);
-	gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	g_object_unref(css);
 
     //2nd row: style buttons and aligment
     hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -891,6 +879,7 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->current_time, FALSE, FALSE, 10);
 	
 	beginning = gtk_button_new_from_icon_name("go-first", GTK_ICON_SIZE_BUTTON);
+	g_signal_connect (beginning, "clicked", G_CALLBACK(img_timeline_go_start_time), img_struct);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), beginning, FALSE, FALSE, 5);
 	gtk_widget_set_can_focus(beginning, FALSE);
 	gtk_widget_set_name(beginning, "nav_button");
@@ -902,6 +891,7 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_name(img_struct->preview_button, "nav_button");
 	
 	end = gtk_button_new_from_icon_name("go-last", GTK_ICON_SIZE_BUTTON);
+	g_signal_connect (end, "clicked", G_CALLBACK(img_timeline_go_final_time), img_struct);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), end, FALSE, FALSE, 5);
 	gtk_widget_set_can_focus(end, FALSE);
 	gtk_widget_set_name(end, "nav_button");
@@ -915,9 +905,15 @@ img_window_struct *img_create_window (void)
 	//gtk_drag_source_set	(img_struct->timeline, GDK_BUTTON1_MASK, timeline_drag_targets, 1, GDK_ACTION_COPY);
 	gtk_drag_dest_set		(img_struct->timeline, GTK_DEST_DEFAULT_ALL, timeline_drop_targets, 2, GDK_ACTION_COPY);
 
-	g_object_set(img_struct->timeline, "total_time",  36000, NULL); //10 hours max
+	g_object_set(img_struct->timeline, "total_time",  36000, NULL);			//10 hours max
 	gtk_widget_set_size_request(img_struct->timeline, 36000, -1);
 	
+	viewport = gtk_viewport_new(NULL,NULL);
+	img_struct->timeline_scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+	gtk_container_add (GTK_CONTAINER(viewport), img_struct->timeline);
+	gtk_container_add (GTK_CONTAINER(img_struct->timeline_scrolled_window), viewport);
+	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, TRUE, FALSE);
+
 	gtk_widget_add_events(img_struct->timeline, 
                            GDK_POINTER_MOTION_MASK
                          | GDK_BUTTON_PRESS_MASK   
@@ -928,12 +924,6 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_can_focus(img_struct->timeline, TRUE);
 	gtk_widget_grab_focus(img_struct->timeline);
 	
-	viewport = gtk_viewport_new(NULL,NULL);
-	img_struct->timeline_scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-	gtk_container_add (GTK_CONTAINER(viewport), img_struct->timeline);
-	gtk_container_add (GTK_CONTAINER(img_struct->timeline_scrolled_window), viewport);
-	gtk_paned_pack2(GTK_PANED( img_struct->vpaned ), img_struct->timeline_scrolled_window, TRUE, FALSE);
-
 	g_signal_connect(img_struct->timeline, 	"drag-data-received",		G_CALLBACK(img_timeline_drag_data_received), img_struct);
 	g_signal_connect(img_struct->timeline,	"drag-motion", 				G_CALLBACK(img_timeline_drag_motion), img_struct);
 	g_signal_connect(img_struct->timeline, 	"drag-leave", 					G_CALLBACK(img_timeline_drag_leave), img_struct);
@@ -955,7 +945,10 @@ img_window_struct *img_create_window (void)
         ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
         ".timeline-button:checked { outline-width: 0;border-width: 0; background: #3584e4; padding: 0; margin: 0; }"
         "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
-        "tooltip * {  color: #000000;  padding: 0; margin: 0 }", -1, NULL);
+        "tooltip * {  color: #000000;  padding: 0; margin: 0 }"
+        "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} \
+		 #nav_button {padding:0px;margin:0px} \
+		 #font_button {padding: 0px;} button {padding: 5px}", -1, NULL);
     
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(css_provider);
@@ -975,95 +968,81 @@ static void img_quit_menu(GtkMenuItem *menuitem, img_window_struct *img)
 
 void img_combo_box_transition_type_changed (GtkComboBox *combo, img_window_struct *img)
 {
-	GList        *selected,
-				 *bak;
-	GtkTreeIter   iter;
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	GtkTreeIter   	iter;
 	GtkTreeModel *model;
-	gpointer      address;
-	media_struct *info_slide;
-	gint          transition_id;
-	GtkTreePath  *p;
-	gchar        *path;
-	GdkPixbuf    *pix;
+	gpointer      	address;
+	Track 				*track;
+	media_timeline *item;
+	gint          		transition_id;
+	GtkTreePath  	*p;
+	gchar        		*path;
 
 	/* Get information about selected transition */
-	model = gtk_combo_box_get_model( combo );
-	gtk_combo_box_get_active_iter( combo, &iter );
-	gtk_tree_model_get( model, &iter, 0, &pix,
-									  2, &address,
-									  3, &transition_id,
-									  -1 );
+	model = gtk_combo_box_get_model( combo);
+	gtk_combo_box_get_active_iter( combo, &iter);
+	gtk_tree_model_get( model, &iter, 2, &address,  3, &transition_id,  -1);
 
 	/* Get string representation of the path, which will be
-	 * saved inside slide */
-	p = gtk_tree_model_get_path( model, &iter );
-	path = gtk_tree_path_to_string( p );
-	gtk_tree_path_free( p );
+	 * saved inside the media item struct */
+	p = gtk_tree_model_get_path( model, &iter);
+	path = gtk_tree_path_to_string(p);
+	gtk_tree_path_free(p);
 
-	/* Update all selected slides */
-	//~ model = GTK_TREE_MODEL( img->thumbnail_model );
-	//~ bak = selected;
-	//~ while (selected)
-	//~ {
-		//~ gtk_tree_model_get_iter( model, &iter, selected->data );
-		//~ gtk_tree_model_get( model, &iter, 1, &info_slide, -1 );
-		//~ gtk_list_store_set( GTK_LIST_STORE( model ), &iter, 2, pix, -1 );
-		//~ info_slide->render = (ImgRender)address;
-		//~ info_slide->transition_id = transition_id;
-		//~ g_free( info_slide->path );
-		//~ info_slide->path = g_strdup( path );
-
-		//~ selected = selected->next;
-	//~ }
-	g_free( path );
-	if( pix )
-		g_object_unref( G_OBJECT( pix ) );
-	img_taint_project(img);
-
-	GList *node5;
-	for(node5 = bak;node5 != NULL;node5 = node5->next) {
-		gtk_tree_path_free(node5->data);
+	/* Update all selected media items on the timeline */
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = &g_array_index(priv->tracks, Track, i);
+		if (track->items)
+		{
+			for (gint q = 0; q < track->items->len; q++)
+			{
+				item = g_array_index(track->items, media_timeline *, q);
+				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)) && item->media_type == 0)
+				{
+					item->render = (ImgRender)address;
+					item->transition_id = transition_id;
+					if(item->tree_path)
+						g_free( item->tree_path);
+					item->tree_path = g_strdup(path);
+				}
+			}
+		}
 	}
-	g_list_free( bak );
+	g_free(path);
+	
+	img_taint_project(img);
 }
 
 static void img_random_button_clicked(GtkButton *button, img_window_struct *img)
 {
-	GList        *selected,
-				 *bak;
-	GtkTreeIter   iter;
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	GtkTreeIter  	 iter;
 	GtkTreeModel *model;
-	media_struct *info_slide;
-	GdkPixbuf    *pixbuf;
+	Track 				*track;
+	media_timeline *item;
+	GdkPixbuf   	*pixbuf;
 
-	//~ model = GTK_TREE_MODEL( img->thumbnail_model );
-	//~ selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW (img->thumbnail_iconview));
-	//~ if (selected == NULL)
-		//~ return;
-
-	/* Avoiding GList memory leak. */
-	bak = selected;
-	//~ while (selected)
-	//~ {
-		//~ gtk_tree_model_get_iter(model, &iter,selected->data);
-		//~ gtk_tree_model_get(model, &iter,1,&info_slide,-1);
-		//~ pixbuf = img_set_random_transition(img, info_slide);
-		//~ gtk_list_store_set( GTK_LIST_STORE( model ), &iter, 2, pixbuf, -1 );
-		//~ if( pixbuf )
-			//~ g_object_unref( G_OBJECT( pixbuf ) );
-
-		//~ selected = selected->next;
-	//~ }
-	img_taint_project(img);
-	GList *node6;
-	for(node6 = bak;node6 != NULL;node6 = node6->next) {
-		gtk_tree_path_free(node6->data);
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = &g_array_index(priv->tracks, Track, i);
+		if (track->items)
+		{
+			for (gint q = 0; q < track->items->len; q++)
+			{
+				item = g_array_index(track->items, media_timeline *, q);
+				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)) && item->media_type == 0)
+				{
+					pixbuf = img_set_random_transition(img, item);
+					g_object_unref(pixbuf);
+				}
+			}
+		}
 	}
-	g_list_free(bak);
-
+	img_taint_project(img);
 }
 
-static GdkPixbuf *img_set_random_transition( img_window_struct *img,  media_struct  *info_slide )
+static GdkPixbuf *img_set_random_transition( img_window_struct *img,  media_timeline  *item )
 {
 	gint          nr;
 	gint          r1, r2;
@@ -1095,19 +1074,18 @@ static GdkPixbuf *img_set_random_transition( img_window_struct *img,  media_stru
 	gtk_tree_model_get_iter_from_string( model, &iter, path );
 
 	gtk_tree_model_get( model, &iter, 0, &pix, 2, &address, 3, &transition_id, -1 );
-	//info_slide->transition_id = transition_id;
-	//info_slide->render = (ImgRender)address;
+	item->transition_id = transition_id;
+	item->render = (ImgRender)address;
 
-	//~ /* Prevent leak here */
-	//~ if( info_slide->path )
-		//~ g_free( info_slide->path );
-	//~ info_slide->path = g_strdup( path );
+	if(item->tree_path)
+		g_free( item->tree_path);
+	item->tree_path = g_strdup(path);
 
 	g_signal_handlers_block_by_func((gpointer)img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);	
 	gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter);
 	g_signal_handlers_unblock_by_func((gpointer)img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);	
 
-	return( pix );
+	return pix;
 }
 
 static gint img_sort_none_before_other(GtkTreeModel *model,GtkTreeIter *a,GtkTreeIter *b, gpointer data)
