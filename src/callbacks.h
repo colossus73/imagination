@@ -30,17 +30,18 @@ gboolean img_can_discard_unsaved_project(img_window_struct *);
 void img_project_properties(GtkMenuItem *item, img_window_struct *);
 void img_refresh_window_title(img_window_struct *);
 void img_new_slideshow(GtkMenuItem *,img_window_struct *);
-gboolean img_add_media(gchar *, img_window_struct *);
+gboolean img_create_media_struct(gchar *, img_window_struct *);
+void img_add_media(gchar *, media_struct *, img_window_struct *);
 void img_add_media_items(GtkMenuItem *,img_window_struct *);
 //TODO to remove?
 void img_detect_media_orientation_from_pixbuf(GdkPixbuf *, gboolean *, ImgAngle *);
 
+void img_swap_preview_button_images( img_window_struct *, gboolean);
 void img_select_all_media(GtkWidget *, img_window_struct *);
 void img_unselect_all_media(GtkWidget *, img_window_struct *);
 void img_rotate_slides_left( GtkWidget  *, img_window_struct * );
 void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
-void img_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
 void img_media_widget_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
 void img_media_widget_drag_data_get(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , gpointer );

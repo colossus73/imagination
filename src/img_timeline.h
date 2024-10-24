@@ -35,6 +35,8 @@ struct _ImgTimeline
 
 typedef struct _ImgTimelinePrivate
 {
+	gdouble current_preview_time;
+
 	gint last_media_posX;
 	gint total_time;
 	gdouble time_marker_pos;
@@ -106,6 +108,9 @@ G_DECLARE_FINAL_TYPE(ImgTimeline, img_timeline, IMG, TIMELINE, GtkLayout)
 //Public functions.
 GtkWidget* img_timeline_new();
 ImgTimelinePrivate* img_timeline_get_private_struct(GtkWidget *);
+
+void img_timeline_start_stop_preview(GtkWidget *, img_window_struct *);
+gboolean img_timeline_preview_update(img_window_struct *);
 
 void img_timeline_set_total_time				(ImgTimeline *, gint );
 void img_timeline_add_media						(GtkWidget *, media_struct *, gint, gint, img_window_struct *);

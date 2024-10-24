@@ -58,6 +58,7 @@ static void img_open_paypal_page(GtkMenuItem *, img_window_struct *);
 static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
+static void img_free_cached_preview_surfaces(gpointer );
 
 GtkWidget *button1,  *button2, *button3, *toggle_button_slide_motion, *button5, *beginning, *end;
 
@@ -157,6 +158,7 @@ img_window_struct *img_create_window (void)
 	img_struct->background_color[1] = 0;
 	img_struct->background_color[2] = 0;
 	img_struct->media_nr = 0;
+	img_struct->next_id  = 1;
 	img_struct->maxoffx = 0;
 	img_struct->maxoffy = 0;
 	img_struct->current_point.offx = 0;
@@ -169,6 +171,7 @@ img_window_struct *img_create_window (void)
 	img_struct->export_fps = 30;
     //img_struct->audio_fadeout = 5;
 
+	img_struct->cached_preview_surfaces = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, img_free_cached_preview_surfaces);
 	img_struct->textbox = g_new0(img_textbox, 1);
     img_struct->textbox->angle = 0;
     img_struct->textbox->text = g_string_new("");
@@ -277,7 +280,7 @@ img_window_struct *img_create_window (void)
 	preview_menu = gtk_menu_item_new_with_mnemonic (_("Preview"));
 	gtk_container_add (GTK_CONTAINER (menu1), preview_menu);
 	gtk_widget_add_accelerator (preview_menu, "activate",img_struct->accel_group, GDK_KEY_space, 0, GTK_ACCEL_VISIBLE);
-	g_signal_connect (preview_menu,"activate",G_CALLBACK (img_start_stop_preview),img_struct);
+	g_signal_connect (preview_menu,"activate",G_CALLBACK (img_timeline_start_stop_preview),img_struct);
 	
 	export_menu = gtk_menu_item_new_with_mnemonic (_("Ex_port"));
 	gtk_container_add (GTK_CONTAINER (menu1), export_menu);
@@ -884,9 +887,9 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_can_focus(beginning, FALSE);
 	gtk_widget_set_name(beginning, "nav_button");
 	
-	img_struct->preview_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_BUTTON);
+	img_struct->preview_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->preview_button, FALSE, FALSE, 5);
-	g_signal_connect (img_struct->preview_button,"clicked",G_CALLBACK (img_start_stop_preview),img_struct);
+	g_signal_connect (img_struct->preview_button,"clicked",G_CALLBACK (img_timeline_start_stop_preview),img_struct);
 	gtk_widget_set_can_focus(img_struct->preview_button, FALSE);
 	gtk_widget_set_name(img_struct->preview_button, "nav_button");
 	
@@ -938,7 +941,6 @@ img_window_struct *img_create_window (void)
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
 		"popover {border: 1px solid #f4d27b; padding: 0px;}"
-		"popover.background { background-color: #FAECC6;}"
         ".timeline-button { border-width: 0; outline-width: 0; background: #808080; padding: 0; margin: 0; }"
         ".timeline-button:focus { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
         ".timeline-button:not(:focus) { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
@@ -1313,7 +1315,7 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
 
     model = GTK_TREE_MODEL(img->media_model);
     selected = gtk_icon_view_get_selected_items(GTK_ICON_VIEW(img->media_iconview));
-    if (selected == NULL || img->preview_is_running)
+    if (selected == NULL)
         return;
 
     // First pass: mark items for deletion and ask for confirmation
@@ -1609,4 +1611,33 @@ void img_change_media_library_size(GtkPaned *widget, GParamSpec *unused, img_win
     
     gtk_icon_view_set_columns(GTK_ICON_VIEW(img->media_iconview), num_columns);
     gtk_widget_set_size_request(img->media_iconview, iconview_width, -1);
+}
+
+static void img_free_cached_preview_surfaces(gpointer data)
+{
+	cairo_surface_t *surface = data;
+	cairo_surface_destroy(surface);
+}
+
+void img_create_cached_cairo_surface(img_window_struct *img, gint id, gchar *full_path)
+{
+	GdkPixbuf *pix = NULL;
+	GtkAllocation allocation;
+	gint item_id = 0;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+
+	if (! g_hash_table_contains(img->cached_preview_surfaces, GINT_TO_POINTER(id)))
+	{
+		gtk_widget_get_allocation(img->image_area, &allocation);
+		pix = gdk_pixbuf_new_from_file_at_scale(full_path, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
+		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,  gdk_pixbuf_get_width(pix), gdk_pixbuf_get_height(pix));
+		cr = cairo_create(surface);
+		gdk_cairo_set_source_pixbuf(cr, pix, 0, 0);
+		cairo_paint(cr);
+		cairo_destroy(cr);
+		g_object_unref(pix);
+
+		g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(id), (gpointer) surface);
+	}
 }

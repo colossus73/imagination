@@ -23,13 +23,10 @@
 #include <math.h>
 #include <sys/stat.h>
 
-static int next_id = 1;
-
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
 gboolean img_transition_timeout(img_window_struct *);
 static gboolean img_still_timeout(img_window_struct *);
-static void img_swap_toolbar_images( img_window_struct *, gboolean);
 static void img_clean_after_preview(img_window_struct *);
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
 
@@ -172,7 +169,7 @@ void img_add_media_items(GtkMenuItem *item, img_window_struct *img)
 	bak = media;
 	while (media)
 	{
-		if (img_add_media(media->data, img))
+		if (img_create_media_struct(media->data, img))
 			img_taint_project(img);
 		 
 		media = media->next;
@@ -180,17 +177,12 @@ void img_add_media_items(GtkMenuItem *item, img_window_struct *img)
 	g_slist_free(bak);
 }
 
-gboolean img_add_media(gchar *full_path, img_window_struct *img)
+gboolean img_create_media_struct(gchar *full_path, img_window_struct *img)
 {
 	GSList *bak;
-	GdkPixbuf *thumb;
-	GdkPixbufFormat *format;
-	GdkPixbuf *pb;
-	GtkTreeIter iter;
-	media_struct *media_info;
+	media_struct *media;
 	GError *error = NULL;
-	gchar *filename;
-	gint slides_cnt , type;
+	gint type;
 	GFile *file;
 	GFileInfo *file_info;
 	const gchar *content_type;
@@ -224,40 +216,13 @@ gboolean img_add_media(gchar *full_path, img_window_struct *img)
 		flag = FALSE;
 		goto next_media;
 	}
-	media_info = img_create_new_media();
-	media_info->full_path = g_strdup(full_path);
-	media_info->media_type = type;
-	media_info->id = next_id++;
+	media = img_create_new_media();
+	media->full_path = g_strdup(full_path);
+	media->media_type = type;
+	media->id = img->next_id++;
 	img->media_nr++;
-	img->current_media = media_info;
+	img_add_media(media->full_path, media, img);
 
-	filename = g_path_get_basename(full_path);
-	gtk_list_store_append (img->media_model, &iter);
-
-	switch (media_info->media_type)
-	{
-		case 0:
-			format = gdk_pixbuf_get_file_info(full_path, &media_info->width, &media_info->height);
-			media_info->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
-			to_upper(&media_info->image_type);
-			/* to get the orientation tag, load a tiny version of the image */
-			thumb = gdk_pixbuf_new_from_file_at_size(full_path, 1, 1, NULL);
-			img_detect_media_orientation_from_pixbuf(thumb, &(media_info->flipped), &(media_info->angle));
-			g_object_unref(thumb);
-			pb = gdk_pixbuf_new_from_file_at_scale(full_path, 120, 60, TRUE, NULL);
-			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media_info, -1);
-			g_object_unref(pb);
-		break;
-
-		case 1:
-			img_get_audio_data(media_info);
-			pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
-			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media_info, -1);
-			g_object_unref(pb);
-		break;
-	}
-	g_free(filename);
-	
 next_media:
 		g_free(mime_type);
 		g_object_unref(file_info);
@@ -268,8 +233,43 @@ next_media:
 	g_object_unref( G_OBJECT( img->media_model ) );
 	
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(img->side_notebook), 0);
-	
 	return flag;
+}
+
+void img_add_media(gchar *full_path, media_struct *media, img_window_struct *img)
+{
+	gchar *filename;
+	GtkTreeIter iter;
+	GdkPixbuf *thumb;
+	GdkPixbufFormat *format;
+	GdkPixbuf *pb;
+
+	filename = g_path_get_basename(full_path);
+	gtk_list_store_append (img->media_model, &iter);
+
+	switch (media->media_type)
+	{
+		case 0:
+			format = gdk_pixbuf_get_file_info(full_path, &media->width, &media->height);
+			media->image_type = format ? gdk_pixbuf_format_get_name(format) : NULL;
+			to_upper(&media->image_type);
+			/* to get the orientation tag, load a tiny version of the image */
+			thumb = gdk_pixbuf_new_from_file_at_size(full_path, 1, 1, NULL);
+			img_detect_media_orientation_from_pixbuf(thumb, &(media->flipped), &(media->angle));
+			g_object_unref(thumb);
+			pb = gdk_pixbuf_new_from_file_at_scale(full_path, 120, 60, TRUE, NULL);
+			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media, -1);
+			g_object_unref(pb);
+		break;
+
+		case 1:
+			img_get_audio_data(media);
+			pb = gtk_icon_theme_load_icon(img->icon_theme, "audio-x-generic", 46, 0, NULL);
+			gtk_list_store_set (img->media_model, &iter, 0, pb, 1, filename, 2, media, -1);
+			g_object_unref(pb);
+		break;
+	}
+	g_free(filename);
 }
 
 GSList *img_import_slides_file_chooser(img_window_struct *img)
@@ -351,6 +351,7 @@ void img_free_allocated_memory(img_window_struct *img)
 		
 		img_timeline_delete_all_media((ImgTimeline*)img->timeline);
 		img_timeline_delete_additional_tracks((ImgTimeline*)img->timeline);
+		g_hash_table_destroy(img->cached_preview_surfaces);
 	}
 	img->media_nr = 0;
 
@@ -404,8 +405,6 @@ gboolean img_window_key_pressed(GtkWidget *widget, GdkEventKey *event, img_windo
 		
 	if ( img->window_is_fullscreen && (event->keyval == GDK_KEY_F11 || event->keyval == GDK_KEY_Escape))
 		img_exit_fullscreen(img);
-	else if (event->keyval == GDK_KEY_space)
-		img_start_stop_preview(NULL, img);
 	else
 			if (event->keyval == GDK_KEY_F11)
 				img_go_fullscreen(NULL, img);
@@ -849,35 +848,35 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 	gtk_widget_hide (about);
 }
 
-void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
-{
-	GtkTreeIter iter, prev;
-	GtkTreePath *path = NULL;
-	media_struct *entry;
-	GtkTreeModel *model;
-	GList *list = NULL;
+//~ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
+//~ {
+	//~ GtkTreeIter iter, prev;
+	//~ GtkTreePath *path = NULL;
+	//~ media_struct *entry;
+	//~ GtkTreeModel *model;
+	//~ GList *list = NULL;
 
-	/* If no images are present, abort */
-	if( img->media_nr == 0 )
-		return;
+	//~ /* If no images are present, abort */
+	//~ if( img->media_nr == 0 )
+		//~ return;
 
-	if(img->export_is_running)
-		return;
+	//~ if(img->export_is_running)
+		//~ return;
 
-	/* Save the current selected slide to restore it when the preview is finished */
+	//~ /* Save the current selected slide to restore it when the preview is finished */
 
 
-		/* Replace button and menu images */
-		img_swap_toolbar_images( img, FALSE );
+		//~ /* Replace button and menu images */
+		//~ img_swap_toolbar_images( img, FALSE );
 
 	
 
-		if (entry->gradient == 4)
-			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
-		else
-			img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
+		//~ if (entry->gradient == 4)
+			//~ img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
+		//~ else
+			//~ img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
 	
-}
+//~ }
 
 void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *context , int x, int y, GtkSelectionData *data, unsigned int info, unsigned int time, img_window_struct *img)
 {
@@ -902,7 +901,7 @@ void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *con
 	 while(media[i])
 	{
 		filename = g_filename_from_uri (media[i], NULL, NULL);
-		if ( img_add_media(filename, img))
+		if ( img_create_media_struct(filename, img))
 			img_taint_project(img);
 		g_free(filename);
 		i++;
@@ -948,10 +947,10 @@ void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, 
 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
 {
-	GdkPixbuf *pix = NULL;
 	GArray* active_media = NULL;
 	gdouble current_time;
-	gint media_type, img_width = 0, img_height = 0;
+	gint img_width, img_height, media_type;
+	gdouble off_x, off_y;
 	media_timeline* media;
 	const gchar *media_filename;
 
@@ -1005,27 +1004,27 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	for (gint i = active_media->len-1; i >=0; i--)
 	{
 		media = g_array_index(active_media, media_timeline *, i);
-		media_filename = img_get_media_info_from_media_library(img, media->id, &media_type, &img_width, &img_height);
+		//media_filename = img_get_media_info_from_media_library(img, media->id, &media_type, &img_width, &img_height);
 		switch (media_type)
 		{
 			case 0:
-			gdouble off_x = 0, off_y = 0;
-
-			pix = gdk_pixbuf_new_from_file_at_scale(media_filename, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
-
+			cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+			
 			// Calculate offset x and y to center the image in the image area
-			img_width = gdk_pixbuf_get_width(pix);
-			img_height = gdk_pixbuf_get_height(pix);
-				
-			if (img_width < allocation.width)
-				off_x = (allocation.width - img_width ) / 2;
-			else if (img_height < allocation.height)
-				off_y = (allocation.height - img_height) / 2;
+			img_width 	= cairo_image_surface_get_width(surface);
+			img_height 	= cairo_image_surface_get_height(surface);
+	        double scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
+                          
+             double x = (allocation.width - (img_width * scale)) / 2;
+			double y = (allocation.height - (img_height * scale)) / 2;
 
-			gdk_cairo_set_source_pixbuf(cr, pix, off_x, off_y);
+			cairo_save(cr);
+			cairo_translate(cr, x, y);
+			cairo_scale(cr, scale, scale);
+
+			cairo_set_source_surface(cr, surface, 0, 0);
 			cairo_paint(cr);
-
-			g_object_unref(pix);
+			cairo_restore(cr);
 			break;
 		}
 	}
@@ -1302,7 +1301,7 @@ static gboolean img_still_timeout(img_window_struct *img)
 	return( TRUE );
 }
 
-static void img_swap_toolbar_images( img_window_struct *img,gboolean flag )
+void img_swap_preview_button_images(img_window_struct *img, gboolean flag)
 {
 	GtkWidget *tmp_image;
 
@@ -1325,7 +1324,7 @@ static void img_swap_toolbar_images( img_window_struct *img,gboolean flag )
 static void img_clean_after_preview(img_window_struct *img)
 {
 	/* Swap toolbar and menu icons */
-	img_swap_toolbar_images( img, TRUE );
+	img_swap_preview_button_images(img, TRUE);
 
 	/* Indicate that preview is not running */
 	img->preview_is_running = FALSE;
@@ -1477,7 +1476,7 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	img->background_color[2] = 0;
 	
 	// This is needed to reset the id counter when loading a new slideshow without quitting Imagination
-	next_id = 1;
+	img->next_id = 1;
 }
 
 /*

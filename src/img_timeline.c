@@ -38,6 +38,71 @@ static void img_timeline_unhighlight_track(GArray *);
 
 G_DEFINE_TYPE_WITH_PRIVATE(ImgTimeline, img_timeline, GTK_TYPE_LAYOUT)
 
+void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
+{
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+ 
+	// If the preview is running, stop it
+	if (img->preview_is_running)
+	{
+		 if (img->source_id > 0)
+		{
+			g_source_remove(img->source_id);
+			img->source_id = 0;
+		}
+		img->preview_is_running = FALSE;
+		img_swap_preview_button_images(img, TRUE);
+    }
+    else
+    {
+		img->preview_is_running = TRUE;
+		img_swap_preview_button_images( img, FALSE);
+		priv->current_preview_time = priv->time_marker_pos / priv->pixels_per_second;
+    
+		guint update_interval = (guint)(1000 / priv->pixels_per_second);
+  		img->source_id = g_timeout_add(update_interval, (GSourceFunc)img_timeline_preview_update, img);
+	}
+}
+
+gboolean img_timeline_preview_update(img_window_struct *img) 
+{
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+
+    // Calculate time increment based on zoom level
+    gdouble time_increment = 1.0 / priv->pixels_per_second;
+    priv->current_preview_time += time_increment;
+
+    // Update time marker position
+    gdouble new_marker_pos = priv->current_preview_time * priv->pixels_per_second;
+    img_timeline_set_time_marker((ImgTimeline*)img->timeline, new_marker_pos);
+
+    // Update current time label
+    gchar *time_str = img_convert_time_to_string(priv->current_preview_time);
+    gtk_label_set_text(GTK_LABEL(img->current_time), time_str);
+    g_free(time_str);
+
+   gtk_widget_queue_draw(img->image_area);
+   
+    // Auto-scroll timeline if marker approaches edge of visible area
+    GtkAdjustment *hadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(img->timeline_scrolled_window));
+    gdouble current_scroll = gtk_adjustment_get_value(hadj);
+    gdouble page_size = gtk_adjustment_get_page_size(hadj);
+
+    if (new_marker_pos > (current_scroll + page_size - 100))
+        gtk_adjustment_set_value(hadj, new_marker_pos - page_size + 100);
+
+    // Check if we've reached the end of the timeline
+    gint total_time = img_timeline_get_final_time(img);
+    if (priv->current_preview_time >= total_time)
+    {
+        img_swap_preview_button_images(img, TRUE);
+        img->preview_is_running = FALSE;
+        return G_SOURCE_REMOVE;
+    }
+
+    return G_SOURCE_CONTINUE;
+}
+
 static void img_timeline_class_init(ImgTimelineClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
@@ -57,6 +122,8 @@ static void img_timeline_init(ImgTimeline *timeline)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
 
+		priv->current_preview_time = 0.0;
+    
     priv->last_media_posX = 0;
     priv->zoom_scale = 6.12;
     priv->pixels_per_second = 61.2;
@@ -350,6 +417,9 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	item->transition_id = -1;
 
 	img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
+	if (item->media_type == 0)
+		img_create_cached_cairo_surface(img, item->id, entry->full_path);
+	
     g_array_append_val(track->items, item);
 	
 	if (x > 0)
@@ -446,39 +516,31 @@ void img_timeline_add_track(GtkWidget *timeline, gint type, gchar *hexcode)
 
 void img_timeline_draw_time_marker(GtkWidget *widget, cairo_t *cr, gint posx, gint length)
 {
-	cairo_save(cr);
-	cairo_translate(cr, posx,6);
-
-	// Top horizontal line
-    cairo_line_to(cr, 10, 10);
-
+    // Start the path
+    cairo_move_to(cr, posx - 5, 16);
+    // Top horizontal line
+    cairo_line_to(cr, posx + 5, 16);
     // Right vertical line
-    cairo_line_to(cr, 10, 10 );
-
+    cairo_line_to(cr, posx + 5, 16);
     // Bottom-right curve
     cairo_curve_to(cr,
-        10, 26,
-        5 + 10/4, 26,
-        5, 26);
-
+        posx + 5, 32,
+        posx + 2.5, 32,
+        posx, 32);
     // Bottom-left curve
     cairo_curve_to(cr,
-        5 - 10/4, 26,
-        0, 26,
-        0, 10 );
-
-    // Left vertical line (closing the path)
+        posx - 2.5, 32,
+        posx - 5, 32,
+        posx - 5, 16);
     cairo_close_path(cr);
-
     cairo_set_source_rgb(cr, 1, 0, 0);
     cairo_set_line_width(cr, 2);
     cairo_fill(cr);
 
-	//Draw the needle
-	cairo_move_to(cr, 5, 15);
-	cairo_line_to(cr, 5, img_timeline_calculate_total_tracks_height(widget));
-	cairo_stroke(cr);
-	cairo_restore(cr);
+    //Draw the needle
+    cairo_move_to(cr, posx, 32);
+    cairo_line_to(cr, posx, img_timeline_calculate_total_tracks_height(widget) + 6);
+    cairo_stroke(cr);
 }
 
 void img_timeline_media_drag_data_get(GtkWidget *widget, GdkDragContext *drag_context, GtkSelectionData *data, guint info, guint time, ImgTimeline *timeline)
@@ -887,7 +949,7 @@ void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *conte
 			while(images[i])
 			{
 				filename = g_filename_from_uri (images[i], NULL, NULL);
-				if (img_add_media(filename, img))
+				if (img_create_media_struct(filename, img))
 				{
 					img_timeline_add_media(timeline, img->current_media, x, y, img);
 					img_taint_project(img);
@@ -1152,12 +1214,13 @@ void img_timeline_go_start_time(GtkWidget *button, img_window_struct *img)
 
 	gtk_label_set_text(GTK_LABEL(img->current_time), "00:00:00");
 	img_timeline_set_time_marker((ImgTimeline*)img->timeline, 0.0);
-	gtk_widget_queue_draw(img->timeline);
+	gtk_widget_queue_draw(img->image_area);
 }
 
 void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+	gchar *total_time_string;
 	gint time;
 	GtkAllocation allocation;
 	GtkAdjustment *hadj;
@@ -1165,6 +1228,9 @@ void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
 	gdouble pixel_position, viewport_width, upper, page_size, max_scroll, scroll_position;
 
 	time = img_timeline_get_final_time(img);
+	total_time_string = img_convert_time_to_string(time);
+	gtk_label_set_text(GTK_LABEL(img->current_time), total_time_string);
+	g_free(total_time_string);
 	
 	hadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(img->timeline_scrolled_window));
 	pixel_position = time * priv->pixels_per_second;
@@ -1184,5 +1250,5 @@ void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
 	gtk_adjustment_set_value(hadj, scroll_position);
     
 	img_timeline_set_time_marker((ImgTimeline*)img->timeline, (gdouble)time * priv->pixels_per_second);
-	gtk_widget_queue_draw(img->timeline);
+	gtk_widget_queue_draw(img->image_area);
 }

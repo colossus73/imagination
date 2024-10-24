@@ -296,6 +296,7 @@ struct _img_window_struct
 
 	/* Renderers and module stuff */
   	gint		nr_transitions_loaded;
+  	gint		next_id;						// This is the id counter when new media are added
   	GSList		*plugin_list;
 
 	/* Project related variables */
@@ -321,7 +322,8 @@ struct _img_window_struct
 	GtkWidget		*acodec_menu;		/* Audio codec combo box in the export dialog */
 	GtkWidget		*video_quality;		/* Combo box to store the quality CRF when enconding */
 	GtkWidget		*quality_label;		/* label to be changed when selecting formats which don't require CRF */
-	GtkWidget		*file_po;			/* Popover to notify user to choose a slideshow filename */
+	GtkWidget		*file_po;					/* Popover to notify user to choose a slideshow filename */
+	GHashTable		*cached_preview_surfaces;	/* GHashTable to store the cached surfaces during the preview */
 	cairo_surface_t *current_image;  	/* Image in preview area */
 	cairo_surface_t *exported_image; 	/* Image being exported */
 	cairo_surface_t *image1;         	/* Original images */
@@ -356,8 +358,8 @@ struct _img_window_struct
 	gint   no_text_frames; /* All text frames */
 
 	/* Preview related variables */
-	gboolean	window_is_fullscreen;
-  	gboolean	preview_is_running;
+	gboolean		window_is_fullscreen;
+  	gboolean		preview_is_running;
   	GtkWidget	*import_slide_chooser;
 	GtkWidget	*total_stop_points_label;
 	GtkWidget	*slide_number_entry;
