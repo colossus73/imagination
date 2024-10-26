@@ -555,8 +555,6 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
-			
-			img_timeline_center_button_image(item->button);
 			item->y = posy;
 			item->old_x = posx;
 			

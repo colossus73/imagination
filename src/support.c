@@ -1002,7 +1002,7 @@ void img_get_audio_data(media_struct *media)
 	media->audio_duration = img_convert_time_to_string(duration_seconds);
 	
 	//Get the audio type
-	media->audio_type = g_strdup(fmt_ctx->iformat->name);
+	media->audio_type = g_strdup(fmt_ctx->iformat->long_name);
 	to_upper(&media->audio_type);
 	
 	AVCodecParameters *codecpar = fmt_ctx->streams[audio_stream_index]->codecpar;

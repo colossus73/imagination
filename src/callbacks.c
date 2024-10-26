@@ -351,7 +351,7 @@ void img_free_allocated_memory(img_window_struct *img)
 		
 		img_timeline_delete_all_media((ImgTimeline*)img->timeline);
 		img_timeline_delete_additional_tracks((ImgTimeline*)img->timeline);
-		g_hash_table_destroy(img->cached_preview_surfaces);
+		g_hash_table_remove_all(img->cached_preview_surfaces);
 	}
 	img->media_nr = 0;
 
@@ -639,52 +639,51 @@ void img_go_fullscreen(GtkMenuItem *item, img_window_struct *img)
 	gtk_widget_queue_draw(img->image_area);
 }
 
-gboolean img_quit_application(GtkWidget *widget, GdkEvent * event, img_window_struct *img_struct)
+gboolean img_quit_application(GtkWidget *widget, GdkEvent * event, img_window_struct *img)
 {
-	if (img_struct->no_recent_item_menu)
-		gtk_widget_destroy(img_struct->no_recent_item_menu);
+	if (img->no_recent_item_menu)
+		gtk_widget_destroy(img->no_recent_item_menu);
 
-	if (!img_can_discard_unsaved_project(img_struct)) {
+	if (!img_can_discard_unsaved_project(img))
 		return TRUE;
-	}
-	if( img_save_window_settings( img_struct ) )
+	if( img_save_window_settings( img ) )
 		return( TRUE );
-	img_free_allocated_memory(img_struct);
+	img_free_allocated_memory(img);
 
-	/* Unloads the plugins */
 	GSList *node1;
-	for(node1 = img_struct->plugin_list;node1 != NULL;node1 = node1->next) {
+	for(node1 = img->plugin_list;node1 != NULL;node1 = node1->next) {
 		g_module_close(node1->data);
 	}
-	g_slist_free(img_struct->plugin_list);
+	g_slist_free(img->plugin_list);
 
+	g_hash_table_destroy(img->cached_preview_surfaces);
 	return FALSE;
 }
 
-static void img_file_chooser_add_preview(img_window_struct *img_struct)
+static void img_file_chooser_add_preview(img_window_struct *img)
 {
 	GtkWidget *vbox;
 
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
 	gtk_container_set_border_width (GTK_CONTAINER(vbox), 10);
 
-	img_struct->preview_image = gtk_image_new ();
+	img->preview_image = gtk_image_new ();
 
-	img_struct->dim_label  = gtk_label_new (NULL);
-	img_struct->size_label = gtk_label_new (NULL);
+	img->dim_label  = gtk_label_new (NULL);
+	img->size_label = gtk_label_new (NULL);
 
-	gtk_box_pack_start (GTK_BOX (vbox), img_struct->preview_image, FALSE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), img_struct->dim_label, FALSE, TRUE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), img_struct->size_label, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), img->preview_image, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), img->dim_label, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), img->size_label, FALSE, TRUE, 0);
 	gtk_widget_show_all (vbox);
 
-	gtk_file_chooser_set_preview_widget (GTK_FILE_CHOOSER(img_struct->import_slide_chooser), vbox);
-	gtk_file_chooser_set_preview_widget_active (GTK_FILE_CHOOSER(img_struct->import_slide_chooser), FALSE);
+	gtk_file_chooser_set_preview_widget (GTK_FILE_CHOOSER(img->import_slide_chooser), vbox);
+	gtk_file_chooser_set_preview_widget_active (GTK_FILE_CHOOSER(img->import_slide_chooser), FALSE);
 
-	g_signal_connect (img_struct->import_slide_chooser, "update-preview",G_CALLBACK (img_update_preview_file_chooser), img_struct);
+	g_signal_connect (img->import_slide_chooser, "update-preview",G_CALLBACK (img_update_preview_file_chooser), img);
 }
 
-static void img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_window_struct *img_struct)
+static void img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_window_struct *img)
 {
 	gchar *filename,*size;
 	gboolean has_preview = FALSE;
@@ -707,11 +706,11 @@ static void img_update_preview_file_chooser(GtkFileChooser *file_chooser,img_win
 	if (has_preview)
 	{
 		gdk_pixbuf_get_file_info(filename,&width,&height);
-		gtk_image_set_from_pixbuf (GTK_IMAGE(img_struct->preview_image), pixbuf);
+		gtk_image_set_from_pixbuf (GTK_IMAGE(img->preview_image), pixbuf);
 		g_object_unref (pixbuf);
 
 		size = g_strdup_printf(ngettext("%d x %d pixels", "%d x %d pixels", height),width,height);
-		gtk_label_set_text(GTK_LABEL(img_struct->dim_label),size);
+		gtk_label_set_text(GTK_LABEL(img->dim_label),size);
 		g_free(size);
 	}
 	g_free(filename);
@@ -950,9 +949,8 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	GArray* active_media = NULL;
 	gdouble current_time;
 	gint img_width, img_height, media_type;
-	gdouble off_x, off_y;
+	gdouble x, y, scale;
 	media_timeline* media;
-	const gchar *media_filename;
 
 	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
 	{
@@ -1004,32 +1002,36 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	for (gint i = active_media->len-1; i >=0; i--)
 	{
 		media = g_array_index(active_media, media_timeline *, i);
-		//media_filename = img_get_media_info_from_media_library(img, media->id, &media_type, &img_width, &img_height);
-		switch (media_type)
+		switch (media->media_type)
 		{
-			case 0:
+			case 0: //image
 			cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
 			
 			// Calculate offset x and y to center the image in the image area
 			img_width 	= cairo_image_surface_get_width(surface);
 			img_height 	= cairo_image_surface_get_height(surface);
-	        double scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
-                          
-             double x = (allocation.width - (img_width * scale)) / 2;
-			double y = (allocation.height - (img_height * scale)) / 2;
-
+			scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
+						
+			x = (allocation.width - (img_width * scale)) / 2;
+			y = (allocation.height - (img_height * scale)) / 2;
+			
 			cairo_save(cr);
-			cairo_translate(cr, x, y);
-			cairo_scale(cr, scale, scale);
-
-			cairo_set_source_surface(cr, surface, 0, 0);
-			cairo_paint(cr);
+				cairo_translate(cr, x, y);
+				cairo_scale(cr, scale, scale);
+				cairo_set_source_surface(cr, surface, 0, 0);
+				cairo_paint(cr);
 			cairo_restore(cr);
 			break;
+			
+			//~ case 1: //audio
+			//~ if ( ! media->is_playing)
+			//~ {
+				//~ img_timeline_play_audio(media, current_time);
+			//~ }
+			//~ break;
 		}
 	}
 	g_array_free(active_media, FALSE);
-	
 	
 	// Apply rotation for the entire textbox
 	cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);

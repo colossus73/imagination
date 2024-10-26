@@ -16,6 +16,8 @@
  *  Foundation,Inc.,59 Temple Place - Suite 330,Boston,MA 02111-1307,USA.
  *
  */
+
+#include "audio.h"
 #include "img_timeline.h"
 #include "callbacks.h"
 
@@ -122,21 +124,20 @@ static void img_timeline_init(ImgTimeline *timeline)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
 
-		priv->current_preview_time = 0.0;
-    
-    priv->last_media_posX = 0;
-    priv->zoom_scale = 6.12;
-    priv->pixels_per_second = 61.2;
-    priv->total_time = 0;
-    priv->time_marker_pos = 0.0;
+	priv->current_preview_time = 0.0;
+	priv->last_media_posX = 0;
+	priv->zoom_scale = 6.12;
+	priv->pixels_per_second = 61.2;
+	priv->total_time = 0;
+	priv->time_marker_pos = 0.0;
 	priv->tracks = g_array_new(FALSE, TRUE, sizeof(Track));
-
+	
 	priv->rubber_band_active = FALSE;
-    priv->rubber_band_start_x = 0;
-    priv->rubber_band_start_y = 0;
-    priv->rubber_band_end_x = 0;
-    priv->rubber_band_end_y = 0;
-    
+	priv->rubber_band_start_x = 0;
+	priv->rubber_band_start_y = 0;
+	priv->rubber_band_end_x = 0;
+	priv->rubber_band_end_y = 0;
+	
 	// Add default image and audio tracks
 	Track image_track;
 	image_track.type = 0;
@@ -145,16 +146,16 @@ static void img_timeline_init(ImgTimeline *timeline)
 	image_track.order = next_order++;
 	image_track.items = g_array_new(FALSE, TRUE, sizeof(media_timeline *));
 	image_track.background_color = "#CCCCFF";
-    g_array_append_val(priv->tracks, image_track);
-    
-    Track audio_track;
+	g_array_append_val(priv->tracks, image_track);
+	
+	Track audio_track;
 	audio_track.type = 1;
 	audio_track.is_selected = FALSE;
 	audio_track.is_default = TRUE;
 	audio_track.order = next_order++;
 	audio_track.items = g_array_new(FALSE, TRUE, sizeof(media_timeline *));
 	audio_track.background_color = "#d6d1cd";
-    g_array_append_val(priv->tracks, audio_track);
+	g_array_append_val(priv->tracks, audio_track);
 }
 
 //Needed for g_object_set()
@@ -396,6 +397,7 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 
     Track *track;
 	media_timeline *item;
+	GtkWidget *audio_button;
     gint pos, track_nr, new_y;
     double width;
 
@@ -406,42 +408,45 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	if (track->type != entry->media_type)
 		return;
 
-	item = g_new0(media_timeline, 1);
-	item->id = entry->id;
-	item->media_type = entry->media_type;
-	
-	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
-	item->duration = (entry->media_type == 1) ? img_convert_time_string_to_seconds(entry->audio_duration) : 2; 	// Default to 2 seconds
-	
-	item->tree_path = g_strdup("0");
-	item->transition_id = -1;
-
-	img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
-	if (item->media_type == 0)
-		img_create_cached_cairo_surface(img, item->id, entry->full_path);
-	
-    g_array_append_val(track->items, item);
-	
 	if (x > 0)
 		pos = x - 47.5;
 	else
         pos = priv->last_media_posX;
-    
-	//Position the button inside the dropped track and set its size and duration if it's an audio media 
-	if (entry->media_type == 1)
-		width = img_convert_time_string_to_seconds(entry->audio_duration);
-	else
-		width = item->duration;
+	
+	item = g_new0(media_timeline, 1);
+	item->id = entry->id;
+	item->media_type = entry->media_type;
+	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
+	
+	item->old_x = pos;
+	item->y = new_y;
+	priv->last_media_posX += 95;
+		
+	if (entry->media_type == 0)
+	{
+		item->duration = 2; 	// Default to 2 seconds
+		
+		item->tree_path = g_strdup("0");
+		item->transition_id = -1;
 
+		//This is needed to speed up the preview
+		img_create_cached_cairo_surface(img, item->id, entry->full_path);
+		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
+
+		width = item->duration;
+		img_timeline_center_button_image(item->button);
+	}
+	else if (entry->media_type == 1)
+	{
+		item->duration = img_convert_time_string_to_seconds(entry->audio_duration);
+		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
+		width = img_convert_time_string_to_seconds(entry->audio_duration);
+	}
 	width *= priv->pixels_per_second;
 	gtk_widget_set_size_request(item->button, width, 50);
 	gtk_layout_move(GTK_LAYOUT(da), item->button, pos, new_y);
-
-	item->old_x = pos;
-	item->y = new_y;
-    priv->last_media_posX += 95;
-
-    img_timeline_center_button_image(item->button);
+	
+	g_array_append_val(track->items, item);
 	img_taint_project(img);
 	
 	gint test = img_timeline_get_final_time(img);
@@ -452,28 +457,29 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	GdkPixbuf *pix = NULL;
     GtkWidget *image, *layout;
 
-	item->button = gtk_toggle_button_new();
-	gtk_widget_set_has_tooltip(item->button, TRUE);
-	
-	layout = gtk_layout_new(NULL, NULL);
-    gtk_container_add(GTK_CONTAINER(item->button), layout);
-	g_object_set_data(G_OBJECT(item->button), "mem_address", item);
-    gtk_style_context_add_class(gtk_widget_get_style_context(item->button), "timeline-button");
-	
-	if (media_type == 0)
+	if (item->media_type == 0)
 	{
+		item->button = gtk_toggle_button_new();
+		gtk_widget_set_has_tooltip(item->button, TRUE);
+	
+		layout = gtk_layout_new(NULL, NULL);
+		gtk_container_add(GTK_CONTAINER(item->button), layout);
+		gtk_style_context_add_class(gtk_widget_get_style_context(item->button), "timeline-button");
 		pix = gdk_pixbuf_new_from_file_at_scale(filename, -1, 45, TRUE, NULL);
 		image = gtk_image_new_from_pixbuf(pix);
+		g_object_unref(pix);
+
+		// Add the image to the layout
+		gtk_layout_put(GTK_LAYOUT(layout), image, 0, 0);
+		img_timeline_center_button_image(item->button);
 	}
-	else if(media_type == 1)
+	else if (item->media_type == 1)
 	{
-		//Get the waveform into the image and resize the button according to the duration of the audio
-		image = gtk_image_new_from_icon_name("audio-x-generic", GTK_ICON_SIZE_DIALOG);
+		item->button = img_media_audio_button_new();
+		gtk_widget_set_has_tooltip(item->button, TRUE);
+		img_load_audio_file(IMG_MEDIA_AUDIO_BUTTON(item->button), filename);
 	}
-	// Add the image to the layout
-	gtk_layout_put(GTK_LAYOUT(layout), image, 0, 0);
-	img_timeline_center_button_image(item->button);
-		
+	g_object_set_data(G_OBJECT(item->button), "mem_address", item);
     gtk_widget_add_events(item->button, GDK_POINTER_MOTION_MASK
                                       | GDK_LEAVE_NOTIFY_MASK
                                       | GDK_BUTTON1_MASK 
@@ -491,9 +497,6 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 
 	gtk_container_add(GTK_CONTAINER(img->timeline), item->button);
 	gtk_widget_show_all(item->button);
-
-	if (pix)
-		g_object_unref(pix);
 }
 
 void img_timeline_add_track(GtkWidget *timeline, gint type, gchar *hexcode)
@@ -639,11 +642,11 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 						gtk_widget_destroy(item->button);
 						g_array_remove_index(track->items, q);
 						g_free(item);
+						img_taint_project(img);
 					}
 				}
 			}
 		}
-		img_taint_project(img);
 		gint unused =	img_timeline_get_final_time(img);
 	}
 	return TRUE;
@@ -914,7 +917,8 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 						gtk_widget_set_size_request(GTK_WIDGET(item->button), width, 50);
 						new_x = item->start_time * priv->pixels_per_second;
 						gtk_layout_move(GTK_LAYOUT(timeline), item->button, new_x, item->y);
-						img_timeline_center_button_image(item->button);
+						if (item->media_type == 0)
+							img_timeline_center_button_image(item->button);
 					}
 				}
 			}

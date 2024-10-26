@@ -16,6 +16,7 @@ bin_PROGRAMS = imagination
 
 imagination_SOURCES = \
 	imgcellrendereranim.c imgcellrendereranim.h \
+	audio.c audio.h \
 	img_timeline.c img_timeline.h \
 	imagination.c imagination.h \
 	support.c support.h \

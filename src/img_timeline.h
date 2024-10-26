@@ -62,7 +62,7 @@ enum
 	N_PROPERTIES
 };
 
-typedef struct _media
+typedef struct _media_timeline
 {
 	gint					id;							//This has the same id value in the media_struct in imagination.h
 	gint					media_type;
