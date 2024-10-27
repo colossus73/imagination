@@ -49,7 +49,11 @@ static void img_media_audio_button_dispose(GObject *object)
         img_free_audio_data(priv->audio_data);
         priv->audio_data = NULL;
     }
-    
+    if (priv->waveform_cache)
+    {
+        cairo_surface_destroy(priv->waveform_cache);
+        priv->waveform_cache = NULL;
+    }
     G_OBJECT_CLASS(img_media_audio_button_parent_class)->dispose(object);
 }
 
@@ -125,6 +129,32 @@ static void img_draw_waveform(ImgMediaAudioButton *button, cairo_t *cr, gint wid
     cairo_restore(cr);
 }
 
+static void img_create_waveform_cache(ImgMediaAudioButton *button, cairo_t *cr, gint width, gint height)
+{
+    ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_instance_private(button);
+    
+    // Only recreate cache if size changed or cache is invalid
+    if (priv->waveform_cache && priv->cache_valid && priv->last_width == width && priv->last_height == height)
+        return;
+    
+    // Clear old cache
+    if (priv->waveform_cache)
+        cairo_surface_destroy(priv->waveform_cache);
+    
+    // Create new cache surface
+    priv->waveform_cache = cairo_surface_create_similar(cairo_get_target(cr), CAIRO_CONTENT_COLOR_ALPHA, width, height);
+    cairo_t *cache_cr = cairo_create(priv->waveform_cache);
+    
+    // Draw waveform to cache
+    img_draw_waveform(button, cache_cr, width, height);
+    
+    cairo_destroy(cache_cr);
+    
+    priv->cache_valid = TRUE;
+    priv->last_width = width;
+    priv->last_height = height;
+}
+
 static gboolean img_media_audio_button_draw(GtkWidget *widget, cairo_t *cr)
 {
 	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_instance_private((ImgMediaAudioButton *) widget);
@@ -143,8 +173,10 @@ static gboolean img_media_audio_button_draw(GtkWidget *widget, cairo_t *cr)
     cairo_fill(cr);
     
     // Draw waveform
-    img_draw_waveform((ImgMediaAudioButton*) widget, cr, allocation.width, allocation.height);
-    
+   img_create_waveform_cache((ImgMediaAudioButton*)widget, cr, allocation.width, allocation.height);
+    cairo_set_source_surface(cr, priv->waveform_cache, 0, 0);
+	cairo_paint(cr);
+	
     // Draw button frame
     gtk_render_frame(context, cr, 0, 0, allocation.width, allocation.height);
     
@@ -181,13 +213,22 @@ static void img_media_audio_button_class_init(ImgMediaAudioButtonClass *class)
 
 static void img_media_audio_button_init(ImgMediaAudioButton *button)
 {
-	 ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_instance_private(button);
-	//Nothing to do here at the moment
+	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_instance_private(button);
+
+	priv->waveform_cache = NULL;
+	priv->cache_valid = FALSE;
+	priv->last_width = 0;
+	priv->last_height = 0;
 }
 
 GtkWidget *img_media_audio_button_new()
 {
     return GTK_WIDGET(g_object_new(img_media_audio_button_get_type(), NULL));
+}
+
+ImgMediaAudioButtonPrivate *img_media_audio_button_get_private_struct(ImgMediaAudioButton *button)
+{
+	return img_media_audio_button_get_instance_private(button);
 }
 
 static AudioData *img_create_audio_data_struct(AVFormatContext *pFormatContext, AVCodecContext *pDecoderContext, int audio_stream_index)
@@ -310,14 +351,15 @@ end:
     data->size = total_size;
     data->sample_rate = raw_sample_rate;
     data->num_samples = total_size / data->sample_size;
-    data->duration = (data->size * 8.0) / 
-                    (raw_sample_rate * data->sample_size * 8.0 * data->channels);
+    //data->duration = (data->size * 8.0) /  (raw_sample_rate * data->sample_size * 8.0 * data->channels);
 
     // Allocate and convert to normalized float samples
     data->samples = g_new(float, data->num_samples);
-    for (int i = 0; i < data->num_samples; i++) {
+    for (int i = 0; i < data->num_samples; i++)
+    {
         float sample = 0;
-        switch (data->format) {
+        switch (data->format)
+        {
             case SAMPLE_FORMAT_UINT8:
                 sample = (((uint8_t*)data->raw_samples)[i] / 255.0f) * 2 - 1;
                 break;
@@ -421,13 +463,115 @@ gboolean img_load_audio_file(ImgMediaAudioButton *button, const char *filename)
         return FALSE;
     }
 
-    //~ g_debug("Loaded %d samples", audio_data->num_samples);
-    //~ g_debug("Sample rate: %d", audio_data->sample_rate);
-    //~ g_debug("Channels: %d", audio_data->channels);
-    //~ g_debug("Duration: %.2f seconds", audio_data->duration);
-
 	priv->audio_data = audio_data;
-	priv->duration = priv->audio_data->duration;
-	
 	return TRUE;
+}
+
+
+int img_play_audio_alsa(AudioData *audio_data)
+{
+    snd_pcm_t *handle = NULL;
+    int16_t *buffer = NULL;
+    int rc = 0;
+    
+    // Validate input parameters
+    if (!audio_data || audio_data->num_samples <= 0 || audio_data->channels <= 0) {
+        g_warning("Invalid audio data parameters");
+        return -1;
+    }
+
+    // Open PCM device
+    rc = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+
+    // Set basic parameters
+    rc = snd_pcm_set_params(handle,
+                           SND_PCM_FORMAT_S16_LE,
+                           SND_PCM_ACCESS_RW_INTERLEAVED,
+                           audio_data->channels,
+                           audio_data->sample_rate,
+                           1,  // allow resampling
+                           100000);  // 0.1s latency
+
+    // Allocate buffer for samples
+    int buffer_size = 256;  // Fixed buffer size
+    buffer = g_malloc(buffer_size * sizeof(int16_t));
+    if (!buffer) {
+        g_warning("Failed to allocate buffer");
+        rc = -ENOMEM;
+        goto cleanup;
+    }
+
+    // Convert and write samples in chunks
+	//int start_sample = (int)(audio_data->current_time * audio_data->sample_rate * audio_data->channels);
+     
+    int samples_written = 0;
+    //int total_frames = (audio_data->num_samples - start_sample) / audio_data->channels;
+    int total_frames = audio_data->num_samples / audio_data->channels;
+    
+    while (samples_written < total_frames && g_atomic_int_get(&audio_data->is_playing)) 
+    {
+        int frames_to_write = MIN(buffer_size / audio_data->channels, total_frames - samples_written);
+        
+        // Convert float samples to 16-bit PCM
+        for (int frame = 0; frame < frames_to_write; frame++)
+        {
+            for (int channel = 0; channel < audio_data->channels; channel++)
+            {
+                //int sample_index = (start_sample + samples_written + frame) * audio_data->channels + channel;
+                int sample_index = (samples_written + frame) * audio_data->channels + channel;
+                float sample = audio_data->samples[sample_index];
+                sample = CLAMP(sample, -1.0f, 1.0f);
+                buffer[frame * audio_data->channels + channel] = (int16_t)(sample * 32767.0f);
+            }
+        }
+        
+        // Write to ALSA device
+        int written = 0;
+        while (written < frames_to_write)
+        {
+            rc = snd_pcm_writei(handle,  buffer + (written * audio_data->channels),  frames_to_write - written);
+            if (rc == -EAGAIN)
+            {
+                snd_pcm_wait(handle, 50);
+                continue;
+            } else if (rc == -EPIPE)
+            {
+                g_warning("Underrun occurred\n");
+                rc = snd_pcm_prepare(handle);
+                if (rc < 0) {
+                    g_warning("Failed to recover from underrun: %s\n", 
+                             snd_strerror(rc));
+                    goto cleanup;
+                }
+                continue;
+            } else if (rc < 0)
+            {
+                g_warning("Error from writei: %s\n", snd_strerror(rc));
+                goto cleanup;
+            }
+            
+            written += rc;
+        }
+         if (!g_atomic_int_get(&audio_data->is_playing))
+			break;
+
+        samples_written += frames_to_write;
+    }
+
+    // Successful completion
+    rc = 0;
+
+cleanup:
+    if (buffer)
+        g_free(buffer);
+
+    if (handle)
+    {
+        if (!g_atomic_int_get(&audio_data->is_playing))
+            snd_pcm_drop(handle);
+        else
+            snd_pcm_drain(handle);
+        snd_pcm_close(handle);
+    }
+    return rc;
 }

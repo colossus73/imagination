@@ -996,40 +996,28 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	cairo_paint(cr);
 
 	// Get the list of active media on all tracks according to the position of the red needle
-	active_media = img_timeline_get_active_media(img->timeline, current_time);
+	active_media = img_timeline_get_active_picture_media(img->timeline, current_time);
 
 	// Draw all the placed media items on the tracks
 	for (gint i = active_media->len-1; i >=0; i--)
 	{
 		media = g_array_index(active_media, media_timeline *, i);
-		switch (media->media_type)
-		{
-			case 0: //image
-			cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
-			
-			// Calculate offset x and y to center the image in the image area
-			img_width 	= cairo_image_surface_get_width(surface);
-			img_height 	= cairo_image_surface_get_height(surface);
-			scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
-						
-			x = (allocation.width - (img_width * scale)) / 2;
-			y = (allocation.height - (img_height * scale)) / 2;
-			
-			cairo_save(cr);
-				cairo_translate(cr, x, y);
-				cairo_scale(cr, scale, scale);
-				cairo_set_source_surface(cr, surface, 0, 0);
-				cairo_paint(cr);
-			cairo_restore(cr);
-			break;
-			
-			//~ case 1: //audio
-			//~ if ( ! media->is_playing)
-			//~ {
-				//~ img_timeline_play_audio(media, current_time);
-			//~ }
-			//~ break;
-		}
+		cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+				
+		// Calculate offset x and y to center the image in the image area
+		img_width 	= cairo_image_surface_get_width(surface);
+		img_height 	= cairo_image_surface_get_height(surface);
+		scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
+							
+		x = (allocation.width - (img_width * scale)) / 2;
+		y = (allocation.height - (img_height * scale)) / 2;
+				
+		cairo_save(cr);
+			cairo_translate(cr, x, y);
+			cairo_scale(cr, scale, scale);
+			cairo_set_source_surface(cr, surface, 0, 0);
+			cairo_paint(cr);
+		cairo_restore(cr);
 	}
 	g_array_free(active_media, FALSE);
 	

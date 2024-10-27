@@ -54,9 +54,10 @@ void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		}
 		img->preview_is_running = FALSE;
 		img_swap_preview_button_images(img, TRUE);
+		img_timeline_update_audio_states(img, priv->current_preview_time);
     }
     else
-    {
+	{
 		img->preview_is_running = TRUE;
 		img_swap_preview_button_images( img, FALSE);
 		priv->current_preview_time = priv->time_marker_pos / priv->pixels_per_second;
@@ -74,6 +75,9 @@ gboolean img_timeline_preview_update(img_window_struct *img)
     gdouble time_increment = 1.0 / priv->pixels_per_second;
     priv->current_preview_time += time_increment;
 
+	// Update audio states
+	img_timeline_update_audio_states(img, priv->current_preview_time);
+    
     // Update time marker position
     gdouble new_marker_pos = priv->current_preview_time * priv->pixels_per_second;
     img_timeline_set_time_marker((ImgTimeline*)img->timeline, new_marker_pos);
@@ -194,9 +198,7 @@ void img_timeline_set_time_marker(ImgTimeline *timeline, gdouble posx)
 
 ImgTimelinePrivate *img_timeline_get_private_struct(GtkWidget *timeline)
 {
-	ImgTimelinePrivate *priv =  img_timeline_get_instance_private((ImgTimeline*)timeline);
-	
-	return priv;
+	return img_timeline_get_instance_private((ImgTimeline*)timeline);	
 }
 
 static void img_timeline_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
@@ -577,7 +579,7 @@ gboolean img_timeline_mouse_button_press (GtkWidget *timeline, GdkEventButton *e
 		priv->button_pressed_on_needle = TRUE;
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
 		
-		time = img_convert_time_to_string((event->x + 10) / priv->pixels_per_second);
+		time = img_convert_time_to_string(event->x  / priv->pixels_per_second);
 		gtk_label_set_text(GTK_LABEL(img->current_time), time);
 		g_free(time);
 		
@@ -676,7 +678,7 @@ gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, 
 	{
 		img_timeline_set_time_marker((ImgTimeline*)timeline, event->x);
 		
-		time = img_convert_time_to_string((event->x + 10) / priv->pixels_per_second);
+		time = img_convert_time_to_string(event->x / priv->pixels_per_second);
 		gtk_label_set_text(GTK_LABEL(img->current_time), time);
 		g_free(time);
 		
@@ -1134,7 +1136,7 @@ void img_timeline_delete_additional_tracks(ImgTimeline *timeline)
 	gtk_widget_queue_draw(GTK_WIDGET(timeline));
 }
 
-GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
+GArray *img_timeline_get_active_picture_media(GtkWidget *timeline, gdouble current_time)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
     Track *track;
@@ -1149,9 +1151,38 @@ GArray *img_timeline_get_active_media(GtkWidget *timeline, gdouble current_time)
         for (gint j = 0; j < track->items->len; j++)
         {
             item = g_array_index(track->items, media_timeline *, j);
-            item_end = item->start_time + item->duration;
-            if (current_time >= item->start_time && current_time < item_end)
-                g_array_append_val(active_elements, item);
+            if (item->media_type == 0 || item->media_type == 2)  
+           {
+				item_end = item->start_time + item->duration;
+				if (current_time >= item->start_time && current_time < item_end)
+					g_array_append_val(active_elements, item);
+			}
+        }
+    }
+    return active_elements;
+}
+
+GArray *img_timeline_get_active_audio_media(GtkWidget *timeline, gdouble current_time)
+{
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+    Track *track;
+    GArray* active_elements;
+    media_timeline *item;
+    double item_end;
+
+    active_elements = g_array_new(FALSE, FALSE, sizeof(media_timeline *));
+    for (gint i = 0; i < priv->tracks->len; i++)
+    {
+        track = &g_array_index(priv->tracks, Track, i);
+        for (gint j = 0; j < track->items->len; j++)
+        {
+            item = g_array_index(track->items, media_timeline *, j);
+            if (item->media_type == 1)  
+           {
+				item_end = item->start_time + item->duration;
+				if (current_time >= item->start_time && current_time < item_end)
+					g_array_append_val(active_elements, item);
+			}
         }
     }
     return active_elements;
@@ -1255,4 +1286,52 @@ void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
     
 	img_timeline_set_time_marker((ImgTimeline*)img->timeline, (gdouble)time * priv->pixels_per_second);
 	gtk_widget_queue_draw(img->image_area);
+}
+
+void img_timeline_play_audio(media_timeline *media, gint current_time)
+{
+	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_private_struct((ImgMediaAudioButton*)media->button);
+	GThread *playback_thread;
+	
+	if (! media->is_playing)
+	{
+		media->is_playing = TRUE;
+		g_atomic_int_set(&priv->audio_data->is_playing, TRUE);
+		priv->audio_data->current_time = current_time;
+		playback_thread = g_thread_new("Imagination_audio_thread",  (GThreadFunc)img_play_audio_alsa, priv->audio_data);
+		g_thread_unref(playback_thread);
+	}
+}
+
+void img_timeline_stop_audio(media_timeline *media)
+{
+	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_private_struct((ImgMediaAudioButton*)media->button);
+
+	if (media->is_playing)
+	{
+		media->is_playing = FALSE;
+		g_atomic_int_set(&priv->audio_data->is_playing, FALSE);
+	}
+}
+
+void img_timeline_update_audio_states(img_window_struct *img, gdouble current_time)
+{
+    GArray* active_media = img_timeline_get_active_audio_media(img->timeline, current_time);
+
+    for (gint i = 0; i < active_media->len; i++) 
+    {
+		media_timeline *media = g_array_index(active_media, media_timeline *, i);
+		if (img->preview_is_running) 
+		{
+			if (!media->is_playing) 
+				img_timeline_play_audio(media, current_time);
+        }
+        else if (!img->preview_is_running)
+        {
+			if (media->is_playing)
+				img_timeline_stop_audio(media);
+		}
+    }
+    
+    g_array_free(active_media, FALSE);
 }

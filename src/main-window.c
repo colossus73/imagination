@@ -1464,14 +1464,20 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 		gtk_label_set_markup(GTK_LABEL(label), _("<b>Sample rate:</b>"));
 		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 		gtk_grid_attach (GTK_GRID(table1), label, 0 , 6 , 1 ,1);
+		
+		label = gtk_label_new(NULL);
+		gtk_label_set_markup(GTK_LABEL(label), _("<b>Channels:</b>"));
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		gtk_grid_attach (GTK_GRID(table1), label, 0 , 7 , 1 ,1);
 	}
+
 	if (media->media_type == 1 || media->media_type == 2)
 	{
 		label = gtk_label_new(NULL);
 		gtk_label_set_markup(GTK_LABEL(label), _("<b>Metadata:</b>"));
 		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 		gtk_label_set_yalign(GTK_LABEL(label), 0.0);
-		gtk_grid_attach (GTK_GRID(table1), label, 0 , 7 , 1 ,1);
+		gtk_grid_attach (GTK_GRID(table1), label, 0 , 8 , 1 ,1);
 	}
 	
 	//Set the values
@@ -1522,7 +1528,7 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 	gtk_grid_attach (GTK_GRID(table1), label, 1 , 4 , 1 ,1);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	
-	//Bitrate amd sample rate for audio/video files
+	//Bitrate and sample rate for audio/video files
 	if (media->media_type == 1)
 	{
 		string = 	g_strdup_printf("%ld kbps", media->bitrate);
@@ -1534,6 +1540,12 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 		string = 	g_strdup_printf("%d Hz", media->sample_rate);
 		label = gtk_label_new (string);
 		gtk_grid_attach (GTK_GRID(table1), label, 1 , 6 , 1 ,1);
+		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+		g_free(string);	
+		
+		string = 	g_strdup_printf("%d", media->channels);
+		label = gtk_label_new (string);
+		gtk_grid_attach (GTK_GRID(table1), label, 1 , 7 , 1 ,1);
 		gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 		g_free(string);	
 	}
@@ -1550,7 +1562,7 @@ static void img_media_show_properties(GtkWidget *widget, img_window_struct *img)
 		gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), FALSE);
 		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(textview), FALSE);
 		gtk_widget_set_size_request(scrolled_win, 250, 200);
-		gtk_grid_attach (GTK_GRID(table1), scrolled_win, 1 , 7 , 1 ,1);
+		gtk_grid_attach (GTK_GRID(table1), scrolled_win, 1 , 8 , 1 ,1);
 	}
 	gtk_widget_show_all(media_property_dialog);
 }

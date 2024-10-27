@@ -24,6 +24,7 @@
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
+#include "imagination.h"
 
 G_BEGIN_DECLS
 
@@ -47,13 +48,14 @@ typedef struct
     int sample_size;
     int channels;
     int sample_rate;
-    double duration;
     
     // Sample data
     float *samples;         			// Normalized float samples (-1.0 to 1.0)
     uint8_t *raw_samples;     	// Original raw sample data
     int num_samples;          	// Number of samples
     int size;               		  		// Size of raw_samples buffer in bytes
+    int current_time;
+   volatile gint is_playing;
 } AudioData;
 
 struct _ImgMediaAudioButton
@@ -64,29 +66,21 @@ struct _ImgMediaAudioButton
 
 typedef struct _ImgMediaAudioButtonPrivate
 {
-	gchar				*filename;
-	gint					id;						//This has the same id value in the media_struct in imagination.h
-	gint					media_type;
-	gdouble		 	x;
-	gdouble 			y;
-	gdouble 			drag_x;
-	gdouble			old_x;
-	gint					initial_width;
-	gint					width;
-	gdouble			start_time;
-    gdouble			duration;
-    gboolean 		to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
-    AudioData	*audio_data;
-    gboolean			hovering;  			// Track hover state
+	gchar					*filename;
+	AudioData		*audio_data;
+	cairo_surface_t 	*waveform_cache;
+	gboolean 			cache_valid;
+	gdouble 				last_width;
+	gdouble 				last_height;
 } ImgMediaAudioButtonPrivate;
 
 #define IMG_TYPE_MEDIA_AUDIO_BUTTON (img_media_audio_button_get_type())
 G_DECLARE_FINAL_TYPE(ImgMediaAudioButton, img_media_audio_button, IMG, MEDIA_AUDIO_BUTTON, GtkToggleButton)
 
 GtkWidget *img_media_audio_button_new();
-ImgMediaAudioButtonPrivate* img_media_audio_button_get_private_struct(GtkWidget *);
+ImgMediaAudioButtonPrivate *img_media_audio_button_get_private_struct(ImgMediaAudioButton *);
 gboolean img_load_audio_file(ImgMediaAudioButton *, const char *);
-
+int img_play_audio_alsa(AudioData *);
 G_END_DECLS
 
 #endif

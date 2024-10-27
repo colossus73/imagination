@@ -25,7 +25,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
-#include <cairo.h>
+#include <alsa/asoundlib.h>
 
 #define comment_string \
 	"Imagination 2.0 Slideshow Project - http://imagination.sf.net" //The version number is left to 2.0 to allow compatibility of project files generated with older versions
@@ -121,6 +121,7 @@ struct _media_struct
 	gint			media_type;
 	gint			id;						// This is needed to link the same media when placed on the timeline
 	gint			bitrate;
+	gint			channels;
 	gint			sample_rate;
 	gint			width;
 	gint			height;
@@ -373,11 +374,11 @@ struct _img_window_struct
 	GtkWidget   *export_dialog;
 	GtkWidget   *export_cancel_button;
 	GtkWidget   *export_pause_button;
-	gdouble      export_fps;        /* Frame rate for exported video */
-	gdouble      elapsed_time;      /* Elapsed time during export */
-	guint        export_slide;		/* Number of slide being exported */
-	GSourceFunc  export_idle_func;	/* Stored procedure for pause */
-	GTimer		 *elapsed_timer;	/* GTimer for the elapsed time */
+	gdouble     	export_fps;        				/* Frame rate for exported video */
+	gdouble      	elapsed_time;      			/* Elapsed time during export */
+	guint        	export_slide;					/* Number of slide being exported */
+	GSourceFunc  export_idle_func;			/* Stored procedure for pause */
+	GTimer		 *elapsed_timer;				/* GTimer for the elapsed time */
 
 	/* AV library stuff */
 	AVFrame 				*video_frame;
@@ -388,7 +389,11 @@ struct _img_window_struct
 	AVPacket					*audio_packet;
 	AVFormatContext	*video_format_context;
 	struct SwsContext *sws_ctx;
-
+	
+	/* Alsa library stuff */
+	snd_pcm_t 	*pcm_handle;
+	gint64			current_pts;
+	
 	/* Application related stuff */
 	gdouble  	image_area_zoom; 	/* Zoom to be applied to image area */
 	gint    		preview_fps;     			/* Preview frame rate */

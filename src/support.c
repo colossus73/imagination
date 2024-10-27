@@ -1016,6 +1016,9 @@ void img_get_audio_data(media_struct *media)
 	//Get the sample rate
 	media->sample_rate = codecpar->sample_rate;
 	
+	//Get the channels
+	media->channels = codecpar->ch_layout.nb_channels;
+
 	//Get the metadata
 	 while ((tag = av_dict_get(fmt_ctx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
 	{
