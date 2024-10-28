@@ -180,7 +180,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				for (gint q = 0; q < track->items->len; q++)
 				{
 					item = g_array_index(track->items, media_timeline  *, q);
-					g_string_append_printf(string_values, "%d;%.0f;%.0f;%d;", item->id, item->start_time, item->duration, item->transition_id);
+					g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;", item->id, item->start_time, item->duration, item->transition_id);
 				}
 				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
 				g_string_free(string_values, TRUE);
@@ -218,11 +218,11 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	gchar      					*spath, *conf, *conf2, *project_current_dir, *value_string;
 	gchar						**groups, **values;
 	GtkWidget 				*dialog, *menu;
-	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posx, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, media_id, width;
+	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, media_id;
 	GtkTreeModel 		*model;
 	void 						(*render);
 	GHashTable 			*table;
-	gdouble    				duration, *color, *font_color, *font_bg_color, *font_shadow_color, *font_outline_color;
+	gdouble    				posx, width, duration, *color, *font_color, *font_bg_color, *font_shadow_color, *font_outline_color;
 	gdouble					*my_points = NULL, *p_start = NULL, *p_stop = NULL, *c_start = NULL, *c_stop = NULL, *countdown_color = NULL;
 	gsize						length, num_keys;
     gboolean  				flipped, no_use, is_default;
@@ -556,8 +556,6 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
 			item->y = posy;
-			item->old_x = posx;
-			
 		}
 		g_strfreev(values);
 next:

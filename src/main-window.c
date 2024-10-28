@@ -941,11 +941,10 @@ img_window_struct *img_create_window (void)
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
 		"popover {border: 1px solid #f4d27b; padding: 0px;}"
-        ".timeline-button { border-width: 0; outline-width: 0; background: #808080; padding: 0; margin: 0; }"
-        ".timeline-button:focus { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
-        ".timeline-button:not(:focus) { outline-width: 0;border-width: 0; background: #808080; padding: 0; margin: 0;  }"
-        ".timeline-button { border-top: 2px solid transparent; border-bottom: 2px solid transparent; }"
-        ".timeline-button:checked { outline-width: 0;border-width: 0; background: #3584e4; padding: 0; margin: 0; }"
+        "button.timeline-button { border-width: 1px; border-style: solid; border-color: #000000; outline-width: 0; background: #F0F0F0; padding: 0; margin: 0; }"
+		"button.timeline-button:focus { outline-width: 0; border-width: 1px; border-style: solid; border-color: #000000; background: #F0F0F0; padding: 0; margin: 0; }"
+		"button.timeline-button:not(:focus) { outline-width: 0; border-width: 1px; border-style: solid; border-color: #000000; background: #F0F0F0; padding: 0; margin: 0; }"
+		"button.timeline-button:checked { outline-width: 0; border-width: 1px; border-style: solid; border-color: #000000; background: #3584e4; padding: 0; margin: 0; }"
         "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
         "tooltip * {  color: #000000;  padding: 0; margin: 0 }"
         "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} \

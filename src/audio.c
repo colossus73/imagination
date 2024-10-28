@@ -173,12 +173,15 @@ static gboolean img_media_audio_button_draw(GtkWidget *widget, cairo_t *cr)
     cairo_fill(cr);
     
     // Draw waveform
-   img_create_waveform_cache((ImgMediaAudioButton*)widget, cr, allocation.width, allocation.height);
-    cairo_set_source_surface(cr, priv->waveform_cache, 0, 0);
+	img_create_waveform_cache((ImgMediaAudioButton*)widget, cr, allocation.width, allocation.height);
+	cairo_set_source_surface(cr, priv->waveform_cache, 0, 0);
 	cairo_paint(cr);
 	
     // Draw button frame
-    gtk_render_frame(context, cr, 0, 0, allocation.width, allocation.height);
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_set_line_width(cr, 1.0);
+	cairo_rectangle(cr, 0.5, 0.5, allocation.width - 1, allocation.height - 1);
+	cairo_stroke(cr);
     
     // Draw audio name
     if (priv->filename)
@@ -502,11 +505,9 @@ int img_play_audio_alsa(AudioData *audio_data)
     }
 
     // Convert and write samples in chunks
-	//int start_sample = (int)(audio_data->current_time * audio_data->sample_rate * audio_data->channels);
-     
+	int start_sample = (int)(audio_data->current_time * audio_data->sample_rate * audio_data->channels);
     int samples_written = 0;
-    //int total_frames = (audio_data->num_samples - start_sample) / audio_data->channels;
-    int total_frames = audio_data->num_samples / audio_data->channels;
+    int total_frames = (audio_data->num_samples - start_sample) / audio_data->channels;
     
     while (samples_written < total_frames && g_atomic_int_get(&audio_data->is_playing)) 
     {
@@ -517,8 +518,7 @@ int img_play_audio_alsa(AudioData *audio_data)
         {
             for (int channel = 0; channel < audio_data->channels; channel++)
             {
-                //int sample_index = (start_sample + samples_written + frame) * audio_data->channels + channel;
-                int sample_index = (samples_written + frame) * audio_data->channels + channel;
+                int sample_index = (start_sample + (samples_written + frame) * audio_data->channels) + channel;
                 float sample = audio_data->samples[sample_index];
                 sample = CLAMP(sample, -1.0f, 1.0f);
                 buffer[frame * audio_data->channels + channel] = (int16_t)(sample * 32767.0f);

@@ -129,7 +129,6 @@ static void img_timeline_init(ImgTimeline *timeline)
     ImgTimelinePrivate *priv = img_timeline_get_instance_private(timeline);
 
 	priv->current_preview_time = 0.0;
-	priv->last_media_posX = 0;
 	priv->zoom_scale = 6.12;
 	priv->pixels_per_second = 61.2;
 	priv->total_time = 0;
@@ -400,8 +399,8 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
     Track *track;
 	media_timeline *item;
 	GtkWidget *audio_button;
-    gint pos, track_nr, new_y;
-    double width;
+    gint track_nr, new_y;
+    gdouble width, position_x;
 
 	//Calculate the track to move the media to later according to the dropped y coord
 	track_nr = img_timeline_get_track_at_position(da, y, &new_y);
@@ -410,19 +409,10 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	if (track->type != entry->media_type)
 		return;
 
-	if (x > 0)
-		pos = x - 47.5;
-	else
-        pos = priv->last_media_posX;
-	
 	item = g_new0(media_timeline, 1);
 	item->id = entry->id;
 	item->media_type = entry->media_type;
-	item->start_time = x / (BASE_SCALE * priv->zoom_scale);
-	
-	item->old_x = pos;
 	item->y = new_y;
-	priv->last_media_posX += 95;
 		
 	if (entry->media_type == 0)
 	{
@@ -444,9 +434,23 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
 		width = img_convert_time_string_to_seconds(entry->audio_duration);
 	}
+	
 	width *= priv->pixels_per_second;
-	gtk_widget_set_size_request(item->button, width, 50);
-	gtk_layout_move(GTK_LAYOUT(da), item->button, pos, new_y);
+	
+	// If x is -1, use track->last_media_posX, otherwise use the provided x position
+	if (x < 0)
+		position_x = track->last_media_posX;
+	else
+	{
+		position_x = x;
+		// Update track->last_media_posX to the drop position for subsequent items
+		track->last_media_posX = x;
+	}
+	// Set start time based on the actual position
+    item->start_time = position_x / (BASE_SCALE * priv->zoom_scale);
+   	gtk_widget_set_size_request(item->button, width, 50);
+	gtk_layout_move(GTK_LAYOUT(da), item->button, position_x, new_y);
+	track->last_media_posX += width;
 	
 	g_array_append_val(track->items, item);
 	img_taint_project(img);
@@ -495,7 +499,7 @@ void img_timeline_create_toggle_button(media_timeline *item, gint media_type, gc
 	g_signal_connect(item->button, "button-press-event",		G_CALLBACK(img_timeline_media_button_press_event), img);
 	g_signal_connect(item->button, "button-release-event", 	G_CALLBACK(img_timeline_media_button_release_event), img);
 	g_signal_connect(item->button, "query-tooltip",					G_CALLBACK(img_timeline_media_button_tooltip), item);
-	//g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), NULL);
+	//g_signal_connect(item->button, "size-allocate",					G_CALLBACK(img_timeline_center_button_image), item);
 
 	gtk_container_add(GTK_CONTAINER(img->timeline), item->button);
 	gtk_widget_show_all(item->button);
@@ -612,45 +616,58 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 
 	gboolean shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
 
-	if ( shift_pressed && event->keyval == GDK_KEY_A)
+	switch (event->keyval)
 	{
-		for (gint i = 0; i < priv->tracks->len; i++)
-		{
-			track = &g_array_index(priv->tracks, Track, i);
-			if (track->type == 0)
-			{
-				for (gint q = track->items->len - 1; q >= 0; q--)
-				{
-					item = g_array_index(track->items, media_timeline  *, q);
-					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), TRUE);
-				}
-			}
-		}
-	}
+		case GDK_KEY_Home:
+			img_timeline_go_start_time(NULL, img);
+		break;
 
-	if (event->keyval == GDK_KEY_Delete)
-	{
-		// Let's iterate through all the tracks and delete the selected toggle buttons representing the media items
-		for (gint i = 0; i < priv->tracks->len; i++)
-		{
-			track = &g_array_index(priv->tracks, Track, i);
-			if (track->items)
+		case GDK_KEY_End:
+			img_timeline_go_final_time(NULL, img);
+		break;
+
+		case GDK_KEY_A:
+		case GDK_KEY_a:
+			if (shift_pressed)
 			{
-				for (gint q = track->items->len - 1; q >= 0; q--)
+				for (gint i = 0; i < priv->tracks->len; i++)
 				{
-					item = g_array_index(track->items, media_timeline  *, q);
-					if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)) )
+					track = &g_array_index(priv->tracks, Track, i);
+					if (track->type == 0)
 					{
-						gtk_widget_destroy(item->button);
-						g_array_remove_index(track->items, q);
-						g_free(item);
-						img_taint_project(img);
+						for (gint q = track->items->len - 1; q >= 0; q--)
+						{
+							item = g_array_index(track->items, media_timeline  *, q);
+							gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), TRUE);
+						}
 					}
 				}
 			}
-		}
-		gint unused =	img_timeline_get_final_time(img);
+		break;
+		
+		case GDK_KEY_Delete:
+			// Let's iterate through all the tracks and delete the selected toggle buttons representing the media items
+			for (gint i = 0; i < priv->tracks->len; i++)
+			{
+				track = &g_array_index(priv->tracks, Track, i);
+				if (track->items)
+				{
+					for (gint q = track->items->len - 1; q >= 0; q--)
+					{
+						item = g_array_index(track->items, media_timeline  *, q);
+						if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)) )
+						{
+							gtk_widget_destroy(item->button);
+							g_array_remove_index(track->items, q);
+							g_free(item);
+							img_taint_project(img);
+						}
+					}
+				}
+			}
+		break;
 	}
+	gint unused =	img_timeline_get_final_time(img);
 	return TRUE;
 }
 
@@ -794,32 +811,48 @@ gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *eve
     {
         switch (item->resizing)
         {
-            case RESIZE_LEFT:
-				if (item->media_type !=0)
-					return FALSE;
-                new_width = item->initial_width + (item->drag_x - event->x);
-                new_width = MAX(new_width, 1);
-                x = item->old_x + (item->initial_width - new_width);
+             case RESIZE_LEFT:
+                if (item->media_type != 0)
+                    return FALSE;
 
-                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
-                if (abs(x - nearest_tick) < 10)
-                {
-                    x = nearest_tick;
-                    new_width = item->old_x + item->initial_width - x;
+                // Store the initial right edge position when resize starts
+                if (!item->right_edge_pos) {
+                    item->right_edge_pos = item->old_x + item->initial_width;
                 }
                 
+                // Calculate how much the mouse has moved from the drag start point
+                gdouble delta = event->x - item->drag_x;
+                
+                // Calculate new left edge position
+                x = item->old_x + delta;
+                
+                // Find nearest tick for snapping
+                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
+                if (abs(x - nearest_tick) < 10) {
+                    x = nearest_tick;
+                }
+                
+                // Ensure x doesn't go beyond bounds
+                x = MAX(x, 0);
+                x = MIN(x, item->right_edge_pos - 1); // Ensure minimum width of 1
+                
+                // Calculate new width while maintaining right edge
+                new_width = item->right_edge_pos - x;
+                
+                // Apply changes
                 gtk_widget_set_size_request(button, new_width, 50);
                 gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
+                
+                // Update item properties
                 item->old_x = x;
                 item->initial_width = new_width;
-
                 item->start_time = x / priv->pixels_per_second;
                 item->duration = new_width / priv->pixels_per_second;
                 img_timeline_center_button_image(item->button);
-               
+                
                 //Update the final time
                 posx = img_timeline_get_final_time(img);
-                break;
+			break;
 
             case RESIZE_RIGHT:
 				if (item->media_type !=0)
@@ -852,7 +885,7 @@ gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *eve
                 
                  //Update the final time
                 posx = img_timeline_get_final_time(img);
-                break;
+			break;
         }
         gtk_widget_trigger_tooltip_query(GTK_WIDGET(item->button));
     }
@@ -984,8 +1017,8 @@ void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *conte
 		media_structs = (media_struct**)data;
 
 		// Process each received media_struct
-		for (int i = 0; i < n_structs; i++)
-			img_timeline_add_media(timeline, media_structs[i], x, y, img);
+		for (int i = n_structs-1 ; i >= 0; i--)
+			img_timeline_add_media(timeline, media_structs[i], (i == n_structs-1) ? x : -1, y, img);
 	}
 
 	gtk_drag_finish (context, TRUE, FALSE, time);
@@ -1192,7 +1225,8 @@ void img_timeline_center_button_image(GtkWidget *button)
 {
 	GtkWidget *image;
 	GtkWidget *layout;
-	GtkAllocation button_allocation, image_allocation;
+	GtkAllocation button_allocation;
+	GtkAllocation image_allocation;
     gint x, y;
 	GList *children;
 
@@ -1201,8 +1235,8 @@ void img_timeline_center_button_image(GtkWidget *button)
  
 	image = GTK_WIDGET(children->data);
     g_list_free(children);
-    
-    gtk_widget_get_allocation(GTK_WIDGET(layout), &button_allocation);
+
+	gtk_widget_get_allocation(GTK_WIDGET(layout), &button_allocation);
     gtk_widget_get_allocation(image, &image_allocation);
 
     x = (button_allocation.width - image_allocation.width) / 2;

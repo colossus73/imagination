@@ -36,8 +36,6 @@ struct _ImgTimeline
 typedef struct _ImgTimelinePrivate
 {
 	gdouble current_preview_time;
-
-	gint last_media_posX;
 	gint total_time;
 	gdouble time_marker_pos;
 	gdouble zoom_scale;
@@ -70,8 +68,9 @@ typedef struct _media_timeline
 	gdouble 			y;
 	gdouble 			drag_x;
 	gdouble			old_x;
-	gint					initial_width;
-	gint					width;
+	gdouble			right_edge_pos; 
+	gdouble			initial_width;
+	gdouble			width;
 	gdouble			start_time;
     gdouble			duration;
     gboolean 		to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
@@ -90,6 +89,7 @@ typedef struct _Track
 	gchar *background_color;
 	gint type;
 	gint order;
+	gdouble	last_media_posX;
 	gboolean is_selected;
 	gboolean is_default;
 } Track;
