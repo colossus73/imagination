@@ -25,10 +25,10 @@
 
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
-gboolean img_transition_timeout(img_window_struct *);
 static gboolean img_still_timeout(img_window_struct *);
 static void img_clean_after_preview(img_window_struct *);
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
+static void img_image_area_change_zoom( gdouble step, gboolean reset, img_window_struct *img );
 
 static void img_update_textbox_boundaries(img_window_struct *img)
 {
@@ -50,19 +50,15 @@ static void img_update_textbox_boundaries(img_window_struct *img)
 	pango_layout_set_width(img->textbox->layout, pango_units_from_double(img->textbox->width));
 }
 
-static void
-img_image_area_change_zoom( gdouble            step,
-							gboolean           reset,
-							img_window_struct *img );
-
 /* Asks the user before discarding changes */
-gboolean img_can_discard_unsaved_project(img_window_struct *img) {
+gboolean img_can_discard_unsaved_project(img_window_struct *img)
+{
 	if (!img->project_is_modified)
-	{
 		return TRUE;
-	}
+
 	int response = img_ask_user_confirmation( img,
 		_("You didn't save your slideshow yet.\nAre you sure you want to close it?"));
+
 	if (response == GTK_RESPONSE_OK)
 		return TRUE;
 	return FALSE;
@@ -876,8 +872,13 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 			//~ img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
 	
 //~ }
+void img_media_library_drag_begin(GtkWidget *widget, GdkDragContext *context, img_window_struct *img)
+{
+	GtkStyleContext *style_context = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_class (style_context, "iconview-dragging");
+}
 
-void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *context , int x, int y, GtkSelectionData *data, unsigned int info, unsigned int time, img_window_struct *img)
+void img_media_library_drag_data_received (GtkWidget *widget, GdkDragContext *context , int x, int y, GtkSelectionData *data, unsigned int info, unsigned int time, img_window_struct *img)
 {
 	gchar **media = NULL;
 	gchar *filename;
@@ -909,7 +910,7 @@ void img_media_widget_drag_data_received (GtkWidget *widget, GdkDragContext *con
 	g_strfreev(media);
 }
 
-void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data, guint info, guint time, gpointer user_data)
+void img_media_library_drag_data_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data, guint info, guint time, img_window_struct *img)
 {
 	media_struct *media;
 	GtkTreeModel *model;
@@ -944,6 +945,12 @@ void img_media_widget_drag_data_get(GtkWidget *widget, GdkDragContext *context, 
 	g_list_free_full(selected_items, (GDestroyNotify)gtk_tree_path_free);
 }
 
+void img_media_library_drag_end (GtkWidget *widget, GdkDragContext *context, img_window_struct *img)
+{
+    GtkStyleContext *style_context = gtk_widget_get_style_context(widget);
+    gtk_style_context_remove_class(style_context, "iconview-dragging");
+}
+ 
 gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *img )
 {
 	GArray* active_media = NULL;
@@ -951,6 +958,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	gint img_width, img_height, media_type;
 	gdouble x, y, scale;
 	media_timeline* media;
+	cairo_surface_t *surface;
 
 	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
 	{
@@ -995,32 +1003,54 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
 	cairo_paint(cr);
 
-	// Get the list of active media on all tracks according to the position of the red needle
-	active_media = img_timeline_get_active_picture_media(img->timeline, current_time);
-
 	// Draw all the placed media items on the tracks
-	for (gint i = active_media->len-1; i >=0; i--)
+	if (img->preview_is_running)
 	{
-		media = g_array_index(active_media, media_timeline *, i);
-		cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
-				
-		// Calculate offset x and y to center the image in the image area
-		img_width 	= cairo_image_surface_get_width(surface);
-		img_height 	= cairo_image_surface_get_height(surface);
-		scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
-							
-		x = (allocation.width - (img_width * scale)) / 2;
-		y = (allocation.height - (img_height * scale)) / 2;
-				
-		cairo_save(cr);
+		// Are there any pictures placed on the timeline?
+		if (img->exported_image)
+		{
+			img_width 	= cairo_image_surface_get_width( img->exported_image);
+			img_height 	= cairo_image_surface_get_height( img->exported_image);
+			scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
+									
+			x = (allocation.width - (img_width * scale)) / 2;
+			y = (allocation.height - (img_height * scale)) / 2;
+						
+			cairo_save(cr);
 			cairo_translate(cr, x, y);
 			cairo_scale(cr, scale, scale);
-			cairo_set_source_surface(cr, surface, 0, 0);
+			cairo_set_source_surface(cr, img->exported_image, 0, 0);
 			cairo_paint(cr);
-		cairo_restore(cr);
+			cairo_restore(cr);
+		}
 	}
-	g_array_free(active_media, FALSE);
-	
+	else
+	{
+		// Get the list of active media on all tracks according to the position of the red needle
+		active_media = img_timeline_get_active_picture_media(img->timeline, current_time);
+		for (gint i = active_media->len-1; i >=0; i--)
+		{
+			media = g_array_index(active_media, media_timeline *, i);
+			surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+
+			// Calculate offset x and y to center the image in the image area
+			img_width 	= cairo_image_surface_get_width(surface);
+			img_height 	= cairo_image_surface_get_height(surface);
+			scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
+								
+			x = (allocation.width - (img_width * scale)) / 2;
+			y = (allocation.height - (img_height * scale)) / 2;
+					
+			cairo_save(cr);
+				cairo_translate(cr, x, y);
+				cairo_scale(cr, scale, scale);
+				cairo_set_source_surface(cr, surface, 0, 0);
+				cairo_paint(cr);
+			cairo_restore(cr);
+		}
+		g_array_free(active_media, FALSE);
+	}
+
 	// Apply rotation for the entire textbox
 	cairo_translate(cr, img->textbox->x + img->textbox->width / 2, img->textbox->y + img->textbox->height / 2);
 	cairo_rotate(cr, img->textbox->angle);
@@ -1458,7 +1488,7 @@ void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
 	img->current_image = NULL;
 	gtk_widget_queue_draw( img->image_area );
 	gtk_label_set_text(GTK_LABEL (img->current_time),"00:00:00");
-	gtk_label_set_text(GTK_LABEL (img->total_time),"00:00:00");
+	gtk_label_set_text(GTK_LABEL (img->total_time_label),"00:00:00");
 
 	/* Reset slideshow properties */
 	img->background_color[0] = 0;
@@ -2300,4 +2330,34 @@ void img_zoom_fit( GtkWidget *item, img_window_struct *img)
 
 	img->image_area_zoom = CLAMP( img->image_area_zoom + step, 0.1, 1.0);
 	gtk_widget_set_size_request(img->image_area, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom);
+}
+
+void img_media_duration_value_changed (GtkSpinButton *spinbutton, img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	Track *track;
+	media_timeline *item;
+
+	gdouble width, duration = 0;
+	duration = gtk_spin_button_get_value(spinbutton);
+	
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = g_array_index(priv->tracks, Track *, i);
+		if (track->type == 0)
+		{
+			for (gint q = 0; q < track->items->len; q++)
+			{
+				item = g_array_index(track->items, media_timeline  *, q);
+				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)))
+				{
+					item->duration = duration;
+					width = item->duration * priv->pixels_per_second;
+					gtk_widget_set_size_request(GTK_WIDGET(item->button), width, 50);
+				}
+			}
+		}
+	}
+	gtk_widget_queue_draw(img->timeline);
+	img_taint_project(img);
 }

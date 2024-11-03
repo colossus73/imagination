@@ -1,5 +1,4 @@
 #include "imgcellrendereranim.h"
-#include "imagination.h"
 
 #define IMG_PARAM_DEFAULTS \
 	G_PARAM_STATIC_NICK | G_PARAM_STATIC_NAME | G_PARAM_STATIC_BLURB

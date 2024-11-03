@@ -55,12 +55,12 @@ static void img_check_numeric_entry (GtkEditable *entry, gchar *text, gint lengh
 static void img_open_documentation(GtkMenuItem *, img_window_struct *);
 static void img_open_github_bug_report(GtkMenuItem *, img_window_struct *);
 static void img_open_paypal_page(GtkMenuItem *, img_window_struct *);
-static gboolean img_iconview_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
+static gboolean img_media_library_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
 static void img_free_cached_preview_surfaces(gpointer );
 
-GtkWidget *button1,  *button2, *button3, *toggle_button_slide_motion, *button5, *beginning, *end;
+GtkWidget *button1,  *button2, *toggle_button_slide_motion, *button5, *beginning, *end;
 
 static gboolean img_leave_notify_event(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
 {
@@ -82,7 +82,7 @@ static gboolean img_enter_notify_event(GtkWidget *widget,  GdkEvent  *event, img
 
 static void img_toggle_button_callback(GtkToggleButton *button, img_window_struct *img)
 {
-    GtkWidget *buttons[] = {button2, button3, img->toggle_button_text, toggle_button_slide_motion};
+    GtkWidget *buttons[] = {button2, img->toggle_button_image_options, img->toggle_button_text, toggle_button_slide_motion};
     for (int i = 0; i < 4; i++)
     {
         if (buttons[i] != GTK_WIDGET(button))
@@ -129,10 +129,9 @@ img_window_struct *img_create_window (void)
 	GtkWidget *scrollable_window;
 	GtkWidget *vbox_frames;
 	GtkWidget *transition_label;
+	GtkWidget *duration_label;
 	GtkWidget *vbox_slide_motion;
 	GtkWidget *viewport;
-	//GtkWidget *grid;
-	GtkWidget *duration_label;
 	GtkWidget *hbox_motion, *stop_points_label;
 	GtkWidget  *time_offset_label;
 	GtkWidget *image_buttons;
@@ -393,13 +392,13 @@ img_window_struct *img_create_window (void)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button2), TRUE);
     gtk_widget_set_can_focus(button2, FALSE);
      
-    button3 = gtk_toggle_button_new();
-    gtk_widget_set_tooltip_text(button3, _("Transitions effects"));
+    img_struct->toggle_button_image_options = gtk_toggle_button_new();
+    gtk_widget_set_tooltip_text(img_struct->toggle_button_image_options, _("Transitions effects"));
     image1 = gtk_image_new_from_icon_name("emblem-photos", GTK_ICON_SIZE_LARGE_TOOLBAR);
-    gtk_button_set_image(GTK_BUTTON(button3), image1);
-    gtk_button_set_relief(GTK_BUTTON(button3), GTK_RELIEF_NONE);
-    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), button3, FALSE, FALSE, 5);
-    gtk_widget_set_can_focus(button3, FALSE);
+    gtk_button_set_image(GTK_BUTTON(img_struct->toggle_button_image_options), image1);
+    gtk_button_set_relief(GTK_BUTTON(img_struct->toggle_button_image_options), GTK_RELIEF_NONE);
+    gtk_box_pack_start(GTK_BOX(img_struct->sidebar), img_struct->toggle_button_image_options, FALSE, FALSE, 5);
+    gtk_widget_set_can_focus(img_struct->toggle_button_image_options, FALSE);
     
     img_struct->toggle_button_text = gtk_toggle_button_new_with_label("<span size='x-large'><b>T</b></span>");
 	GtkWidget *label = gtk_bin_get_child(GTK_BIN(img_struct->toggle_button_text));
@@ -441,7 +440,7 @@ img_window_struct *img_create_window (void)
 	gtk_paned_pack1(GTK_PANED(img_struct->hpaned), img_struct->side_notebook, TRUE, TRUE);
 	
 	g_signal_connect(button2, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
-	g_signal_connect(button3, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
+	g_signal_connect(img_struct->toggle_button_image_options, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(img_struct->toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 
@@ -465,9 +464,11 @@ img_window_struct *img_create_window (void)
 	// Enable Dnd functionality
 	gtk_icon_view_enable_model_drag_dest(GTK_ICON_VIEW(img_struct->media_iconview), dest_target, 1, GDK_ACTION_COPY | GDK_ACTION_MOVE |  GDK_ACTION_LINK | GDK_ACTION_ASK);
 	gtk_icon_view_enable_model_drag_source(GTK_ICON_VIEW(img_struct->media_iconview), GDK_BUTTON1_MASK, source_target, 1, GDK_ACTION_COPY);
-	g_signal_connect(img_struct->media_iconview, "drag-data-received",	G_CALLBACK( img_media_widget_drag_data_received), img_struct );
-	g_signal_connect(img_struct->media_iconview, "drag-data-get", 			G_CALLBACK( img_media_widget_drag_data_get), img_struct );
-	g_signal_connect(img_struct->media_iconview, "button-press-event",	G_CALLBACK( img_iconview_popup), img_struct );
+	g_signal_connect(img_struct->media_iconview, "drag-begin",				G_CALLBACK(img_media_library_drag_begin), 				img_struct );
+	g_signal_connect(img_struct->media_iconview, "drag-data-received",	G_CALLBACK(img_media_library_drag_data_received), 	img_struct );
+	g_signal_connect(img_struct->media_iconview, "drag-data-get", 			G_CALLBACK(img_media_library_drag_data_get), 			img_struct );
+	g_signal_connect(img_struct->media_iconview, "drag-end",					G_CALLBACK(img_media_library_drag_end), 					img_struct );
+	g_signal_connect(img_struct->media_iconview, "button-press-event",	G_CALLBACK(img_media_library_popup), 						img_struct );
 	//gtk_icon_view_set_reorderable(GTK_ICON_VIEW (media_iconview),TRUE);
 	
 	GtkCellRenderer *cell = gtk_cell_renderer_text_new();
@@ -503,6 +504,20 @@ img_window_struct *img_create_window (void)
 	gtk_box_pack_start(GTK_BOX(hbox), img_struct->random_button, FALSE, FALSE, 10);
 	gtk_widget_set_tooltip_text(img_struct->random_button,_("Press SHIFT+A to select/unselect all picture media items on the timeline"));
 	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
+
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 10);
+	
+	duration_label = gtk_label_new (_("Media duration:"));
+	gtk_label_set_xalign(GTK_LABEL(duration_label), 0.0);
+	gtk_box_pack_start(GTK_BOX(hbox), duration_label, FALSE, FALSE, 10);
+
+	GtkAdjustment *adj = (GtkAdjustment *) gtk_adjustment_new (2.0, 1.0, 9999.0, 1.0, 1.0, 0.0);
+	img_struct->media_duration = gtk_spin_button_new (adj, 2.0, 2);
+	gtk_widget_set_tooltip_text(img_struct->media_duration,_("seconds"));
+	gtk_box_pack_start(GTK_BOX(hbox), img_struct->media_duration, FALSE, FALSE, 10);
+	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->media_duration),TRUE);
+	g_signal_connect (G_OBJECT (img_struct->media_duration), "value-changed", G_CALLBACK (img_media_duration_value_changed),img_struct);
 
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
@@ -899,9 +914,9 @@ img_window_struct *img_create_window (void)
 	gtk_widget_set_can_focus(end, FALSE);
 	gtk_widget_set_name(end, "nav_button");
 	
-	img_struct->total_time = gtk_label_new("00:00:00");
-	gtk_widget_override_font(img_struct->total_time, new_size);
-	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->total_time, FALSE, FALSE, 10);
+	img_struct->total_time_label = gtk_label_new("00:00:00");
+	gtk_widget_override_font(img_struct->total_time_label, new_size);
+	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->total_time_label, FALSE, FALSE, 10);
 
 	/* FINALLY the Imagination timeline widget: Yuppieeeeeeeeeeeeee */
 	img_struct->timeline = img_timeline_new();
@@ -940,6 +955,7 @@ img_window_struct *img_create_window (void)
 	// Set up CSS styling
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
+     ".iconview-dragging { background-color: transparent}"
 		"popover {border: 1px solid #f4d27b; padding: 0px;}"
         "button.timeline-button { border-width: 1px; border-style: solid; border-color: #000000; outline-width: 0; background: #F0F0F0; padding: 0; margin: 0; }"
 		"button.timeline-button:focus { outline-width: 0; border-width: 1px; border-style: solid; border-color: #000000; background: #F0F0F0; padding: 0; margin: 0; }"
@@ -993,7 +1009,7 @@ void img_combo_box_transition_type_changed (GtkComboBox *combo, img_window_struc
 	/* Update all selected media items on the timeline */
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
-		track = &g_array_index(priv->tracks, Track, i);
+		track = g_array_index(priv->tracks, Track *, i);
 		if (track->items)
 		{
 			for (gint q = 0; q < track->items->len; q++)
@@ -1026,7 +1042,7 @@ static void img_random_button_clicked(GtkButton *button, img_window_struct *img)
 
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
-		track = &g_array_index(priv->tracks, Track, i);
+		track = g_array_index(priv->tracks, Track *, i);
 		if (track->items)
 		{
 			for (gint q = 0; q < track->items->len; q++)
@@ -1255,7 +1271,7 @@ void img_combo_box_anim_speed_changed( GtkSpinButton       *spinbutton,
 	img_taint_project(img);
 }
 
-static gboolean img_iconview_popup(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
+static gboolean img_media_library_popup(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
 {
 	GtkWidget *popover, *vbox, *item;
 	GdkRectangle rect;
@@ -1326,7 +1342,7 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
         gboolean on_timeline = FALSE;
         for (gint i = 0; i < priv->tracks->len; i++)
         {
-            track = &g_array_index(priv->tracks, Track, i);
+            track = g_array_index(priv->tracks, Track *, i);
             if (track->items)
             {
                 for (gint q = 0; q < track->items->len; q++)
@@ -1365,7 +1381,7 @@ static void img_media_model_remove_media(GtkWidget *widget, img_window_struct *i
         {
             for (gint i = 0; i < priv->tracks->len; i++)
             {
-                track = &g_array_index(priv->tracks, Track, i);
+                track = g_array_index(priv->tracks, Track *, i);
                 if (track->items)
                 {
                     for (gint q = track->items->len - 1; q >= 0; q--)

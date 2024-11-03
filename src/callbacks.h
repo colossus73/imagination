@@ -43,12 +43,15 @@ void img_rotate_slides_left( GtkWidget  *, img_window_struct * );
 void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
-void img_media_widget_drag_data_received (GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
-void img_media_widget_drag_data_get(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , gpointer );
+void img_media_library_drag_begin(GtkWidget *,GdkDragContext *, img_window_struct *);
+void img_media_library_drag_data_received(GtkWidget *,GdkDragContext *, int, int, GtkSelectionData *, unsigned int, unsigned int, img_window_struct *);
+void img_media_library_drag_data_get(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , img_window_struct * );
+void img_media_library_drag_end(GtkWidget *,GdkDragContext *, img_window_struct *);
 void img_start_stop_export(GtkWidget *, img_window_struct *);
 void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
 void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
 void img_zoom_fit( GtkWidget *, img_window_struct *);
+void img_media_duration_value_changed (GtkSpinButton *, img_window_struct *);
 void img_choose_slideshow_filename(GtkWidget *,img_window_struct *);
 void img_close_slideshow(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
@@ -91,8 +94,6 @@ void img_set_window_default_settings( img_window_struct *img );
 void img_rotate_flip_slide( media_struct   *slide, ImgAngle        angle,  gboolean        flipped);
 void img_pattern_clicked(GtkMenuItem *item, img_window_struct *img);
 
-void img_subtitle_top_border_toggled (GtkToggleButton *button, img_window_struct *img);
-void img_subtitle_bottom_border_toggled (GtkToggleButton *button, img_window_struct *img);
 void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct *img);
 
 void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img);

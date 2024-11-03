@@ -30,9 +30,7 @@
 #define comment_string \
 	"Imagination 2.0 Slideshow Project - http://imagination.sf.net" //The version number is left to 2.0 to allow compatibility of project files generated with older versions
 
-/* ****************************************************************************
- * Subtitles related definitions
- * ************************************************************************* */
+typedef struct _media_timeline media_timeline;
 
 typedef enum
 {
@@ -77,10 +75,6 @@ typedef void (*TextAnimationFunc)( cairo_t     *cr,
 								   gdouble  progress,
 								   media_struct * );
 
-
-/* ****************************************************************************
- * Transition related definitions
- * ************************************************************************* */
 /* Prototype of transition renderer */
 typedef void (*ImgRender)( cairo_t *,
 						   cairo_surface_t *,
@@ -214,9 +208,10 @@ struct _img_window_struct
 	GtkAccelGroup *accel_group;
 	GtkWidget	*imagination_window;
 	GtkWidget 	*menubar;
-	GtkWidget *sidebar;
-	GtkWidget *side_notebook;
-	GtkWidget *toggle_button_text;
+	GtkWidget 	*sidebar;
+	GtkWidget 	*side_notebook;
+	GtkWidget 	*toggle_button_image_options;
+	GtkWidget 	*toggle_button_text;
 	GtkWidget	*open_menu;
 	GtkWidget	*open_recent;
 	GtkWidget	*no_recent_item_menu;
@@ -230,19 +225,19 @@ struct _img_window_struct
 	GtkWidget 	*preview_hbox;
 	GtkWidget	*current_time;
 	GtkWidget	*preview_button;
-	GtkWidget	*total_time;
+	GtkWidget	*total_time_label;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
-	GtkWidget	*duration;
+	GtkWidget	*media_duration;
 	GtkWidget	*timeline_scrolled_window;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
   	GtkListStore *media_model;
   	GtkWidget 	*media_iconview_swindow;
   	GtkWidget 	*media_iconview;
-  	GtkTreeIter popup_iter;
+  	GtkTreeIter 	popup_iter;
   	GtkIconTheme *icon_theme;
-  	gchar		*current_dir;
+  	gchar			*current_dir;
   	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
 	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
 	GtkWidget   *hpaned;										/* Widget to allow media library to be shrinked */
@@ -293,7 +288,8 @@ struct _img_window_struct
 	gdouble       maxoffy;
 	ImgStopPoint  current_point; /* Data for rendering current image */
   	media_struct 		*current_media;
-	img_textbox 	*textbox;
+  	media_timeline 	*current_item;
+	img_textbox 		*textbox;
 
 	/* Renderers and module stuff */
   	gint		nr_transitions_loaded;
@@ -306,16 +302,15 @@ struct _img_window_struct
 	gchar       *project_current_dir;
 	gboolean	project_is_modified;
 	gboolean	relative_filenames;
-    gint        video_size[2];
-	gint        frame_rate;
+    gint        	video_size[2];
+	gint        	frame_rate;
+	gint			total_time;
 	//gint        video_quality;
-	gint        sample_rate;
-	gint        bitrate;
-	gdouble     video_ratio;
-    gdouble     background_color[3];
-  	gdouble		total_secs;
-	//gint		total_music_secs;
-  	gint		media_nr;
+	gint        	sample_rate;
+	gint        	bitrate;
+	gdouble   video_ratio;
+    gdouble   background_color[3];
+  	gint			media_nr;
 
 	/* Variables common to export and preview functions */
 	GtkWidget		*container_menu;	/* Container combo box in the export dialog */
@@ -325,18 +320,18 @@ struct _img_window_struct
 	GtkWidget		*quality_label;		/* label to be changed when selecting formats which don't require CRF */
 	GtkWidget		*file_po;					/* Popover to notify user to choose a slideshow filename */
 	GHashTable		*cached_preview_surfaces;	/* GHashTable to store the cached surfaces during the preview */
-	cairo_surface_t *current_image;  	/* Image in preview area */
+	cairo_surface_t *current_image;  		/* Image in preview area */
 	cairo_surface_t *exported_image; 	/* Image being exported */
-	cairo_surface_t *image1;         	/* Original images */
+	cairo_surface_t *image1;         			/* Original images */
 	cairo_surface_t *image2;
-	cairo_surface_t *image_from;     	/* Images used in transition rendering */
+	cairo_surface_t *image_from;     		/* Images used in transition rendering */
 	cairo_surface_t *image_to;
-	ImgStopPoint    *point1;        	/* Last stop point of image1 */
-	ImgStopPoint    *point2;        	/* First stop point of image2 */
-  	guint		     source_id;
-  	gboolean	     gradient_slide; /* Flag to allow the hack when transitioning
-										from an empty slide with fade gradient */
-	gdouble			g_stop_color[3]; /* Backup stop color to allow the transition
+	ImgStopPoint    *point1;        			/* Last stop point of image1 */
+	ImgStopPoint    *point2;        			/* First stop point of image2 */
+  	guint		    	source_id;
+  	gboolean	    	gradient_slide;				 /* Flag to allow the hack when transitioning from an empty slide with fade gradient */
+	gdouble			transition_progress;
+	gdouble			g_stop_color[3]; 			/* Backup stop color to allow the transition
 										from image_from painted with the second color
 										set in the empty slide fade gradient */
 

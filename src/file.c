@@ -132,13 +132,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				g_key_file_set_double_list(img_key_file, conf,"font_shadow_color",entry->font_shadow_color,4);
 				g_key_file_set_double_list(img_key_file, conf,"font_outline_color",entry->font_outline_color,4);
 				g_key_file_set_integer(img_key_file, conf,"alignment",entry->alignment);
-			break;
-			
-			// Transition
-			case 4:
-				//g_key_file_set_integer(img_key_file,conf, "transition_id",	entry->transition_id);
-			break;
-			
+			break;			
 		} // End swith entry->media type
 	
 		/* Stop points */
@@ -169,7 +163,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
 		conf = g_strdup_printf("track %d", i);
-		track = &g_array_index(priv->tracks, Track, i);
+		track = g_array_index(priv->tracks, Track *, i);
 		g_key_file_set_integer(img_key_file, conf, "track_type", track->type);
 		g_key_file_set_boolean(img_key_file, conf, "is_default", track->is_default);
 		if (track->items)
@@ -183,8 +177,8 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 					g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;", item->id, item->start_time, item->duration, item->transition_id);
 				}
 				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
-				g_string_free(string_values, TRUE);
 			}
+			g_string_free(string_values, TRUE);
 		}
 		g_free(conf);
 	}
@@ -196,8 +190,8 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 
 	g_key_file_free(img_key_file);
 
-	if( img->project_filename )
-		g_free( img->project_filename );
+	if(img->project_filename)
+		g_free(img->project_filename);
 
 	img->project_filename = g_strdup(output);
 	img->project_is_modified = FALSE;
@@ -499,18 +493,29 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 		g_string_free(media_not_found, TRUE);
 	}
 
-	//Add the media on the timeline
+	//Add the additional tracks first to avoid messing up the pointers with the track sorting by type
+	if (track_nr > 2)
+	{
+		for (gint i=0; i < track_nr; i++)
+		{
+			track = g_array_index(priv->tracks, Track *, i);
+			conf = g_strdup_printf("track %d",  i);
+			number = g_key_file_get_integer( img_key_file, conf, "track_type", NULL);
+			is_default = g_key_file_get_boolean( img_key_file, conf, "is_default", NULL);
+			if (is_default == FALSE)
+			{
+				background_color = (number == 0) ? "#CCCCFF" : "#d6d1cd";
+				img_timeline_add_track(img->timeline, number, background_color); 
+			}
+			g_free(conf);
+		}
+	}
+	//Finally add the media on the timeline
 	posy = 32;
 	for (gint i=0; i < track_nr; i++)
 	{
+		track = g_array_index(priv->tracks, Track *, i);
 		conf = g_strdup_printf("track %d",  i);
-		number = g_key_file_get_integer( img_key_file, conf, "track_type", NULL);
-		is_default = g_key_file_get_boolean( img_key_file, conf, "is_default", NULL);
-		if (is_default == FALSE)
-		{
-			background_color = (number == 0) ? "#CCCCFF" : "#d6d1cd";
-			img_timeline_add_track(img->timeline, number, background_color); 
-		}
 		value_string = g_key_file_get_string(img_key_file, conf, "media_sequence", NULL);
 		// If no media are placed on track process next one
 		if (value_string == NULL)
@@ -518,9 +523,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 		values = g_strsplit(value_string, ";", -1);
 		number = g_strv_length(values);
-		for (gsize q = 0; q < number -2 ; q+=4)
+		for (gint q = 0; q < number -2; q+=4)
 		{
-			track = &g_array_index(priv->tracks, Track, i);
 			item = g_new0(media_timeline, 1);
 			item->id 				=	g_ascii_strtoll(values[q+0], NULL, 10);
 			item->start_time 	=	g_ascii_strtod(values[q+1], NULL);
@@ -540,8 +544,6 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				item->render = render;
 				item->tree_path = g_strdup(spath);
 			}
-
-			g_array_append_val(track->items, item);
 			g_free(conf2);
 				
 			img_timeline_create_toggle_button(item, media_type, media_filename, img);
@@ -556,32 +558,33 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
 			item->y = posy;
+			g_array_append_val(track->items, item);
 		}
 		g_strfreev(values);
 next:
 		posy += TRACK_HEIGHT + TRACK_GAP;
 		g_free(conf);
 	}
-	
+
 	// Reinstate the model
 	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), GTK_TREE_MODEL(img->media_model) );
 	g_object_unref( G_OBJECT( img->media_model ) );
 
 	g_key_file_free(img_key_file);
 	g_hash_table_destroy(table);
-	
+
 	if( img->project_filename)
 			g_free( img->project_filename);
-	
+
 	img->project_filename = g_strdup(input);
 
 	if (img->project_current_dir)
 			g_free(img->project_current_dir);
-	
+
 	img->project_current_dir = project_current_dir;
 	img_refresh_window_title(img);
 	img_zoom_fit(NULL, img);
-	
+
 	gint unused = img_timeline_get_final_time(img);
 }
 

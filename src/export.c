@@ -181,7 +181,7 @@ static gboolean img_start_export( img_window_struct *img)
 
 	/* Add export idle function and set initial values */
 	img->current_media = entry;
-	img->total_nr_frames = img->total_secs * img->export_fps;
+	img->total_nr_frames = img->total_time * img->export_fps;
 	img->displayed_frame = 0;
 	img->next_slide_off = 0;
 	img_calc_next_slide_time_offset( img, img->export_fps );
