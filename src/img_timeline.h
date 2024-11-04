@@ -113,7 +113,7 @@ ImgTimelinePrivate* img_timeline_get_private_struct(GtkWidget *);
 
 void img_timeline_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_timeline_preview_update(img_window_struct *);
-gboolean img_timeline_still_timeout(img_window_struct *img);
+gboolean img_timeline_preview_timeout(img_window_struct *);
 
 void img_timeline_set_total_time				(ImgTimeline *, gint );
 void img_timeline_add_media						(GtkWidget *, media_struct *, gint, gint, img_window_struct *);

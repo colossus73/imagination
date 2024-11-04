@@ -496,7 +496,7 @@ int img_play_audio_alsa(AudioData *audio_data)
                            100000);  // 0.1s latency
 
     // Allocate buffer for samples
-    int buffer_size = 256;  // Fixed buffer size
+    int buffer_size = 256;
     buffer = g_malloc(buffer_size * sizeof(int16_t));
     if (!buffer) {
         g_warning("Failed to allocate buffer");

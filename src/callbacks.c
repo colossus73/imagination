@@ -957,8 +957,8 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	gdouble current_time;
 	gint img_width, img_height, media_type;
 	gdouble x, y, scale;
-	media_timeline* media;
-	cairo_surface_t *surface;
+	media_timeline* media = NULL;
+	cairo_surface_t *surface = NULL;
 
 	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
 	{
@@ -1012,7 +1012,6 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 			img_width 	= cairo_image_surface_get_width( img->exported_image);
 			img_height 	= cairo_image_surface_get_height( img->exported_image);
 			scale = MIN((double)allocation.width / img_width, (double)allocation.height / img_height);
-									
 			x = (allocation.width - (img_width * scale)) / 2;
 			y = (allocation.height - (img_height * scale)) / 2;
 						

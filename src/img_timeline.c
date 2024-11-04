@@ -23,7 +23,7 @@
 
 static int next_order = 0;
 
-//Private functions.
+static void img_dump_timeline(img_window_struct *img);
 static void img_timeline_class_init(ImgTimelineClass *);
 static void img_timeline_set_property(GObject *, guint , const GValue *, GParamSpec *);
 static void img_timeline_get_property(GObject *, guint , GValue *, GParamSpec *);
@@ -37,9 +37,7 @@ static gint img_timeline_calculate_total_tracks_height(GtkWidget *);
 static gint img_sort_image_track_first(gconstpointer , gconstpointer );
 static gint img_timeline_get_track_at_position(GtkWidget *, gint, gint *);
 static void img_timeline_unhighlight_track(GArray *);
-static gboolean update_transition(img_window_struct *);
-static void prepare_next_transition(img_window_struct *, media_timeline *, media_timeline *);
-static media_timeline *img_timeline_get_active_media_at_given_time(GtkWidget *, gdouble , gint *);
+static GArray *img_timeline_get_active_media_at_given_time(GtkWidget *, gdouble);
 static media_timeline *img_timeline_get_active_media_at_given_index(GtkWidget *, gint );
 
 G_DEFINE_TYPE_WITH_PRIVATE(ImgTimeline, img_timeline, GTK_TYPE_LAYOUT);
@@ -47,7 +45,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(ImgTimeline, img_timeline, GTK_TYPE_LAYOUT);
 void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
-	GArray *current_picture, *current_audio;
+	GArray *active_elements;
 
 	if (img->total_time == 0.0)
 		return;
@@ -70,107 +68,165 @@ void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		g_print("%2.2f\n",priv->current_preview_time);
 		img->preview_is_running = TRUE;
 		img->transition_progress = 0.0;
-		current_picture = img_timeline_get_active_picture_media(img->timeline, priv->current_preview_time);
-		current_audio = img_timeline_get_active_audio_media(img->timeline, priv->current_preview_time);
-		if (current_picture || current_audio)
-		{
-			guint update_interval = (guint)(1000 / priv->pixels_per_second);
-			img->source_id = g_timeout_add(update_interval, (GSourceFunc) img_timeline_still_timeout, img);
-		}
+		active_elements = img_timeline_get_active_media_at_given_time(img->timeline, priv->current_preview_time);
+		if (active_elements)
+			img->source_id = g_timeout_add(1000 / priv->pixels_per_second, (GSourceFunc) img_timeline_preview_timeout, img);
+
 		img->preview_is_running = TRUE;
 		img_swap_preview_button_images(img, FALSE);
 		priv->current_preview_time = priv->time_marker_pos / priv->pixels_per_second;
 
 		img_timeline_update_audio_states(img, priv->current_preview_time);
+		g_array_free(active_elements, FALSE);
 	}
 }
 
-gboolean img_timeline_still_timeout(img_window_struct *img)
+gboolean img_timeline_preview_timeout(img_window_struct *img)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
-	media_timeline *media = NULL;
-	gint index = 0;
-	GArray *active_media;
-	cairo_surface_t *composite_surface = NULL;
-	cairo_t *cr;
-	gint max_width, max_height;
+    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+    media_timeline *current_media = NULL;
+    GArray *current_media_array = NULL;
+    GArray *next_media_array = NULL;
+    cairo_surface_t *surface = NULL, *composite_surface = NULL;
+    cairo_surface_t *current_composite = NULL, *next_composite = NULL;
+    cairo_t *cr;
+    gint max_width = 0, max_height = 0;
+    gdouble next_time, current_end_time, transition_duration;
+    gboolean is_transitioning = FALSE;
+    
+    // Get current active media
+    current_media_array = img_timeline_get_active_picture_media(img->timeline, priv->current_preview_time);
+    if (current_media_array->len == 0)
+    {
+        g_array_free(current_media_array, FALSE);
+        goto update_red_needle;
+    }
+
+    // Get the first media to check for transition timing
+    current_media = g_array_index(current_media_array, media_timeline *, 0);
+
+    // Calculate when current media ends
+    current_end_time = current_media->start_time + current_media->duration;
+
+    // Check if we're near the end of current media (transition zone)
+    transition_duration = 2;
+    is_transitioning = (current_end_time - priv->current_preview_time) <= transition_duration;
+
+    // Find max dimensions for all current media
+    for (gint i = 0; i < current_media_array->len; i++)
+    {
+        media_timeline *media = g_array_index(current_media_array, media_timeline *, i);
+        surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+        if (surface)
+        {
+            max_width = MAX(max_width, cairo_image_surface_get_width(surface));
+            max_height = MAX(max_height, cairo_image_surface_get_height(surface));
+        }
+    }
+	if (is_transitioning)
 	{
-	//~ media = img_timeline_get_active_media_at_given_time(img->timeline, priv->current_preview_time, &index);
-
-	//~ if (media)
-	//~ {
-		//~ img->preview_is_running = FALSE;
-		//~ img_swap_preview_button_images(img, TRUE);		
-		//~ img_timeline_update_audio_states(img, priv->current_preview_time);
-		//~ return G_SOURCE_REMOVE;
-	
-
-		//~ if (media->transition_id > -1)
-		//~ {
-			// We have a transition applied on the media item
-			//media_timeline *next = img_timeline_get_active_media_at_given_index(img->timeline, index + 1);
-			//~ // Handle transitions
-			//~ if (current->transition_id > 0 && next && img->transition_progress == 0.0)
-			//~ {
-				//~ gdouble time_to_end = (current->start_time + current->duration) - priv->current_preview_time;
-				//~ gdouble transition_duration = 2.0; // Adjust based on needs
-				//~ if (time_to_end <= transition_duration)
-				//~ {
-					//~ prepare_next_transition(img, current, next);
-					//~ // Start the transition update timer
-					//~ //g_timeout_add(1000 / priv->pixels_per_second, (GSourceFunc)img_timeline_transition_timeout, img);
-				//~ }
-					//return G_SOURCE_REMOVE;
-			//~ }
-		//}
-		//~ else
-		//~ {
-	}
-
-	active_media = img_timeline_get_active_picture_media(img->timeline, priv->current_preview_time);
-	
-	// Find max dimensions
-	for (gint i = 0; i < active_media->len; i++)
-	{
-		media = g_array_index(active_media, media_timeline *, i);
-		cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
-		if (surface)
+		// Calculate transition progress
+		img->transition_progress = 1.0 - ((current_end_time - priv->current_preview_time) / transition_duration);
+		
+		// Get the next set of media items
+		next_time = current_end_time + 0.01; // Look slightly after current end
+		next_media_array = img_timeline_get_active_picture_media(img->timeline, next_time);
+		
+		// Update max dimensions considering next media items
+		if (next_media_array)
 		{
-			max_width = MAX(max_width, cairo_image_surface_get_width(surface));
-			max_height = MAX(max_height, cairo_image_surface_get_height(surface));
+			for (gint i = 0; i < next_media_array->len; i++)
+			{
+				media_timeline *media = g_array_index(next_media_array, media_timeline *, i);
+				surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+				if (surface)
+				{
+					max_width = MAX(max_width, cairo_image_surface_get_width(surface));
+					max_height = MAX(max_height, cairo_image_surface_get_height(surface));
+				}
+			}
 		}
 	}
 	
-	// Create composite surface with max dimensions
+	// Create composite surface for final output
 	if (max_width > 0 && max_height > 0)
 	{
-		composite_surface = cairo_surface_create_similar(g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id)), 
-																							CAIRO_CONTENT_COLOR_ALPHA, max_width, max_height);
-		// Composite all active media surfaces
-		cr = cairo_create(composite_surface);
-		for (gint i = active_media->len - 1; i >= 0; i--)
+		composite_surface = cairo_surface_create_similar(g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(current_media->id)),
+			CAIRO_CONTENT_COLOR_ALPHA, max_width, max_height);
+		
+		// Create separate composites for current and next states
+		current_composite = cairo_surface_create_similar(composite_surface,	CAIRO_CONTENT_COLOR_ALPHA,	max_width, max_height);
+		
+		// Compose current media items
+		cr = cairo_create(current_composite);
+		for (gint i = current_media_array->len - 1; i >= 0; i--)
 		{
-			media = g_array_index(active_media, media_timeline *, i);
-			cairo_surface_t *surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));	
+			media_timeline *media = g_array_index(current_media_array, media_timeline *, i);
+			surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
 			if (surface)
 			{
-				// Center the surface if it's smaller than the composite surface
-				gint surface_width = cairo_image_surface_get_width(surface);
-				gint surface_height = cairo_image_surface_get_height(surface);
-				gint x = (max_width - surface_width) / 2;
-				gint y = (max_height - surface_height) / 2;
-				
+				gint x = (max_width - cairo_image_surface_get_width(surface)) / 2;
+				gint y = (max_height - cairo_image_surface_get_height(surface)) / 2;
 				cairo_set_source_surface(cr, surface, x, y);
 				cairo_paint(cr);
 			}
 		}
 		cairo_destroy(cr);
-		
-		// Set the composite surface
+	
+		// If transitioning, compose next media items
+		if (is_transitioning && next_media_array && next_media_array->len > 0)
+		{
+			next_composite = cairo_surface_create_similar(composite_surface, CAIRO_CONTENT_COLOR_ALPHA, max_width, max_height);
+			cr = cairo_create(next_composite);
+			for (gint i = next_media_array->len - 1; i >= 0; i--)
+			{
+				media_timeline *media = g_array_index(next_media_array, media_timeline *, i);
+				surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
+				if (surface)
+				{
+					gint x = (max_width - cairo_image_surface_get_width(surface)) / 2;
+					gint y = (max_height - cairo_image_surface_get_height(surface)) / 2;
+					cairo_set_source_surface(cr, surface, x, y);
+					cairo_paint(cr);
+				}
+			}
+			cairo_destroy(cr);
+			// Apply transition effect using current media's render function
+			cr = cairo_create(composite_surface);
+			if (current_media->render)
+				current_media->render(cr, current_composite, next_composite, img->transition_progress);
+			else
+			{
+				cairo_set_source_surface(cr, current_composite, 0, 0);
+				cairo_paint(cr);
+			}
+			cairo_destroy(cr);
+			cairo_surface_destroy(next_composite);
+		}
+		else
+		{
+			cr = cairo_create(composite_surface);
+			cairo_set_source_surface(cr, current_composite, 0, 0);
+			cairo_paint(cr);
+			cairo_destroy(cr);
+			
+			// Reset transition progress when not transitioning
+			img->transition_progress = 0.0;
+		}
+		cairo_surface_destroy(current_composite);
+
+		// Update the exported image
+		if (img->exported_image)
+			cairo_surface_destroy(img->exported_image);
 		img->exported_image = composite_surface;
 	}
 	
-	g_array_free(active_media, FALSE);
+	if (next_media_array)
+		g_array_free(next_media_array, FALSE);
+
+	g_array_free(current_media_array, FALSE);
+
+update_red_needle:
 	img_timeline_preview_update(img);
 	gtk_widget_queue_draw(img->image_area);
 	
@@ -210,42 +266,6 @@ void img_timeline_preview_update(img_window_struct *img)
 		g_source_remove(img->source_id);
 		img->source_id = 0;
 	}
-}
-
-static void prepare_next_transition(img_window_struct *img, media_timeline *current, media_timeline *next)
-{    
-    // Set up new transition
-    img->current_item = current;
-    img->image_from = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(current->id));
-    img->image_to = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(next->id));
-
-    img->transition_progress = 0.0;
-}
-
-static gboolean update_transition(img_window_struct *img)
-{
-    const gdouble TRANSITION_SPEED = 0.01;
-    img->transition_progress += TRANSITION_SPEED;
-    
-    if (img->transition_progress >= 1.0)
-    {
-        img->transition_progress = 0.0;
-        g_print("Fine transizione\n");
-        return G_SOURCE_REMOVE;
-    }
-    
-    if (img->image_from && img->image_to && img->exported_image && img->current_item)
-    {
-        cairo_t *cr = cairo_create(img->exported_image);
-        if (cr) 
-        {
-            cairo_save(cr);
-            img->current_item->render(cr, img->image_from, img->image_to, img->transition_progress);
-            cairo_restore(cr);
-            cairo_destroy(cr);
-        }
-    }
-    return G_SOURCE_CONTINUE;
 }
 
 static void img_timeline_class_init(ImgTimelineClass *klass)
@@ -574,6 +594,8 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 		item->duration = img_convert_time_string_to_seconds(entry->audio_duration);
 		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
 		width = img_convert_time_string_to_seconds(entry->audio_duration);
+		item->tree_path = NULL;
+		item->transition_id = 0;
 	}
 	
 	width *= priv->pixels_per_second;
@@ -751,12 +773,23 @@ gboolean img_timeline_mouse_button_release (GtkWidget *timeline, GdkEvent *event
 	return TRUE;
 }
 
+gint find_index(GArray *array, gpointer data) {
+    for (guint i = 0; i < array->len; i++) {
+        if (g_array_index(array, gpointer, i) == data) {
+            return i;
+        }
+    }
+    return -1; // Not found
+}
+
 gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_window_struct *img)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)widget);
-	Track *track;
-	media_timeline *item;
-
+	Track *track = NULL;
+	Track *track2 = NULL;
+	media_timeline *item = NULL;
+	gint y = 0;
+	
 	gboolean shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
 
 	switch (event->keyval)
@@ -787,29 +820,69 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 				}
 			}
 		break;
-		
+
 		case GDK_KEY_Delete:
-			// Let's iterate through all the tracks and delete the selected toggle buttons representing the media items
+			// First pass - delete the selected items
 			for (gint i = 0; i < priv->tracks->len; i++)
 			{
 				track = g_array_index(priv->tracks, Track *, i);
-				if (track->items)
-				{
+				if (track->items) {
 					for (gint q = track->items->len - 1; q >= 0; q--)
 					{
 						item = g_array_index(track->items, media_timeline  *, q);
-						if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)) )
+						if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)))
 						{
 							gtk_widget_destroy(item->button);
 							g_array_remove_index(track->items, q);
+							if (item->tree_path)
+								g_free(item->tree_path);
 							g_free(item);
 							img_taint_project(img);
 						}
 					}
 				}
 			}
-		break;
+			// Second pass - move items up
+			if (priv->tracks->len > 2)
+			{
+				for (gint i = 0; i < priv->tracks->len; i++)
+				{
+					track = g_array_index(priv->tracks, Track *, i);
+					if (track->items->len == 0)
+					{
+						// When we find an empty track, shift up ALL elements from ALL tracks below it
+						for (gint j = i + 1; j < priv->tracks->len; j++)
+						{
+							track2 = g_array_index(priv->tracks, Track *, j);
+							 if (track2->items->len > 0 && !track->is_default) 
+							{
+								for (gint q = 0; q < track2->items->len; q++)
+								{
+									item = g_array_index(track2->items, media_timeline  *, q);
+									GtkAllocation allocation;
+									gtk_widget_get_allocation(item->button, &allocation);
+									item->y = allocation.y - (TRACK_HEIGHT + TRACK_GAP);
+									gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, allocation.x, item->y);
+								}
+							}
+						}
+					}
+				}
+			}
+			// Third pass - delete non defaults empty tracks
+			for (gint i = priv->tracks->len - 1; i >= 0; i--)
+			{
+				track = g_array_index(priv->tracks, Track *, i);
+				if (track->items->len == 0 && track->is_default == FALSE)
+				{
+					g_array_remove_index(priv->tracks, i);
+					g_free(track->background_color);
+					g_free(track);
+				}
+			}
+			break;
 	}
+	gtk_widget_queue_draw(img->timeline);
 	gint unused =	img_timeline_get_final_time(img);
 	return TRUE;
 }
@@ -850,8 +923,8 @@ gboolean img_timeline_motion_notify(GtkWidget *timeline, GdkEventMotion *event, 
 static void img_timeline_select_items_in_rubber_band(GtkWidget *timeline)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
-	Track *track;
-	media_timeline *item;
+	Track *track =NULL;
+	media_timeline *item = NULL;
 	GtkAllocation button_allocation;
 
 	gdouble band_left = MIN(priv->rubber_band_start_x, priv->rubber_band_end_x);
@@ -935,13 +1008,28 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 
 gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButton *event, img_window_struct *img)
 {
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)img->timeline);
+	Track *track;
 	media_timeline *item;
 
+	gboolean shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
+	
 	item = g_object_get_data(G_OBJECT(button), "mem_address");
 	item->button_pressed = FALSE;
 	item->resizing = RESIZE_NONE;
 	item->right_edge_pos = 0;
 
+	// Keep only one media item selected unless SHIFT is pressed
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = g_array_index(priv->tracks, Track *, i);
+		for (gint j = 0; j < track->items->len; j++)
+		{
+			item = g_array_index(track->items, media_timeline *, j);
+			if (item->button != button && ! shift_pressed)
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), FALSE);
+		}
+	}
 	gtk_widget_queue_draw(img->image_area);
 	return FALSE;
 }
@@ -1522,11 +1610,10 @@ void img_timeline_update_audio_states(img_window_struct *img, gdouble current_ti
 				img_timeline_stop_audio(media);
 		}
     }
-    
     g_array_free(active_media, FALSE);
 }
 
-static media_timeline *img_timeline_get_active_media_at_given_time(GtkWidget *timeline, gdouble current_time, gint *index)
+static GArray *img_timeline_get_active_media_at_given_time(GtkWidget *timeline, gdouble current_time)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
     Track *track;
@@ -1534,24 +1621,20 @@ static media_timeline *img_timeline_get_active_media_at_given_time(GtkWidget *ti
     media_timeline *item;
 	gint item_end;
 
+	active_elements =  g_array_new(FALSE, FALSE, sizeof(media_timeline *));
+	
     for (gint i = 0; i < priv->tracks->len; i++)
-    {
+	{
         track = g_array_index(priv->tracks, Track *, i);
         for (gint j = 0; j < track->items->len; j++)
         {
             item = g_array_index(track->items, media_timeline *, j);
-            if (item->media_type == 0 || item->media_type == 2)  
-           {
-				item_end = item->start_time + item->duration;
-				if (current_time >= item->start_time && current_time < item_end)
-				{
-					*index = j;
-					return item;
-				}
-			}
-        }
-    }
-    return NULL;
+			item_end = item->start_time + item->duration;
+			if (current_time >= item->start_time && current_time < item_end)
+				g_array_append_val(active_elements, item);
+		}
+	}
+    return  active_elements;;
 }
 
 static media_timeline *img_timeline_get_active_media_at_given_index(GtkWidget *timeline, gint index)
@@ -1574,4 +1657,19 @@ static media_timeline *img_timeline_get_active_media_at_given_index(GtkWidget *t
 		}
 	}
 	return NULL;
+}
+
+static void img_dump_timeline(img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
+	Track *track = NULL;
+	media_timeline *item;
+
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = g_array_index(priv->tracks, Track *, i);
+		if (track)
+			g_print("Track nr %d contiene: %d\n",i,track->items->len);
+	}
+	
 }

@@ -393,7 +393,7 @@ img_window_struct *img_create_window (void)
     gtk_widget_set_can_focus(button2, FALSE);
      
     img_struct->toggle_button_image_options = gtk_toggle_button_new();
-    gtk_widget_set_tooltip_text(img_struct->toggle_button_image_options, _("Transitions effects"));
+    gtk_widget_set_tooltip_text(img_struct->toggle_button_image_options, _("Media settings"));
     image1 = gtk_image_new_from_icon_name("emblem-photos", GTK_ICON_SIZE_LARGE_TOOLBAR);
     gtk_button_set_image(GTK_BUTTON(img_struct->toggle_button_image_options), image1);
     gtk_button_set_relief(GTK_BUTTON(img_struct->toggle_button_image_options), GTK_RELIEF_NONE);
