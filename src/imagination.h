@@ -302,6 +302,7 @@ struct _img_window_struct
 	gchar       *project_current_dir;
 	gboolean	project_is_modified;
 	gboolean	relative_filenames;
+	gboolean	flip_aspect_ratio;
     gint        	video_size[2];
 	gint        	frame_rate;
 	gint			total_time;
@@ -322,18 +323,12 @@ struct _img_window_struct
 	GHashTable		*cached_preview_surfaces;	/* GHashTable to store the cached surfaces during the preview */
 	cairo_surface_t *current_image;  		/* Image in preview area */
 	cairo_surface_t *exported_image; 	/* Image being exported */
-	cairo_surface_t *image1;         			/* Original images */
-	cairo_surface_t *image2;
-	cairo_surface_t *image_from;     		/* Images used in transition rendering */
-	cairo_surface_t *image_to;
 	ImgStopPoint    *point1;        			/* Last stop point of image1 */
 	ImgStopPoint    *point2;        			/* First stop point of image2 */
   	guint		    	source_id;
   	gboolean	    	gradient_slide;				 /* Flag to allow the hack when transitioning from an empty slide with fade gradient */
 	gdouble			transition_progress;
-	gdouble			g_stop_color[3]; 			/* Backup stop color to allow the transition
-										from image_from painted with the second color
-										set in the empty slide fade gradient */
+	gdouble			g_stop_color[3]; 			/* Backup stop color to allow the transition from image_from painted with the second color set in the empty slide fade gradient */
 
 	/* Counters that control animation flow */
 	guint  total_nr_frames;    /* Total number of frames */
@@ -361,7 +356,7 @@ struct _img_window_struct
 	GtkWidget	*slide_number_entry;
 
 	/* Export dialog related stuff */
-	gint        export_is_running;
+	gint        		export_is_running;
 	GtkWidget   *export_pbar1;
 	GtkWidget   *export_pbar2;
 	GtkWidget   *export_label;
@@ -392,6 +387,7 @@ struct _img_window_struct
 	/* Application related stuff */
 	gdouble  	image_area_zoom; 	/* Zoom to be applied to image area */
 	gint    		preview_fps;     			/* Preview frame rate */
+	gboolean	dark_theme;
 
 	/* Clipboard related stuff */
 	ImgClipboardMode	clipboard_mode;

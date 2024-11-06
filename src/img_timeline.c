@@ -61,13 +61,16 @@ void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
 		img->preview_is_running = FALSE;
 		img_swap_preview_button_images(img, TRUE);		
 		img_timeline_update_audio_states(img, priv->current_preview_time);
+		cairo_surface_destroy(img->exported_image);
     }
     // Start the preview
     else
 	{
-		g_print("%2.2f\n",priv->current_preview_time);
 		img->preview_is_running = TRUE;
 		img->transition_progress = 0.0;
+		if (priv->current_preview_time >= img->total_time)
+			img_timeline_go_start_time(NULL, img);
+
 		active_elements = img_timeline_get_active_media_at_given_time(img->timeline, priv->current_preview_time);
 		if (active_elements)
 			img->source_id = g_timeout_add(1000 / priv->pixels_per_second, (GSourceFunc) img_timeline_preview_timeout, img);
@@ -84,7 +87,7 @@ void img_timeline_start_stop_preview(GtkWidget *item, img_window_struct *img)
 gboolean img_timeline_preview_timeout(img_window_struct *img)
 {
     ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
-    media_timeline *current_media = NULL;
+    media_timeline *current_media = NULL,  *media = NULL;
     GArray *current_media_array = NULL;
     GArray *next_media_array = NULL;
     cairo_surface_t *surface = NULL, *composite_surface = NULL;
@@ -101,21 +104,17 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
         g_array_free(current_media_array, FALSE);
         goto update_red_needle;
     }
+	current_media = g_array_index(current_media_array, media_timeline *, 0);
 
-    // Get the first media to check for transition timing
-    current_media = g_array_index(current_media_array, media_timeline *, 0);
-
-    // Calculate when current media ends
-    current_end_time = current_media->start_time + current_media->duration;
-
-    // Check if we're near the end of current media (transition zone)
-    transition_duration = 2;
-    is_transitioning = (current_end_time - priv->current_preview_time) <= transition_duration;
-
+	if (current_media->transition_id > -1)
+		is_transitioning = TRUE;
+	else
+		is_transitioning = FALSE;
+  
     // Find max dimensions for all current media
     for (gint i = 0; i < current_media_array->len; i++)
     {
-        media_timeline *media = g_array_index(current_media_array, media_timeline *, i);
+        media = g_array_index(current_media_array, media_timeline *, i);
         surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
         if (surface)
         {
@@ -125,6 +124,15 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
     }
 	if (is_transitioning)
 	{
+		// Get the first media to check for transition timing
+		current_media = g_array_index(current_media_array, media_timeline *, 0);
+
+		// Calculate when current media ends
+		current_end_time = current_media->start_time + current_media->duration;	
+
+		// Check if we're near the end of current media (transition zone)
+		transition_duration = 1.5;
+
 		// Calculate transition progress
 		img->transition_progress = 1.0 - ((current_end_time - priv->current_preview_time) / transition_duration);
 		
@@ -137,7 +145,7 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 		{
 			for (gint i = 0; i < next_media_array->len; i++)
 			{
-				media_timeline *media = g_array_index(next_media_array, media_timeline *, i);
+				media = g_array_index(next_media_array, media_timeline *, i);
 				surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
 				if (surface)
 				{
@@ -147,7 +155,6 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 			}
 		}
 	}
-	
 	// Create composite surface for final output
 	if (max_width > 0 && max_height > 0)
 	{
@@ -161,7 +168,7 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 		cr = cairo_create(current_composite);
 		for (gint i = current_media_array->len - 1; i >= 0; i--)
 		{
-			media_timeline *media = g_array_index(current_media_array, media_timeline *, i);
+			media = g_array_index(current_media_array, media_timeline *, i);
 			surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
 			if (surface)
 			{
@@ -180,7 +187,7 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 			cr = cairo_create(next_composite);
 			for (gint i = next_media_array->len - 1; i >= 0; i--)
 			{
-				media_timeline *media = g_array_index(next_media_array, media_timeline *, i);
+				media = g_array_index(next_media_array, media_timeline *, i);
 				surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(media->id));
 				if (surface)
 				{
@@ -191,15 +198,10 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 				}
 			}
 			cairo_destroy(cr);
+
 			// Apply transition effect using current media's render function
 			cr = cairo_create(composite_surface);
-			if (current_media->render)
-				current_media->render(cr, current_composite, next_composite, img->transition_progress);
-			else
-			{
-				cairo_set_source_surface(cr, current_composite, 0, 0);
-				cairo_paint(cr);
-			}
+			current_media->render(cr, current_composite, next_composite, img->transition_progress);
 			cairo_destroy(cr);
 			cairo_surface_destroy(next_composite);
 		}
@@ -214,11 +216,6 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 			img->transition_progress = 0.0;
 		}
 		cairo_surface_destroy(current_composite);
-
-		// Update the exported image
-		if (img->exported_image)
-			cairo_surface_destroy(img->exported_image);
-		img->exported_image = composite_surface;
 	}
 	
 	if (next_media_array)
@@ -227,9 +224,10 @@ gboolean img_timeline_preview_timeout(img_window_struct *img)
 	g_array_free(current_media_array, FALSE);
 
 update_red_needle:
+	img->exported_image = composite_surface;
 	img_timeline_preview_update(img);
 	gtk_widget_queue_draw(img->image_area);
-	
+
 	return G_SOURCE_CONTINUE;
 }
 
@@ -261,11 +259,14 @@ void img_timeline_preview_update(img_window_struct *img)
 	gint total_time = img_timeline_get_final_time(img);
 	if (priv->current_preview_time >= total_time)
 	{
-		img_swap_preview_button_images(img, TRUE);
-		img->preview_is_running = FALSE;
 		g_source_remove(img->source_id);
 		img->source_id = 0;
+		img->preview_is_running = FALSE;		
+		img_swap_preview_button_images(img, TRUE);
+		img_timeline_update_audio_states(img, priv->current_preview_time);
+		cairo_surface_destroy(img->exported_image);
 	}
+	//g_print("\r%2.2f",priv->current_preview_time);
 }
 
 static void img_timeline_class_init(ImgTimelineClass *klass)
@@ -317,7 +318,7 @@ static void img_timeline_init(ImgTimeline *timeline)
 	audio_track->order = next_order++;
 	audio_track->items = g_array_new(FALSE, TRUE, sizeof(media_timeline *));
 	audio_track->background_color = g_strdup("#d6d1cd");
-	g_array_append_val(priv->tracks, audio_track);
+	g_array_append_val(priv->tracks, audio_track);	
 }
 
 //Needed for g_object_set()
@@ -389,7 +390,7 @@ static gboolean img_timeline_draw(GtkWidget *da, cairo_t *cr)
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)da);
 	GdkRGBA rgba;
 	Track *track;
-	
+
 	gint width = gtk_widget_get_allocated_width(da);
 	img_timeline_draw_ticks(da, cr);
 
@@ -400,7 +401,10 @@ static gboolean img_timeline_draw(GtkWidget *da, cairo_t *cr)
 		track = g_array_index(priv->tracks, Track *, i);
 		gdk_rgba_parse(&rgba, track->background_color);
 		cairo_set_line_width(cr, 1.0);
-		cairo_set_source_rgb(cr, rgba.red, rgba.green, rgba.blue);
+		if (priv->dark_theme)
+			cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+		else
+			cairo_set_source_rgb(cr, rgba.red, rgba.green, rgba.blue);
 		cairo_rectangle(cr, 0, y+32 , width, TRACK_HEIGHT);
 		cairo_fill(cr);
 	
@@ -479,10 +483,16 @@ void img_timeline_draw_ticks(GtkWidget *da, cairo_t *cr)
     width  = gtk_widget_get_allocated_width(da);
     g_object_get(G_OBJECT(da), "total_time", &total_time, NULL);
 
-    cairo_set_source_rgb(cr, 1, 1, 1);
+	if (priv->dark_theme)
+    cairo_set_source_rgb(cr, 0.33, 0.33, 0.33);
+    else
+		cairo_set_source_rgb(cr, 1, 1, 1);
     cairo_paint(cr);
     
-    cairo_set_source_rgb(cr, 0, 0, 0);
+    if (priv->dark_theme)
+		cairo_set_source_rgb(cr, 1, 1, 1);
+	else	
+		cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_set_line_width(cr, 1);
     cairo_select_font_face(cr, "Dejavu", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, 10);
@@ -580,14 +590,15 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 	{
 		item->duration = gtk_spin_button_get_value(GTK_SPIN_BUTTON(img->media_duration));
 		item->tree_path = g_strdup("0");
+		item->trans_group = NULL;
 		item->transition_id = -1;
 
 		//This is needed to speed up the preview
 		img_create_cached_cairo_surface(img, item->id, entry->full_path);
+
 		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
 
 		width = item->duration;
-		img_timeline_center_button_image(item->button);
 	}
 	else if (entry->media_type == 1)
 	{
@@ -595,7 +606,8 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 		img_timeline_create_toggle_button( item, entry->media_type, entry->full_path, img);
 		width = img_convert_time_string_to_seconds(entry->audio_duration);
 		item->tree_path = NULL;
-		item->transition_id = 0;
+		item->trans_group = NULL;
+		item->transition_id = -1;
 	}
 	
 	width *= priv->pixels_per_second;
@@ -610,6 +622,7 @@ void img_timeline_add_media(GtkWidget *da, media_struct *entry, gint x, gint y, 
 		track->last_media_posX = x;
 	}
 	// Set start time based on the actual position
+	item->old_x = position_x;
     item->start_time = position_x / (BASE_SCALE * priv->zoom_scale);
    	gtk_widget_set_size_request(item->button, width, 50);
 	gtk_layout_move(GTK_LAYOUT(da), item->button, position_x, new_y);
@@ -836,6 +849,8 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 							g_array_remove_index(track->items, q);
 							if (item->tree_path)
 								g_free(item->tree_path);
+							if (item->trans_group)
+								g_free(item->trans_group);
 							g_free(item);
 							img_taint_project(img);
 						}
@@ -957,7 +972,10 @@ gboolean img_timeline_media_button_tooltip(GtkWidget *widget, gint x, gint y, gb
 
 	string 	= img_convert_time_to_string(item->start_time);
 	string2 = img_convert_time_to_string(item->duration);
-	string3 = g_strdup_printf(_("Start time: %s\nDuration: %s"), string, string2);
+	if (item->transition_id > -1)
+		string3 = g_strdup_printf(_("Start time: %s\nDuration: %s\nTransition group: %s"), string, string2, item->trans_group);
+	else
+		string3 = g_strdup_printf(_("Start time: %s\nDuration: %s"), string, string2);
 	gtk_tooltip_set_text(tooltip, string3);
 	
 	g_free(string);
@@ -969,6 +987,7 @@ gboolean img_timeline_media_button_tooltip(GtkWidget *widget, gint x, gint y, gb
 gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton *event, img_window_struct *img)
 {
 	GtkTreeIter   iter;
+	GtkTreeIter   parent;
 	GtkTreeModel *model;
 	media_timeline *item;
 	  
@@ -993,9 +1012,9 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 		// Update the transition combo box with the transition set on the media item
 		model = gtk_combo_box_get_model(GTK_COMBO_BOX(img->transition_type));
 		g_signal_handlers_block_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
-		model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type ) );
-		gtk_tree_model_get_iter_from_string( model, &iter, item->tree_path );
-		gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter );
+		model = gtk_combo_box_get_model(GTK_COMBO_BOX(img->transition_type));
+		gtk_tree_model_get_iter_from_string( model, &iter, item->tree_path);
+		gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter);
 		g_signal_handlers_unblock_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
 
 		// Update the spin button with the duration set on the media item
@@ -1011,6 +1030,8 @@ gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButt
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline *)img->timeline);
 	Track *track;
 	media_timeline *item;
+	GtkTreeModel *model;
+	GtkTreeIter   iter;
 
 	gboolean shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
 	
@@ -1030,6 +1051,18 @@ gboolean img_timeline_media_button_release_event(GtkWidget *button, GdkEventButt
 				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), FALSE);
 		}
 	}
+	// Set the animated combobox to None if no items are selected
+	GArray *selected_items = img_timeline_get_selected_items(img->timeline);
+	if (selected_items->len)
+	{
+		model = gtk_combo_box_get_model(GTK_COMBO_BOX(img->transition_type));
+		g_signal_handlers_block_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
+		model = gtk_combo_box_get_model( GTK_COMBO_BOX( img->transition_type));
+		gtk_tree_model_get_iter_from_string(model, &iter, "0");
+		gtk_combo_box_set_active_iter(GTK_COMBO_BOX(img->transition_type), &iter);
+		g_signal_handlers_unblock_by_func(img->transition_type, (gpointer)img_combo_box_transition_type_changed, img);
+	}
+	g_array_free(selected_items, FALSE);
 	gtk_widget_queue_draw(img->image_area);
 	return FALSE;
 }
@@ -1051,82 +1084,98 @@ gboolean img_timeline_media_motion_notify(GtkWidget *button, GdkEventMotion *eve
     {
         switch (item->resizing)
         {
-             case RESIZE_LEFT:
-                if (item->media_type != 0)
-                    return FALSE;
-
-                // Store the initial right edge position when resize starts
-                if (!item->right_edge_pos) {
-                    item->right_edge_pos = item->old_x + item->initial_width;
-                }
-                
-                // Calculate how much the mouse has moved from the drag start point
-                gdouble delta = event->x - item->drag_x;
-                
-                // Calculate new left edge position
-                x = item->old_x + delta;
-                
-                // Find nearest tick for snapping
-                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
-                if (abs(x - nearest_tick) < 10) {
-                    x = nearest_tick;
-                }
-                
-                // Ensure x doesn't go beyond bounds
-                x = MAX(x, 0);
-                x = MIN(x, item->right_edge_pos - 1); // Ensure minimum width of 1
-                
-                // Calculate new width while maintaining right edge
-                new_width = item->right_edge_pos - x;
-                
-                // Apply changes
-                gtk_widget_set_size_request(button, new_width, 50);
-                gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
-                
-                // Update item properties
-                item->old_x = x;
-                item->initial_width = new_width;
-                item->start_time = x / priv->pixels_per_second;
-                item->duration = new_width / priv->pixels_per_second;
-                img_timeline_center_button_image(item->button);
-                
-                //Update the final time
-                posx = img_timeline_get_final_time(img);
+			case RESIZE_LEFT:
+				if (item->media_type != 0)
+					return FALSE;
+			
+				// Store the initial right edge position when resize starts
+				if (!item->right_edge_pos)
+					item->right_edge_pos = item->old_x + item->initial_width;
+				
+				// Calculate how much the mouse has moved from the drag start point
+				gdouble delta = event->x - item->drag_x;
+				
+				// Calculate new left edge position
+				x = item->old_x + delta;
+				
+				// Find nearest tick for snapping
+				nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
+				if (abs(x - nearest_tick) < 10) {
+					x = nearest_tick;
+				}
+				
+				// Ensure x doesn't go beyond bounds
+				x = MAX(x, 0);
+				x = MIN(x, item->right_edge_pos - 1); // Ensure minimum width of 1
+				
+				// Calculate new width while maintaining right edge
+				new_width = item->right_edge_pos - x;
+				
+				// Apply changes
+				gtk_widget_set_size_request(button, new_width, 50);
+				gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
+				
+				// Update item properties
+				item->old_x = x;
+				item->initial_width = new_width;
+				item->start_time = x / priv->pixels_per_second;
+				item->duration = new_width / priv->pixels_per_second;
+				img_timeline_center_button_image(item->button);
 			break;
-
-            case RESIZE_RIGHT:
+			
+			case RESIZE_RIGHT:
 				if (item->media_type !=0)
 					return FALSE;
-                new_width = MAX(event->x, 1);
-                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, item->old_x + new_width);
-                if (abs((item->old_x + new_width) - nearest_tick) < 10)
-                    new_width = nearest_tick - item->old_x;
+				new_width = MAX(event->x, 1);
+				nearest_tick = find_nearest_major_tick(priv->pixels_per_second, item->old_x + new_width);
+				if (abs((item->old_x + new_width) - nearest_tick) < 10)
+					new_width = nearest_tick - item->old_x;
+				
+				gtk_widget_set_size_request(button, new_width, 50);
+				item->duration = new_width / priv->pixels_per_second;
+				img_timeline_center_button_image(item->button);
+			break;
 
-                gtk_widget_set_size_request(button, new_width, 50);
-                item->duration = new_width / priv->pixels_per_second;
-                img_timeline_center_button_image(item->button);
-                
-                 //Update the final time
-                posx = img_timeline_get_final_time(img);
-                break;
 
-            case RESIZE_NONE:
-                x = item->old_x + (event->x - item->drag_x);
-                timeline_width = gtk_widget_get_allocated_width(GTK_WIDGET(img->timeline));
-                x = CLAMP(x, 0, timeline_width - button_width);
-                
-                nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
-                if (abs(x - nearest_tick) < 10)
-                    x = nearest_tick;
-                
-                gtk_layout_move(GTK_LAYOUT(img->timeline), button, x, item->y);
-                item->start_time = x / priv->pixels_per_second;
-                item->old_x = x;
-                
-                 //Update the final time
-                posx = img_timeline_get_final_time(img);
+			case RESIZE_NONE:
+				GArray *selected_items = img_timeline_get_selected_items(img->timeline);
+				timeline_width = gtk_widget_get_allocated_width(GTK_WIDGET(img->timeline));
+				
+				// Find the minimum and maximum x-coordinates of the selected items
+				gint min_x = G_MAXINT, max_x = 0;
+				for (gint j = 0; j < selected_items->len; j++)
+				{
+					media_timeline *item = g_array_index(selected_items, media_timeline *, j);
+					min_x = MIN(min_x, item->old_x);
+					max_x = MAX(max_x, item->old_x + gtk_widget_get_allocated_width(item->button));
+				}
+				// Calculate the offset based on the drag event
+				gint offset = event->x - item->drag_x;
+			
+				// Iterate through the selected items and update their positions
+				for (gint j = 0; j < selected_items->len; j++)
+				{
+					media_timeline *item = g_array_index(selected_items, media_timeline *, j);
+					x = item->old_x + offset;
+					button_width = gtk_widget_get_allocated_width(item->button);
+
+					// Clamp the x-coordinate based on the combined width of the selected items
+					x = CLAMP(x, 0, timeline_width - button_width);
+				
+					nearest_tick = find_nearest_major_tick(priv->pixels_per_second, x);
+					if (abs(x - nearest_tick) < 10)
+						x = nearest_tick;
+				
+					// Move the button to the new position, maintaining the relative alignment
+					gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, x, item->y);
+					item->start_time = x / priv->pixels_per_second;
+					item->old_x = x;
+				}
+				g_array_free(selected_items, FALSE);
 			break;
         }
+        // Update the final time
+		posx = img_timeline_get_final_time(img);
         gtk_widget_trigger_tooltip_query(GTK_WIDGET(item->button));
     }
 
@@ -1176,7 +1225,7 @@ gboolean img_timeline_scroll_event(GtkWidget *timeline, GdkEventScroll *event, G
 
 		priv->zoom_scale = CLAMP(priv->zoom_scale, 0.01, 10.0);
         priv->pixels_per_second = BASE_SCALE * priv->zoom_scale;
-		
+
 		// Calculate the new width of all media items on all tracks
 		for (gint i = 0; i < priv->tracks->len; i++)
 		{
@@ -1214,11 +1263,10 @@ void img_timeline_drag_data_received (GtkWidget *timeline, GdkDragContext *conte
 {
 	gchar **images = NULL;
 	gchar *filename;
-	gint i = 0;
+	gint i = 0, length, n_structs;
 	const guchar *data;
-	gint length;
 	media_struct **media_structs;
-	gint n_structs;
+	gboolean flag;
 
 	if (gtk_selection_data_get_target(selection_data) != gdk_atom_intern( "application/x-media-item", FALSE))
 	{
@@ -1387,6 +1435,8 @@ void img_timeline_delete_all_media(ImgTimeline *timeline)
 				gtk_widget_destroy(item->button);
 				if (item->tree_path)
 					g_free(item->tree_path);
+				if (item->trans_group)
+					g_free(item->trans_group);
 				g_array_remove_index(track->items, q);
 				g_free(item);
 			}
@@ -1541,6 +1591,7 @@ void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
 	gdouble pixel_position, viewport_width, upper, page_size, max_scroll, scroll_position;
 
 	time = img_timeline_get_final_time(img);
+	priv->current_preview_time = time;
 	total_time_string = img_convert_time_to_string(time);
 	gtk_label_set_text(GTK_LABEL(img->current_time), total_time_string);
 	g_free(total_time_string);
@@ -1566,7 +1617,7 @@ void img_timeline_go_final_time(GtkWidget *button, img_window_struct *img)
 	gtk_widget_queue_draw(img->image_area);
 }
 
-void img_timeline_play_audio(media_timeline *media, gint current_time)
+void img_timeline_play_audio(media_timeline *media, gdouble current_time)
 {
 	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_private_struct((ImgMediaAudioButton*)media->button);
 	GThread *playback_thread;
@@ -1576,7 +1627,7 @@ void img_timeline_play_audio(media_timeline *media, gint current_time)
 		media->is_playing = TRUE;
 		g_atomic_int_set(&priv->audio_data->is_playing, TRUE);
 		priv->audio_data->current_time = current_time;
-		playback_thread = g_thread_new("Imagination_audio_thread",  (GThreadFunc)img_play_audio_alsa, priv->audio_data);
+		playback_thread = g_thread_new("Imagination_audio_thread",  (GThreadFunc)img_play_audio_alsa, media);
 		g_thread_unref(playback_thread);
 	}
 }
@@ -1604,45 +1655,45 @@ void img_timeline_update_audio_states(img_window_struct *img, gdouble current_ti
 			if (!media->is_playing) 
 				img_timeline_play_audio(media, current_time);
         }
-        else if (!img->preview_is_running)
+        else
         {
 			if (media->is_playing)
 				img_timeline_stop_audio(media);
+			}
 		}
-    }
     g_array_free(active_media, FALSE);
 }
 
 static GArray *img_timeline_get_active_media_at_given_time(GtkWidget *timeline, gdouble current_time)
 {
-    ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
-    Track *track;
-    GArray* active_elements;
-    media_timeline *item;
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	Track *track;
+	media_timeline *item;
+	GArray* active_elements;
 	gint item_end;
-
+	
 	active_elements =  g_array_new(FALSE, FALSE, sizeof(media_timeline *));
 	
-    for (gint i = 0; i < priv->tracks->len; i++)
+	for (gint i = 0; i < priv->tracks->len; i++)
 	{
-        track = g_array_index(priv->tracks, Track *, i);
-        for (gint j = 0; j < track->items->len; j++)
-        {
-            item = g_array_index(track->items, media_timeline *, j);
+		track = g_array_index(priv->tracks, Track *, i);
+		for (gint j = 0; j < track->items->len; j++)
+		{
+			item = g_array_index(track->items, media_timeline *, j);
 			item_end = item->start_time + item->duration;
 			if (current_time >= item->start_time && current_time < item_end)
 				g_array_append_val(active_elements, item);
 		}
 	}
-    return  active_elements;;
+	return  active_elements;;
 }
 
 static media_timeline *img_timeline_get_active_media_at_given_index(GtkWidget *timeline, gint index)
 {
 	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
 	Track *track;
-	GArray* active_elements;
 	media_timeline *item;
+	GArray* active_elements;
 	
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
@@ -1659,17 +1710,31 @@ static media_timeline *img_timeline_get_active_media_at_given_index(GtkWidget *t
 	return NULL;
 }
 
-static void img_dump_timeline(img_window_struct *img)
+GArray *img_timeline_get_selected_items(GtkWidget *timeline)
 {
-	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)img->timeline);
-	Track *track = NULL;
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
+	Track *track;
 	media_timeline *item;
+	GArray* selected_items;
 
+	selected_items = g_array_new(FALSE, TRUE, sizeof(media_timeline *));
+	
 	for (gint i = 0; i < priv->tracks->len; i++)
 	{
 		track = g_array_index(priv->tracks, Track *, i);
-		if (track)
-			g_print("Track nr %d contiene: %d\n",i,track->items->len);
+		for (gint j = 0; j < track->items->len; j++)
+		{
+			item = g_array_index(track->items, media_timeline *, j);
+			if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)))
+				g_array_append_val(selected_items, item);
+		}
 	}
+	return selected_items;
+}
+
+gdouble img_timeline_get_current_preview_time(GtkWidget *timeline)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_instance_private((ImgTimeline*)timeline);
 	
+	return priv->current_preview_time;
 }

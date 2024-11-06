@@ -22,14 +22,14 @@
 
 #include <gtk/gtk.h>
 #include "main-window.h"
-#include "new_slideshow.h"
+#include "new_project.h"
 #include "file.h"
 #include "text.h"
 
 gboolean img_can_discard_unsaved_project(img_window_struct *);
 void img_project_properties(GtkMenuItem *item, img_window_struct *);
 void img_refresh_window_title(img_window_struct *);
-void img_new_slideshow(GtkMenuItem *,img_window_struct *);
+void img_new_project(GtkMenuItem *,img_window_struct *);
 gboolean img_create_media_struct(gchar *, img_window_struct *);
 void img_add_media(gchar *, media_struct *, img_window_struct *);
 void img_add_media_items(GtkMenuItem *,img_window_struct *);
@@ -52,8 +52,8 @@ void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
 void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
 void img_zoom_fit( GtkWidget *, img_window_struct *);
 void img_media_duration_value_changed (GtkSpinButton *, img_window_struct *);
-void img_choose_slideshow_filename(GtkWidget *,img_window_struct *);
-void img_close_slideshow(GtkWidget *,img_window_struct *);
+void img_choose_project_filename(GtkWidget *,img_window_struct *);
+void img_close_project(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
 GSList *img_import_slides_file_chooser(img_window_struct *);
 void img_free_allocated_memory(img_window_struct *);

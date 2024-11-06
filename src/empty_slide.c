@@ -406,11 +406,11 @@ gboolean img_empty_slide_countdown_preview(img_window_struct *img)
 	}
 	if (slide->countdown < 1)
 	{
-			if (img->export_is_running)
-				img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
-			else
-				img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
-			return FALSE;
+			//~ if (img->export_is_running)
+				//~ img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
+			//~ else
+				//~ img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
+			//~ return FALSE;
 	}
 	img_scale_empty_slide( slide->gradient, 
 							slide->countdown,

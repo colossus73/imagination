@@ -17,12 +17,15 @@
  *
  */
 
-#include "new_slideshow.h"
+#include "new_project.h"
 
-GtkWidget		*width;
-GtkWidget		*height;
+GtkWidget	*width;
+GtkWidget	*height;
 
-void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property)
+static GdkPixbuf *create_aspect_ratio_pixbuf(gboolean);
+static void invert_aspect_ratio_toggled(GtkToggleButton *, gpointer );
+
+void img_new_project_dialog(img_window_struct *img, gboolean property)
 {
 	GtkListStore	*liststore;
 	GtkTreeIter 		iter;
@@ -32,6 +35,7 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	GtkWidget		*iconview;
 	GtkWidget		*grid;
 	GtkWidget		*ex_hbox;
+	GtkWidget		*aspect_ratio;
 	GtkWidget		*bg_button;
 	GtkWidget		*fourk_button;
 	GtkWidget		*eightk_button;
@@ -40,7 +44,7 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	GtkWidget		*label;
 	GtkWidget		*image;
 	GdkRGBA   		color;
-	GdkPixbuf		*icon_pixbuf;
+	GdkPixbuf		*icon_pixbuf, *ar_pixbuf;
 	gint       			response, old_width, old_height;
 	gchar				*title;
     gboolean			c_color;
@@ -124,36 +128,47 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 	gtk_label_set_markup(GTK_LABEL(label), "HD <b>1280x720</b>");
 	gtk_grid_attach( GTK_GRID(grid), hd_button, 3, 1, 1, 1);
     
-    g_signal_connect(G_OBJECT (fourk_button), "clicked", 	G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 0);
-    g_signal_connect(G_OBJECT (eightk_button),"clicked", 	G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 1);
-    g_signal_connect(G_OBJECT (fullhd_button),"clicked",		G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 2);
-    g_signal_connect(G_OBJECT (hd_button),	  "clicked", 		G_CALLBACK(img_new_slideshow_button_clicked), (gpointer) 3);
-
-	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
-	//gtk_widget_set_margin_top(GTK_WIDGET(ex_hbox), 15);
+    g_signal_connect(G_OBJECT (fourk_button), "clicked", 	G_CALLBACK(img_new_project_button_clicked), (gpointer) 0);
+    g_signal_connect(G_OBJECT (eightk_button),"clicked", 	G_CALLBACK(img_new_project_button_clicked), (gpointer) 1);
+    g_signal_connect(G_OBJECT (fullhd_button),"clicked",		G_CALLBACK(img_new_project_button_clicked), (gpointer) 2);
+    g_signal_connect(G_OBJECT (hd_button),	  "clicked", 		G_CALLBACK(img_new_project_button_clicked), (gpointer) 3);
 
 	ex_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0 );
-	
+	gtk_box_pack_start( GTK_BOX( vbox1 ), ex_hbox, FALSE, FALSE, 0);
+
 	color.red   = img->background_color[0];
 	color.green = img->background_color[1];
 	color.blue  = img->background_color[2];
 	color.alpha = 1.0;
 
 	label = gtk_label_new( _("Background color:") );
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), label, FALSE, FALSE, 0 );
-	
-	bg_button = gtk_color_button_new_with_rgba( &color );
-	gtk_box_pack_start( GTK_BOX( ex_hbox ), bg_button, FALSE, FALSE, 0 );
-	gtk_widget_show_all(dialog_vbox1);
+	gtk_box_pack_start( GTK_BOX(ex_hbox), label, FALSE, FALSE, 0);
+	bg_button = gtk_color_button_new_with_rgba(&color);
+	gtk_box_pack_start( GTK_BOX(ex_hbox), bg_button, FALSE, FALSE, 0);
 
+	aspect_ratio = gtk_check_button_new_with_label(_("Flip Aspect Ratio"));
+	if (img->flip_aspect_ratio)
+	{
+		ar_pixbuf = create_aspect_ratio_pixbuf(TRUE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(aspect_ratio), TRUE);
+	}
+	else
+		ar_pixbuf = create_aspect_ratio_pixbuf(FALSE);
+    
+    image = gtk_image_new_from_pixbuf(ar_pixbuf);
+	g_object_unref(ar_pixbuf);
+	g_signal_connect(aspect_ratio, "toggled", G_CALLBACK(invert_aspect_ratio_toggled), image);
+
+	gtk_box_pack_start( GTK_BOX(ex_hbox), aspect_ratio, FALSE, FALSE, 15);
+	gtk_box_pack_start( GTK_BOX(ex_hbox), image, FALSE, FALSE, 0);
+
+	gtk_widget_show_all(dialog_vbox1);
 	response = gtk_dialog_run(GTK_DIALOG(dialog1));
 
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
 		if (! property)
-			img_close_slideshow(NULL, img);
+			img_close_project(NULL, img);
 		
 		img->video_size[0] = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(width));
 		img->video_size[1] = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(height));
@@ -173,13 +188,14 @@ void img_new_slideshow_settings_dialog(img_window_struct *img, gboolean property
 		
 		if (c_color)
 			img_taint_project(img);
+		img_zoom_fit(NULL, img);
 	}
-
-	img_zoom_fit(NULL, img);
+	
+	img->flip_aspect_ratio = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(aspect_ratio));	
 	gtk_widget_destroy(dialog1);
 }
 
-void img_new_slideshow_button_clicked(GtkWidget *button, gpointer video_size)
+void img_new_project_button_clicked(GtkWidget *button, gpointer video_size)
 {
 	gint w,h;
 
@@ -207,4 +223,56 @@ void img_new_slideshow_button_clicked(GtkWidget *button, gpointer video_size)
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(width), (gdouble)w);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(height),(gdouble)h);
+}
+
+static GdkPixbuf *create_aspect_ratio_pixbuf(gboolean vertical)
+{
+	const int width = vertical ?15: 30;
+    const int height = vertical ? 30 : 15;
+
+	// Create pixbuf representing the aspect ratio image 
+	GdkPixbuf * pixbuf= gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, width, height);
+	
+	// Get pixbuf data for direct manipulation
+	guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+	int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+	int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
+	
+	// Fill the pixbuf with a blue rectangle
+	for (int y = 0; y < height; y++)
+	{
+		guchar *row = pixels + y * rowstride;
+		for (int x = 0; x < width; x++)
+		{
+			guchar *pixel = row + x * n_channels;
+			// RGB values for blue (51, 102, 204)
+			pixel[0] = 51;   // R
+			pixel[1] = 102;  // G
+			pixel[2] = 204;  // B
+			pixel[3] = 255;  // Alpha (fully opaque)
+		}
+	}
+	return pixbuf; 
+}
+
+static void invert_aspect_ratio_toggled(GtkToggleButton *button, gpointer user_data)
+{
+	gint old_width = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(width));
+	gint old_height= gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(height));
+
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(width), old_height);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(height), old_width);
+	
+	
+    GtkImage *image = GTK_IMAGE(user_data);
+    gboolean is_checked = gtk_toggle_button_get_active(button);
+    
+    // Create new pixbuf based on toggle state
+    GdkPixbuf *new_pixbuf = create_aspect_ratio_pixbuf(is_checked);
+    
+    // Update the image
+    gtk_image_set_from_pixbuf(image, new_pixbuf);
+    
+    // Clean up
+    g_object_unref(new_pixbuf);
 }

@@ -44,7 +44,14 @@ int main (int argc, char *argv[])
 		avcodec_register_all();
 	#endif
 
-	img_window = img_create_window();
+	// Check if the dark theme parameter is provided
+	gboolean dark_theme = FALSE;
+	for (int i = 0; i < argc; i++)
+	{
+		if (strcmp(argv[i], "--dark-theme") == 0)
+			dark_theme = TRUE;
+	}
+	img_window = img_create_window(dark_theme);
 
 	/* Load the transitions as plugins with GModule */
 	img_load_available_transitions(img_window);
@@ -52,11 +59,13 @@ int main (int argc, char *argv[])
 	g_print("%s\n", LIBAVCODEC_IDENT);
 	g_print("%s\n", LIBAVFORMAT_IDENT);
 	g_print("%s\n", LIBAVUTIL_IDENT);
-	gtk_widget_show_all( img_window->imagination_window );
+	gtk_widget_show_all(img_window->imagination_window);
 
 	/* Reads the arguments passed from the cmd line */
- 	if (argc > 1)
-		img_load_project( img_window, NULL, argv[1] );
+ 	if (argv[2]  && dark_theme)
+		img_load_project( img_window, NULL, argv[2]);
+	else if(argv[1] && !dark_theme)
+		img_load_project( img_window, NULL, argv[1]);
 
 	gtk_main ();
 

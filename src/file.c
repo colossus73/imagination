@@ -40,11 +40,11 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 
 	/* Slideshow settings */
 	g_key_file_set_comment(img_key_file, NULL, NULL, comment_string, NULL);
-	g_key_file_set_integer(img_key_file, "slideshow settings", "video width", img->video_size[0]);
-    g_key_file_set_integer(img_key_file, "slideshow settings", "video height", img->video_size[1]);
-	g_key_file_set_double_list( img_key_file, "slideshow settings", "background color", img->background_color, 3 );
-	g_key_file_set_integer(img_key_file, "slideshow settings", "number of media", img->media_nr);
-	g_key_file_set_integer(img_key_file, "slideshow settings", "number of tracks", priv->tracks->len);
+	g_key_file_set_integer(img_key_file, "project settings", "video width", img->video_size[0]);
+    g_key_file_set_integer(img_key_file, "project settings", "video height", img->video_size[1]);
+	g_key_file_set_double_list( img_key_file, "project settings", "background color", img->background_color, 3 );
+	g_key_file_set_integer(img_key_file, "project settings", "number of media", img->media_nr);
+	g_key_file_set_integer(img_key_file, "project settings", "number of tracks", priv->tracks->len);
 
 	/* Media settings */
 	do
@@ -206,10 +206,10 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	Track						*track;
 	media_struct 		*media;
 	media_timeline 	*item;
-	GtkTreeIter 				iter;
+	GtkTreeIter 				parent_iter, iter;
 	GKeyFile 					*img_key_file;
 	gchar 						*dummy, *media_filename, *time, *mime_type, *full_path = NULL, *subtitle = NULL, *pattern_name = NULL, *font_desc, *background_color;
-	gchar      					*spath, *conf, *conf2, *project_current_dir, *value_string;
+	gchar      					*spath, *conf, *conf2, *project_current_dir, *value_string, *trans_group;
 	gchar						**groups, **values;
 	GtkWidget 				*dialog, *menu;
 	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, media_id;
@@ -230,7 +230,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	GString 					*media_not_found = NULL;
 
 	if (img->media_nr > 0)
-		img_close_slideshow(NULL, img);
+		img_close_project(NULL, img);
 	
 	media_not_found = g_string_new(NULL);
 	
@@ -285,8 +285,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	gtk_tree_model_foreach( model, (GtkTreeModelForeachFunc)img_populate_hash_table, &table);
 
 	/* Video Size */
-	img->video_size[0] = g_key_file_get_integer(img_key_file, "slideshow settings", "video width", NULL);
-	img->video_size[1] = g_key_file_get_integer(img_key_file, "slideshow settings", "video height", NULL);
+	img->video_size[0] = g_key_file_get_integer(img_key_file, "project settings", "video width", NULL);
+	img->video_size[1] = g_key_file_get_integer(img_key_file, "project settings", "video height", NULL);
 	
 	if (img->video_size[0] == 0)
 		img->video_size[0] = 1280;
@@ -301,15 +301,15 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), NULL);
 		
 	/* Load project backgroud color */
-	color = g_key_file_get_double_list( img_key_file, "slideshow settings",	"background color", NULL, NULL );
+	color = g_key_file_get_double_list( img_key_file, "project settings",	"background color", NULL, NULL );
 	img->background_color[0] = color[0];
 	img->background_color[1] = color[1];
 	img->background_color[2] = color[2];
 	g_free( color );
 
 	/* Loads the media files */
-	number = 	g_key_file_get_integer( img_key_file, "slideshow settings",  "number of media", NULL);
-	track_nr =	g_key_file_get_integer( img_key_file, "slideshow settings",  "number of tracks", NULL);
+	number = 	g_key_file_get_integer( img_key_file, "project settings",  "number of media", NULL);
+	track_nr =	g_key_file_get_integer( img_key_file, "project settings",  "number of tracks", NULL);
 	
     //groups = g_key_file_get_groups(img_key_file, &length);
     
@@ -543,6 +543,13 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				gtk_tree_model_get(model, &iter, 2, &render, 0, &pix, -1);
 				item->render = render;
 				item->tree_path = g_strdup(spath);
+			
+				if(gtk_tree_model_iter_parent(model, &parent_iter, &iter))
+				{
+					gtk_tree_model_get(model, &parent_iter, 1, &trans_group, -1);
+					item->trans_group = g_strdup(trans_group);
+					g_free(trans_group);
+				}
 			}
 			g_free(conf2);
 				
@@ -557,6 +564,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
+			item->old_x = posx;
 			item->y = posy;
 			g_array_append_val(track->items, item);
 		}

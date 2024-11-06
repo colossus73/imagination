@@ -25,6 +25,7 @@
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
 #include "imagination.h"
+#include "img_timeline.h"
 
 G_BEGIN_DECLS
 
@@ -54,8 +55,8 @@ typedef struct
     uint8_t *raw_samples;     	// Original raw sample data
     int num_samples;          	// Number of samples
     int size;               		  		// Size of raw_samples buffer in bytes
-    int current_time;
-   volatile gint is_playing;
+    double current_time;
+	volatile gint is_playing;
 } AudioData;
 
 struct _ImgMediaAudioButton
@@ -80,7 +81,7 @@ G_DECLARE_FINAL_TYPE(ImgMediaAudioButton, img_media_audio_button, IMG, MEDIA_AUD
 GtkWidget *img_media_audio_button_new();
 ImgMediaAudioButtonPrivate *img_media_audio_button_get_private_struct(ImgMediaAudioButton *);
 gboolean img_load_audio_file(ImgMediaAudioButton *, const char *);
-int img_play_audio_alsa(AudioData *);
+int img_play_audio_alsa(media_timeline *);
 G_END_DECLS
 
 #endif

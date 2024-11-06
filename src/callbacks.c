@@ -26,7 +26,6 @@
 static void img_file_chooser_add_preview(img_window_struct *);
 static void img_update_preview_file_chooser(GtkFileChooser *,img_window_struct *);
 static gboolean img_still_timeout(img_window_struct *);
-static void img_clean_after_preview(img_window_struct *);
 static void img_rotate_selected_slides( img_window_struct *, gboolean );
 static void img_image_area_change_zoom( gdouble step, gboolean reset, img_window_struct *img );
 
@@ -57,7 +56,7 @@ gboolean img_can_discard_unsaved_project(img_window_struct *img)
 		return TRUE;
 
 	int response = img_ask_user_confirmation( img,
-		_("You didn't save your slideshow yet.\nAre you sure you want to close it?"));
+		_("You didn't save your project yet.\nAre you sure you want to close it?"));
 
 	if (response == GTK_RESPONSE_OK)
 		return TRUE;
@@ -89,17 +88,17 @@ void img_refresh_window_title(img_window_struct *img)
 	g_free(title);
 }
 
-void img_new_slideshow(GtkMenuItem *item, img_window_struct *img_struct)
+void img_new_project(GtkMenuItem *item, img_window_struct *img_struct)
 {
 	if (!img_can_discard_unsaved_project(img_struct))
 		return;
 
-	img_new_slideshow_settings_dialog(img_struct, FALSE);
+	img_new_project_dialog(img_struct, FALSE);
 }
 
 void img_project_properties(GtkMenuItem *item, img_window_struct *img_struct)
 {
-	img_new_slideshow_settings_dialog(img_struct, TRUE);
+	img_new_project_dialog(img_struct, TRUE);
 }
 
 void img_detect_media_orientation_from_pixbuf(GdkPixbuf *image, gboolean *flipped, ImgAngle *angle)
@@ -265,6 +264,7 @@ void img_add_media(gchar *full_path, media_struct *media, img_window_struct *img
 			g_object_unref(pb);
 		break;
 	}
+	img->current_media = media;
 	g_free(filename);
 }
 
@@ -815,7 +815,7 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 		g_object_set (about,
 			"name", "Imagination",
 			"version", VERSION,
-			"copyright","Copyright \xC2\xA9 2009-2024 Giuseppe Torelli",
+			"copyright","Copyright \xC2\xA9 2009-2024 Giuseppe Torelli\nTransition effects & dropdown animated widget:\n\xC2\xA9 2009 Tadej Borovšak",
 			"comments","A simple and lightweight slideshow maker",
 			"authors",authors,
 			"documenters",NULL,
@@ -1246,80 +1246,6 @@ void img_draw_image_on_surface( cairo_t           *cr,
 	cairo_restore( cr );
 }
 
-gboolean img_transition_timeout(img_window_struct *img)
-{
-	/* If we output all transition slides (or if there is no slides to output in
-	 * transition part), connect still preview phase. */
-	if( img->slide_cur_frame == img->slide_trans_frames )
-	{
-		img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_still_timeout, img );
-		return FALSE;
-	}
-
-	/* Render single frame */
-	if (img->current_media->gradient == 3)
-	{
-		img->gradient_slide = TRUE;
-		memcpy(img->g_stop_color, img->current_media->g_stop_color,  3 * sizeof(gdouble));
-	}
-	img_render_transition_frame( img );
-
-	/* Schedule our image redraw */
-	gtk_widget_queue_draw( img->image_area );
-
-	/* Increment counters */
-	img->slide_cur_frame++;
-	img->displayed_frame++;
-
-	return TRUE;
-}
-
-static gboolean img_still_timeout(img_window_struct *img)
-{
-	/* If there is next slide, connect transition preview, else finish
-	 * preview. */
-	if( img->slide_cur_frame == img->slide_nr_frames )
-	{
-		if( img_prepare_pixbufs( img) )
-		{
-			img_calc_next_slide_time_offset( img, img->preview_fps );
-			img->source_id = g_timeout_add( 1000 / img->preview_fps,
-											(GSourceFunc)img_transition_timeout,
-											img );
-		
-		}
-		else
-		{
-			/* Clean resources used in preview and prepare application for
-			 * next preview. */
-			img_clean_after_preview( img );
-		}
-
-		/* Indicate that we must start fresh with new slide */
-		img->cur_point = NULL;
-
-		return FALSE;
-	}
-
-	/* This is a dirty hack to prevent Imagination
-	keep painting the source image with the second
-	* color set in the empty slide fade gradient 
-	if (strcmp(gtk_entry_get_text(GTK_ENTRY(img->slide_number_entry)) , "2") == 0)
-		img->gradient_slide = FALSE;
-*/
-	/* Render frame */
-	img_render_still_frame( img, img->preview_fps );
-
-	/* Increment counters */
-	img->still_counter++;
-	img->slide_cur_frame++;
-	img->displayed_frame++;
-
-	/* Redraw */
-	gtk_widget_queue_draw( img->image_area );
-	return( TRUE );
-}
-
 void img_swap_preview_button_images(img_window_struct *img, gboolean flag)
 {
 	GtkWidget *tmp_image;
@@ -1340,27 +1266,7 @@ void img_swap_preview_button_images(img_window_struct *img, gboolean flag)
 	}
 }
 
-static void img_clean_after_preview(img_window_struct *img)
-{
-	/* Swap toolbar and menu icons */
-	img_swap_preview_button_images(img, TRUE);
-
-	/* Indicate that preview is not running */
-	img->preview_is_running = FALSE;
-	
-	/* Destroy images that were used */
-	cairo_surface_destroy( img->image1 );
-	cairo_surface_destroy( img->image2 );
-	cairo_surface_destroy( img->image_from );
-	cairo_surface_destroy( img->image_to );
-	cairo_surface_destroy( img->exported_image );
-
-	gtk_widget_queue_draw( img->image_area );
-
-	return;
-}
-
-void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
+void img_choose_project_filename(GtkWidget *widget, img_window_struct *img)
 {
 	GtkWidget *fc;
 	GtkFileChooserAction action = 0;
@@ -1397,8 +1303,8 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 	/* ask for a file name if the project has never been saved yet, if we save as or if we open a project */
 	if (img->project_filename == NULL || widget == img->save_as_menu || action == GTK_FILE_CHOOSER_ACTION_OPEN)
 	{
-	fc = gtk_file_chooser_dialog_new (action == GTK_FILE_CHOOSER_ACTION_OPEN ? _("Load an Imagination slideshow project") : 
-		_("Save an Imagination slideshow project"),
+	fc = gtk_file_chooser_dialog_new (action == GTK_FILE_CHOOSER_ACTION_OPEN ? _("Load an Imagination project") : 
+		_("Save an Imagination project"),
 		GTK_WINDOW (img->imagination_window),
 		action,
 		"_Cancel",
@@ -1472,7 +1378,7 @@ void img_choose_slideshow_filename(GtkWidget *widget, img_window_struct *img)
 	g_free( filename );
 }
 
-void img_close_slideshow(GtkWidget *widget, img_window_struct *img)
+void img_close_project(GtkWidget *widget, img_window_struct *img)
 {
 	/* When called from close_menu, ask for confirmation */
 	if (widget && widget == img->close_menu && ! img_can_discard_unsaved_project(img))

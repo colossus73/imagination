@@ -23,7 +23,7 @@ imagination_SOURCES = \
 	main-window.c main-window.h \
 	empty_slide.c empty_slide.h \
 	callbacks.c callbacks.h \
-	new_slideshow.c new_slideshow.h \
+	new_project.c new_project.h \
 	file.c file.h \
 	export.c export.h \
 	text.c text.h

@@ -40,6 +40,7 @@ typedef struct _ImgTimelinePrivate
 	gdouble time_marker_pos;
 	gdouble zoom_scale;
 	gboolean button_pressed_on_needle;
+	gboolean dark_theme;
 	gdouble pixels_per_second;
 	GArray *tracks;
 	
@@ -81,6 +82,7 @@ struct _media_timeline
 	GtkWidget 		*button;
 	gchar    			*tree_path; 			/* Transition model path to transition */
 	gint       			transition_id; 		/* Transition id */
+	gchar 				*trans_group; 		/* Transition group */
 	ImgRender  render;        			/* Transition render function */
 };
 
@@ -115,23 +117,25 @@ void img_timeline_start_stop_preview(GtkWidget *, img_window_struct *);
 void img_timeline_preview_update(img_window_struct *);
 gboolean img_timeline_preview_timeout(img_window_struct *);
 
-void img_timeline_set_total_time				(ImgTimeline *, gint );
-void img_timeline_add_media						(GtkWidget *, media_struct *, gint, gint, img_window_struct *);
-void img_timeline_create_toggle_button		(media_timeline *, gint, gchar *, img_window_struct *);
-void img_timeline_add_track						(GtkWidget *, gint, gchar *);
-void img_timeline_draw_time_marker			(GtkWidget *, cairo_t *, gint, gint);
-void img_timeline_set_time_marker			(ImgTimeline *, gdouble );
-void img_timeline_delete_all_media			(ImgTimeline *);
-void img_timeline_delete_additional_tracks(ImgTimeline *);
-void img_timeline_center_button_image		(GtkWidget *);
-gint img_timeline_get_final_time					(img_window_struct *);
+void img_timeline_set_total_time							(ImgTimeline *, gint );
+void img_timeline_add_media									(GtkWidget *, media_struct *, gint, gint, img_window_struct *);
+void img_timeline_create_toggle_button					(media_timeline *, gint, gchar *, img_window_struct *);
+void img_timeline_add_track									(GtkWidget *, gint, gchar *);
+void img_timeline_draw_time_marker						(GtkWidget *, cairo_t *, gint, gint);
+void img_timeline_set_time_marker						(ImgTimeline *, double );
+void img_timeline_delete_all_media						(ImgTimeline *);
+void img_timeline_delete_additional_tracks			(ImgTimeline *);
+void img_timeline_center_button_image					(GtkWidget *);
+gint img_timeline_get_final_time								(img_window_struct *);
 GArray *img_timeline_get_active_picture_media		(GtkWidget *, double );
 GArray *img_timeline_get_active_audio_media		(GtkWidget *, double );
-void img_timeline_go_start_time					(GtkWidget *, img_window_struct *);
-void img_timeline_go_final_time(				GtkWidget *, img_window_struct *);
-void img_timeline_play_audio						(media_timeline *, gint);
-void img_timeline_stop_audio						(media_timeline *);
-void img_timeline_update_audio_states		(img_window_struct *, gdouble );
+GArray *img_timeline_get_selected_items				(GtkWidget *);
+void img_timeline_go_start_time								(GtkWidget *, img_window_struct *);
+void img_timeline_go_final_time(							GtkWidget *, img_window_struct *);
+void img_timeline_play_audio									(media_timeline *, double);
+void img_timeline_stop_audio									(media_timeline *);
+void img_timeline_update_audio_states					(img_window_struct *, double );
+gdouble img_timeline_get_current_preview_time	(GtkWidget *);
 
 //Timeline events
 gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);

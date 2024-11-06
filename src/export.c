@@ -20,28 +20,13 @@
 #include "empty_slide.h"
 #include "support.h"
 #include "callbacks.h"
-#include <fcntl.h>
-#include <glib/gstdio.h>
 
-static gboolean
-img_start_export( img_window_struct *img);
-
-static gint
-img_initialize_av_parameters(img_window_struct *, gint , gint , enum AVCodecID);
-
-static gboolean
-img_export_still( img_window_struct *img );
-
-static void
-img_export_pause_unpause( GtkToggleButton   *button,
-						  img_window_struct *img );
-
-static gboolean
-img_convert_cairo_frame_to_avframe(img_window_struct *img,
-						cairo_surface_t *surface);
-						
-static gboolean
-img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCodecContext *ctx, AVPacket *pkt, AVStream *stream);
+static gboolean img_start_export( img_window_struct *img);
+static gint img_initialize_av_parameters(img_window_struct *, gint , gint , enum AVCodecID);
+static gboolean img_export_still( img_window_struct *img );
+static void img_export_pause_unpause( GtkToggleButton   *button, img_window_struct *img );
+static gboolean img_convert_cairo_frame_to_avframe(img_window_struct *img, cairo_surface_t *surface);
+static gboolean img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCodecContext *ctx, AVPacket *pkt, AVStream *stream);
 
 static gboolean img_start_export( img_window_struct *img)
 {
@@ -139,15 +124,15 @@ static gboolean img_start_export( img_window_struct *img)
 	gtk_widget_show_all( dialog );
 
 	/* Create first media */
-	img->image1 = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-											  img->video_size[0],
-											  img->video_size[1] );
-	cr = cairo_create( img->image1 );
-	cairo_set_source_rgb( cr, img->background_color[0],
-							  img->background_color[1],
-							  img->background_color[2] );
-	cairo_paint( cr );
-	cairo_destroy( cr );
+	//~ img->image1 = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
+											  //~ img->video_size[0],
+											  //~ img->video_size[1] );
+	//~ cr = cairo_create( img->image1 );
+	//~ cairo_set_source_rgb( cr, img->background_color[0],
+							  //~ img->background_color[1],
+							  //~ img->background_color[2] );
+	//~ cairo_paint( cr );
+	//~ cairo_destroy( cr );
 
 	//~ /* Load first media item from timeline */
 	//~ model = GTK_TREE_MODEL( img->media_model );
@@ -158,13 +143,13 @@ static gboolean img_start_export( img_window_struct *img)
 
 	if( ! entry->full_path )
 	{
-		success = img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
-							entry->g_stop_point, entry->g_start_color,
-							entry->g_stop_color, 
-							entry->countdown_color, 
-							0, entry->countdown_angle,
-							img->video_size[0],
-							img->video_size[1], NULL, &img->image2 );
+		//~ success = img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
+							//~ entry->g_stop_point, entry->g_start_color,
+							//~ entry->g_stop_color, 
+							//~ entry->countdown_color, 
+							//~ 0, entry->countdown_angle,
+							//~ img->video_size[0],
+							//~ img->video_size[1], NULL, &img->image2 );
 	}
 	else
 	{
@@ -174,7 +159,7 @@ static gboolean img_start_export( img_window_struct *img)
 	}
 
 	if (!success) {
-	    img->image2 = NULL;
+	   // img->image2 = NULL;
 	    img_stop_export(img);
 	    return (FALSE);
 	}
@@ -184,30 +169,23 @@ static gboolean img_start_export( img_window_struct *img)
 	img->total_nr_frames = img->total_time * img->export_fps;
 	img->displayed_frame = 0;
 	img->next_slide_off = 0;
-	img_calc_next_slide_time_offset( img, img->export_fps );
 
 	/* Create surfaces to be passed to transition renderer */
-	img->image_from = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-												  img->video_size[0],
-												  img->video_size[1] );
-	img->image_to = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-												img->video_size[0],
-												img->video_size[1] );
-	img->exported_image = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-													  img->video_size[0],
-													  img->video_size[1] );
+	//~ img->image_from = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0],  img->video_size[1] );
+	//~ img->image_to = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0], img->video_size[1] );
+	img->exported_image = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0], img->video_size[1] );
 
 	/* Fade empty slide */
 	if (entry->gradient == 3)
 	{
 		cairo_t	*cr;
-		cr = cairo_create(img->image_from);
+		//cr = cairo_create(img->image_from);
 		cairo_set_source_rgb(cr,	entry->g_start_color[0],
 									entry->g_start_color[1],
 									entry->g_start_color[2] );
 		cairo_paint( cr );
 			
-		cr = cairo_create(img->image_to);
+		//cr = cairo_create(img->image_to);
 		cairo_set_source_rgb(cr,	entry->g_stop_color[0],
 									entry->g_stop_color[1],
 									entry->g_stop_color[2] );
@@ -217,20 +195,17 @@ static gboolean img_start_export( img_window_struct *img)
 	/* Set stop points */
 	img->cur_point = NULL;
 	img->point1 = NULL;
-	img->point2 = (ImgStopPoint *)( img->current_media->no_points ?
-									img->current_media->points->data :
-									NULL );
+	img->point2 = (ImgStopPoint *)( img->current_media->no_points ?	img->current_media->points->data : NULL );
 
 	/* Set first slide */
 	//gtk_tree_model_get_iter_first( GTK_TREE_MODEL( img->media_model ), &img->cur_ss_iter );
 
 	img->export_slide = 1;
 
-	img->export_idle_func = (GSourceFunc)img_export_transition;
 	if (img->current_media->gradient == 4)
 			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
-	else
-		img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
+	//~ else
+		//~ img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
 	
 	img->elapsed_timer = g_timer_new();
 
@@ -244,8 +219,7 @@ static gboolean img_start_export( img_window_struct *img)
 	return( FALSE );
 }
 
-gboolean
-on_close_export_dialog(GtkWidget * widget, GdkEvent * event,  img_window_struct *img)
+gboolean on_close_export_dialog(GtkWidget * widget, GdkEvent * event,  img_window_struct *img)
 {
     img_close_export_dialog(img);
     return TRUE;
@@ -284,10 +258,10 @@ gboolean img_stop_export( img_window_struct *img )
 		g_source_remove( img->source_id );
 
 		/* Destroy images that were used */
-		if (img->image1) cairo_surface_destroy( img->image1 );
-		if (img->image2) cairo_surface_destroy( img->image2 );
-		cairo_surface_destroy( img->image_from );
-		cairo_surface_destroy( img->image_to );
+		//~ if (img->image1) cairo_surface_destroy( img->image1 );
+		//~ if (img->image2) cairo_surface_destroy( img->image2 );
+		//~ cairo_surface_destroy( img->image_from );
+		//~ cairo_surface_destroy( img->image_to );
 		cairo_surface_destroy( img->exported_image );
 
 		/* Stops the timer */
@@ -318,157 +292,7 @@ gboolean img_stop_export( img_window_struct *img )
 	return( FALSE );
 }
 
-/*
- * img_prepare_pixbufs:
- * @img: global img_window_struct
- * @preview: do we load image for preview
- *
- * This function is used when previewing or exporting slideshow. It goes
- * through the model and prepares everything for next transition.
- *
- *
- * This function also sets img->point[12] that are used for transitions.
- *
- * Return value: TRUE if images have been succefully prepared, FALSE otherwise.
- */
-gboolean
-img_prepare_pixbufs( img_window_struct *img)
-{
-	GtkTreeModel    *model;
-	GtkTreePath     *path;
-	gchar			*selected_slide_nr;
-	static gboolean  last_transition = TRUE;
-	gboolean success;
-
-	model = GTK_TREE_MODEL( img->media_model );
-
-	/* Get last stop point of current slide */
-	img->point1 = (ImgStopPoint *)( img->current_media->no_points ?
-									g_list_last( img->current_media->points )->data :
-									NULL );
-
-	/* We're done now */
-	last_transition = TRUE;
-	return( FALSE );
-}
-
-/*
- * img_calc_next_slide_time_offset:
- * @img: global img_window_struct structure
- * @rate: frame rate to be used for calculations
- *
- * This function will calculate:
- *   - time offset of next slide (img->next_slide_off)
- *   - number of frames for current slide (img->slide_nr_frames)
- *   - number of slides needed for transition (img->slide_trans_frames)
- *   - number of slides needed for still part (img->slide_still_franes)
- *   - reset current slide counter to 0 (img->slide_cur_frame)
- *   - number of frames for subtitle animation (img->no_text_frames)
- *   - reset current subtitle counter to 0 (img->cur_text_frame)
- *
- * Return value: new time offset. The same value is stored in
- * img->next_slide_off.
- */
-gdouble
-img_calc_next_slide_time_offset( img_window_struct *img,
-								 gdouble            rate )
-{
-	int transition_speed = 3;
-	
-	//~ if( img->current_media->render )
-	//~ {
-		//~ img->next_slide_off += img->current_media->duration + transition_speed;
-		//~ img->slide_trans_frames = transition_speed * rate;
-	//~ }
-	//~ else
-	//~ {
-		//~ img->next_slide_off += img->current_media->duration;
-		//~ img->slide_trans_frames = 0;
-	//~ }
-
-	img->slide_nr_frames = img->next_slide_off * rate - img->displayed_frame;
-	img->slide_cur_frame = 0;
-	img->slide_still_frames = img->slide_nr_frames - img->slide_trans_frames;
-
-	/* Calculate subtitle frames */
-	if( img->current_media->text )
-	{
-		img->cur_text_frame = 0;
-		img->no_text_frames = img->current_media->anim_duration * rate;
-	}
-
-	return( img->next_slide_off );
-}
-
-/*
- * img_export_transition:
- * @img:
- *
- * This is idle callback function that creates transition frames. When
- * transition is complete, it detaches itself from main context and connects
- * still export function.
- *
- * Return value: TRUE if transition isn't exported completely, FALSE otherwise.
- */
-gboolean img_export_transition( img_window_struct *img )
-{
-	gchar   string[10];
-	gchar	*dummy;
-	gdouble export_progress;
-
-	/* If we rendered all transition frames, connect still export */
-	if( img->slide_cur_frame == img->slide_trans_frames )
-	{
-		img->export_idle_func = (GSourceFunc)img_export_still;
-		img->source_id = g_idle_add( (GSourceFunc)img_export_still, img );
-
-		return( FALSE );
-	}
-
-	/* Draw one frame of transition animation */
-	img_render_transition_frame( img );
-
-	/* Increment global frame counters and update progress bars */
-	img->slide_cur_frame++;
-	img->displayed_frame++;
-
-	export_progress = CLAMP( (gdouble)img->slide_cur_frame /
-									  img->slide_nr_frames, 0, 1 );
-	snprintf( string, 10, "%.2f%%", export_progress * 100 );
-	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar1 ),
-								   export_progress );
-	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( img->export_pbar1 ), string );
-	export_progress = CLAMP( (gdouble)img->displayed_frame /
-									  img->total_nr_frames, 0, 1 );
-	snprintf( string, 10, "%.2f%%", export_progress * 100 );
-	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar2 ),
-								   export_progress );
-	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( img->export_pbar2 ), string );
-
-	/* Update the elapsed time */
-	img->elapsed_time = g_timer_elapsed(img->elapsed_timer, NULL);  
-	dummy = img_convert_seconds_to_time( (gint) img->elapsed_time);
-	gtk_label_set_text(GTK_LABEL(img->elapsed_time_label), dummy);
-	g_free(dummy);
-
-	/* Draw every 10th frame of animation on screen 
-	if( img->displayed_frame % 10 == 0 )
-		gtk_widget_queue_draw( img->image_area );
-*/
-	return( TRUE );
-}
-
-/*
- * img_export_still:
- * @img:
- *
- * Idle callback that outputs still image frames. When enough frames has been
- * outputed, it connects transition export.
- *
- * Return value: TRUE if more still frames need to be exported, else FALSE.
- */
-static gboolean
-img_export_still( img_window_struct *img )
+static gboolean img_export_still( img_window_struct *img )
 {
 	gdouble export_progress;
 	gchar	*dummy;
@@ -504,7 +328,7 @@ img_export_still( img_window_struct *img )
 
 	/* Draw frames until we have enough of them to fill slide duration gap. */
 	
-	 img_render_still_frame( img, img->export_fps );
+	 //img_render_still_frame( img, img->export_fps );
 
 	/* Increment global frame counter and update progress bar */
 	img->still_counter++;
@@ -540,15 +364,7 @@ img_export_still( img_window_struct *img )
 	return( TRUE );
 }
 
-/*
- * img_export_pause_unpause:
- * @img:
- *
- * Temporarily disconnect export functions. This doesn't stop ffmpeg!!!
- */
-static void
-img_export_pause_unpause( GtkToggleButton   *button,
-						  img_window_struct *img )
+static void img_export_pause_unpause( GtkToggleButton *button,  img_window_struct *img )
 {
 	if( gtk_toggle_button_get_active( button ) )
 	{
@@ -561,213 +377,6 @@ img_export_pause_unpause( GtkToggleButton   *button,
 		img->source_id = g_idle_add(img->export_idle_func, img);
 		g_timer_continue(img->elapsed_timer);
 	}
-}
-
-void
-img_render_transition_frame( img_window_struct *img )
-{
-	ImgStopPoint  point = { 0, 0, 0, 1.0 }; /* Default point */
-	gdouble       progress;
-	cairo_t      *cr;
-
-	/* Do image composing here and place result in exported_image */
-	
-	/* Create first image
-	 * this is a dirt hack to have Imagination use the image_from painted
-	 * with the second color set in the empty slide fade gradient */
-	if (img->current_media->full_path && img->gradient_slide)
-	{
-		cr = cairo_create( img->image_from );
-		cairo_set_source_rgb(cr,	img->g_stop_color[0],
-									img->g_stop_color[1],
-									img->g_stop_color[2]);
-		cairo_paint( cr );
-	}
-	else
-	{
-		cr = cairo_create( img->image_from );
-		if (img->current_media->gradient != 3)
-			img_draw_image_on_surface( cr, img->video_size[0], img->image1,
-								( img->point1 ? img->point1 : &point ), img );
-	}
-#if 0
-	/* Render subtitle if present */
-	if( img->current_media->subtitle )
-	{
-		gdouble       progress;     /* Text animation progress */
-		ImgStopPoint *p_draw_point; 
-
-		progress = (gdouble)img->cur_text_frame / ( img->no_text_frames - 1 );
-		progress = CLAMP( progress, 0, 1 );
-		img->cur_text_frame++;
-
-		p_draw_point = ( img->point1 ? img->point1 : &point );
-
-		img_render_subtitle( img,
-							 cr,
-							 img->video_size[0],
-							 img->video_size[1],
-							 1.0,
-							 img->current_media->position,
-							 p_draw_point->zoom,
-							 p_draw_point->offx,
-							 p_draw_point->offy,
-							 img->current_media->subtitle,
-							 img->current_media->font_desc,
-							 img->current_media->font_color,
-							 img->current_media->anim,
-							 FALSE,
-							 FALSE,
-							 progress );
-	}
-#endif
-	cairo_destroy( cr );
-
-	/* Create second image */
-	cr = cairo_create( img->image_to );
-	if (img->current_media->gradient != 3)
-		img_draw_image_on_surface( cr, img->video_size[0], img->image2,
-							   ( img->point2 ? img->point2 : &point ), img );
-	/* FIXME: Add subtitles here */
-	cairo_destroy( cr );
-
-	/* Compose them together */
-	progress = (gdouble)img->slide_cur_frame / ( img->slide_trans_frames - 1 );
-	cr = cairo_create( img->exported_image );
-	cairo_save( cr );
-	//img->current_media->render( cr, img->image_from, img->image_to, progress );
-	cairo_restore( cr );
-	
-	/* Export frame */
-	if (img->export_is_running)
-	{
-		gint ok = img_convert_cairo_frame_to_avframe( img, img->exported_image);
-		if (ok < 0)
-		{
-			img_stop_export(img);
-			img_close_export_dialog(img);
-			img_message(img, av_err2str(ok));
-		}
-	}
-	cairo_destroy( cr );
-}
-
-void img_render_still_frame( img_window_struct *img, gdouble rate )
-{
-	cairo_t      *cr;
-	ImgStopPoint *p_draw_point;                  /* Pointer to current sp */
-	ImgStopPoint  draw_point = { 0, 0, 0, 1.0 }; /* Calculated stop point */
-
-	/* If no stop points are specified, we simply draw img->image2 with default
-	 * stop point on each frame.
-	 *
-	 * If we have only one stop point, we draw img->image2 on each frame
-	 * properly scaled, with no movement.
-	 *
-	 * If we have more than one point, we draw movement from point to point.
-	 */
-	switch( img->current_media->no_points )
-	{
-		case( 0 ): /* No stop points */
-			p_draw_point = &draw_point;
-			break;
-
-		case( 1 ): /* Single stop point */
-			p_draw_point = (ImgStopPoint *)img->current_media->points->data;
-			break;
-
-		default:   /* Many stop points */
-			{
-				ImgStopPoint *point1,
-							 *point2;
-				gdouble       progress;
-				GList        *tmp;
-
-				if( ! img->cur_point )
-				{
-					/* This is initialization */
-					img->cur_point = img->current_media->points;
-					point1 = (ImgStopPoint *)img->cur_point->data;
-					img->still_offset = point1->time;
-					img->still_max = img->still_offset * rate;
-					img->still_counter = 0;
-					img->still_cmlt = 0;
-				}
-				else if( img->still_counter == img->still_max )
-				{
-					/* This is advancing to next point */
-					img->cur_point = g_list_next( img->cur_point );
-					point1 = (ImgStopPoint *)img->cur_point->data;
-					img->still_offset += point1->time;
-					img->still_cmlt += img->still_counter;
-					img->still_max = img->still_offset * rate -
-									 img->still_cmlt;
-					img->still_counter = 0;
-				}
-
-				point1 = (ImgStopPoint *)img->cur_point->data;
-				tmp = g_list_next( img->cur_point );
-				if( tmp )
-				{
-					point2 = (ImgStopPoint *)tmp->data;
-					progress = (gdouble)img->still_counter /
-										( img->still_max - 1);
-					img_calc_current_ken_point( &draw_point, point1, point2,
-												progress, 0 );
-					p_draw_point = &draw_point;
-				}
-				else
-					p_draw_point = point1;
-			}
-			break;
-	}
-
-	/* Paint surface */
-	cr = cairo_create( img->exported_image );
-	if (img->current_media->gradient == 3)
-		img_draw_image_on_surface( cr, img->video_size[0], img->image_to,
-							   p_draw_point, img );
-	else
-		img_draw_image_on_surface( cr, img->video_size[0], img->image2,
-							   p_draw_point, img );
-
-	/* Render subtitle if present */
-	if( img->current_media->text )
-	{
-		gdouble progress; /* Text animation progress */
-
-		progress = (gdouble)img->cur_text_frame / ( img->no_text_frames - 1 );
-		progress = CLAMP( progress, 0, 1 );
-		img->cur_text_frame++;
-
-		img_render_subtitle( img,
-							 cr,
-							 1.0,
-							 img->current_media->posX,
-							 img->current_media->posY,
-							 img->current_media->subtitle_angle,
-							 img->current_media->alignment,
-							 p_draw_point->zoom,
-							 p_draw_point->offx,
-							 p_draw_point->offy,
-							 FALSE,
-							 FALSE,
-							 progress );
-	}
-
-	/* Export frame */
-	if (img->export_is_running) {
-		gboolean ok = img_convert_cairo_frame_to_avframe( img, img->exported_image);
-		if (ok < 0)
-		{
-			img_stop_export(img);
-			img_close_export_dialog(img);
-			img_message(img, av_err2str(ok));
-		}
-	}
-	
-	/* Destroy drawing context */
-	cairo_destroy( cr );
 }
 
 static gboolean img_convert_cairo_frame_to_avframe(img_window_struct *img, cairo_surface_t *surface)
@@ -874,13 +483,8 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 	GtkCellRenderer *cell;
 	GtkTreeIter   iter;
 	GList 		*selected = NULL;
-	gint		result,
-				fr,
-				crf,
-				slides_selected = 0;
-
+	gint		result, fr, crf, slides_selected = 0;
 	gchar *container[8];
-
 	container[0] = "MPEG-1 Video";
 	container[1] = "MPEG-2 Video";
 	container[2] = "MPEG-4 Video";

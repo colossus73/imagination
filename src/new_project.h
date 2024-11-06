@@ -24,6 +24,6 @@
 #include "main-window.h"
 #include "callbacks.h"
 
-void img_new_slideshow_settings_dialog(img_window_struct *, gboolean);
-void img_new_slideshow_button_clicked(GtkWidget *, gpointer data );
+void img_new_project_dialog(img_window_struct *, gboolean);
+void img_new_project_button_clicked(GtkWidget *, gpointer data );
 #endif
