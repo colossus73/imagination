@@ -55,9 +55,7 @@ gboolean img_can_discard_unsaved_project(img_window_struct *img)
 	if (!img->project_is_modified)
 		return TRUE;
 
-	int response = img_ask_user_confirmation( img,
-		_("You didn't save your project yet.\nAre you sure you want to close it?"));
-
+	int response = img_ask_user_confirmation( img, _("You didn't save your project yet.\nAre you sure you want to close it?"));
 	if (response == GTK_RESPONSE_OK)
 		return TRUE;
 	return FALSE;
@@ -723,81 +721,6 @@ void img_unselect_all_media(GtkWidget *widget, img_window_struct *img)
 	gtk_icon_view_unselect_all(GTK_ICON_VIEW(img->media_iconview));
 }
 
-void img_rotate_slides_left( GtkWidget         *widget,
-						img_window_struct *img )
-{
-	img_rotate_selected_slides( img, TRUE );
-}
-
-void img_rotate_slides_right( GtkWidget         *widget,
-						 img_window_struct *img )
-{
-	img_rotate_selected_slides( img, FALSE );
-}
-
-static void img_rotate_selected_slides( img_window_struct *img,
-							gboolean           clockwise )
-{
-GtkTreeModel *model;
-GtkTreeIter   iter;
-GList        *selected,
-			 *bak;
-GdkPixbuf    *thumb;
-media_struct *info_slide;
-
-/* Obtain the selected slideshow filename */
-//~ model = GTK_TREE_MODEL( img->media_model );
-//~ selected = gtk_icon_view_get_selected_items(
-				//~ GTK_ICON_VIEW( img->media_iconview ) );
-
-//~ if( selected == NULL)
-	//~ return;
-
-//~ img_taint_project(img);
-
-//~ bak = selected;
-//~ while (selected)
-//~ {
-	//~ ImgAngle angle;
-
-	//~ gtk_tree_model_get_iter( model, &iter, selected->data );
-	//~ gtk_tree_model_get( model, &iter, 2, &info_slide, -1 );
-
-	//~ /* Avoid seg-fault when dealing with text/gradient slides */
-	//~ if (info_slide->full_path != NULL)
-	//~ {
-		//~ angle = ( info_slide->angle + ( clockwise ? 1 : -1 ) ) % 4;
-		//~ img_rotate_flip_slide( info_slide, angle, info_slide->flipped );
-
-		//~ /* Display the rotated image in thumbnails iconview */
-		//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
-						 //~ FALSE, img->background_color,
-						 //~ &thumb, NULL );
-		//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
-	//~ }
-	//~ selected = selected->next;
-//~ }
-GList *node12;
-for(node12 = bak;node12 != NULL;node12 = node12->next) {
-	gtk_tree_path_free(node12->data);
-}
-	g_list_free(bak);
-
-	/* If no slide is selected currently, simply return */
-	if( ! img->current_media )
-		return;
-
-	if (info_slide->full_path != NULL)
-	{
-		cairo_surface_destroy( img->current_image );
-		//~ img_scale_image( img->current_media->full_path, img->video_ratio,
-							 //~ 0, img->video_size[1], FALSE,
-							 //~ img->background_color, NULL, &img->current_image );
-		
-		gtk_widget_queue_draw( img->image_area );
-	}
-}
-
 void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 {
 	static GtkWidget *about = NULL;
@@ -843,35 +766,6 @@ void img_show_about_dialog (GtkMenuItem *item, img_window_struct *img_struct)
 	gtk_widget_hide (about);
 }
 
-//~ void img_start_stop_preview(GtkWidget *item, img_window_struct *img)
-//~ {
-	//~ GtkTreeIter iter, prev;
-	//~ GtkTreePath *path = NULL;
-	//~ media_struct *entry;
-	//~ GtkTreeModel *model;
-	//~ GList *list = NULL;
-
-	//~ /* If no images are present, abort */
-	//~ if( img->media_nr == 0 )
-		//~ return;
-
-	//~ if(img->export_is_running)
-		//~ return;
-
-	//~ /* Save the current selected slide to restore it when the preview is finished */
-
-
-		//~ /* Replace button and menu images */
-		//~ img_swap_toolbar_images( img, FALSE );
-
-	
-
-		//~ if (entry->gradient == 4)
-			//~ img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
-		//~ else
-			//~ img->source_id = g_timeout_add( 1000 / img->preview_fps, (GSourceFunc)img_transition_timeout, img );
-	
-//~ }
 void img_media_library_drag_begin(GtkWidget *widget, GdkDragContext *context, img_window_struct *img)
 {
 	GtkStyleContext *style_context = gtk_widget_get_style_context(widget);
@@ -961,38 +855,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 	cairo_surface_t *surface = NULL;
 
 	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
-	{
-		/* If we're previewing or exporting, only paint frame that is being
-		 * currently produced. 
-		if( img->preview_is_running || img->export_is_running )
-		{
-			gdouble factor;
-			
-			factor = (gdouble)allocation.width / img->video_size[0];
-			cairo_scale( cr, factor, factor );
-			cairo_set_source_surface( cr, img->exported_image, 0, 0 );
-			cairo_paint( cr );
-		}
 
-			/* Do the drawing 
-			//img_draw_image_on_surface( cr, allocation.width, img->current_image, &img->current_point, img );
-
-			Render subtitle if present 
-			if( img->current_media->subtitle )
-				img_render_subtitle( img,
-									 cr,
-									 img->image_area_zoom,
-									 img->current_media->posX,
-									 img->current_media->posY,
-									 img->current_media->subtitle_angle,
-									 img->current_media->alignment,
-									 img->current_point.zoom,
-									 img->current_point.offx,
-									 img->current_point.offy,
-									 FALSE,
-									 FALSE,
-									 1.0 ); */
-	}
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(img->image_area, &allocation);
 	 
@@ -1044,7 +907,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 				cairo_translate(cr, x, y);
 				cairo_scale(cr, scale, scale);
 				cairo_set_source_surface(cr, surface, 0, 0);
-				cairo_paint(cr);
+				cairo_paint_with_alpha(cr, media->opacity);
 			cairo_restore(cr);
 		}
 		g_array_free(active_media, FALSE);
@@ -1427,18 +1290,6 @@ img_ken_burns_zoom_changed( GtkRange *range, img_window_struct *img )
 	gtk_widget_queue_draw( img->image_area );
 }
 
-/*
- * img_image_area_scroll:
- * @widget: image area
- * @event: event description
- * @img: global img_window_struct structure
- *
- * This function catched mouse wheel event and changes
- * the zoom of the stop point accordingly to the wheel
- * scroll direction
- *
- * Return value: TRUE, indicating that we handled this event.
- */
 gboolean img_image_area_scroll( GtkWidget			*widget,
 								GdkEvent			*event,
 								img_window_struct	*img )
@@ -1928,6 +1779,7 @@ gboolean img_load_window_settings( img_window_struct *img )
 
 	kf = g_key_file_new();
 	g_key_file_load_from_file( kf, rc_file, G_KEY_FILE_NONE, NULL );
+	g_free(rc_file);
 
 	w                   	= g_key_file_get_integer( kf, group, "width",   NULL );
 	h                    	= g_key_file_get_integer( kf, group, "height",  NULL );
@@ -2151,57 +2003,6 @@ void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct 
 	img_taint_project(img);
 }
 
-void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img)
-{
-	GtkTreeModel *model;
-	GtkTreeIter   iter;
-	GList        *selected,
-				 *bak;
-	GdkPixbuf    *thumb;
-	media_struct *info_slide;
-
-	img_taint_project(img);
-
-	bak = selected;
-	//~ while (selected)
-	//~ {
-		//~ gtk_tree_model_get_iter( model, &iter, selected->data );
-		//~ gtk_tree_model_get( model, &iter, 1, &info_slide, -1 );
-
-		//~ /* Avoid seg-fault when dealing with text/gradient slides */
-		//~ if (info_slide->full_path != NULL)
-		//~ {
-			//~ img_rotate_flip_slide(info_slide, info_slide->angle, !(info_slide->flipped));
-
-			//~ /* Display the flipped image in thumbnails iconview */
-			//~ img_scale_image( info_slide->full_path, img->video_ratio, 88, 0,
-							 //~ FALSE, img->background_color,
-							 //~ &thumb, NULL );
-			//~ gtk_list_store_set( img->thumbnail_model, &iter, 0, thumb, -1 );
-		//~ }
-		//~ selected = selected->next;
-	//~ }
-	GList *node20;
-	for(node20 = bak;node20 != NULL;node20 = node20->next) {
-		gtk_tree_path_free(node20->data);
-	}
-	g_list_free(bak);
-
-	/* If no slide is selected currently, simply return */
-	if( ! img->current_media )
-		return;
-
-	if (info_slide->full_path != NULL)
-	{
-		cairo_surface_destroy( img->current_image );
-		//~ img_scale_image( img->current_media->full_path, img->video_ratio,
-							 //~ 0, img->video_size[1], FALSE,
-							 //~ img->background_color, NULL, &img->current_image );
-		
-		gtk_widget_queue_draw( img->image_area );
-	}
-}
-
 void img_open_recent_slideshow(GtkWidget *menu, img_window_struct *img)
 {
 	const gchar *filename;
@@ -2264,5 +2065,30 @@ void img_media_duration_value_changed (GtkSpinButton *spinbutton, img_window_str
 		}
 	}
 	gtk_widget_queue_draw(img->timeline);
+	img_taint_project(img);
+}
+
+void img_opacity_value_changed(GtkRange *range, img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	Track *track;
+	media_timeline *item;
+	gdouble opacity;
+	
+	opacity = gtk_range_get_value(range);
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = g_array_index(priv->tracks, Track *, i);
+		if (track->type == 0)
+		{
+			for (gint q = 0; q < track->items->len; q++)
+			{
+				item = g_array_index(track->items, media_timeline  *, q);
+				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(item->button)))
+					item->opacity = opacity / 100.0;
+			}
+		}
+	}
+	gtk_widget_queue_draw(img->image_area);
 	img_taint_project(img);
 }

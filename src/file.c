@@ -96,11 +96,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 			
 			// Media audio
 			case 1:
-				g_key_file_set_string(img_key_file, conf, "audio_type", 			entry->audio_type);
-				g_key_file_set_string(img_key_file, conf, "audio_duration", 	entry->audio_duration);
-				g_key_file_set_integer(img_key_file, conf, "bitrate",			 	entry->bitrate);
-				g_key_file_set_integer(img_key_file, conf, "sample_rate",		entry->sample_rate);
-				g_key_file_set_string(img_key_file, conf, "metadata", 			entry->metadata);
+			
 			break;
 			
 			// Text
@@ -174,7 +170,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				for (gint q = 0; q < track->items->len; q++)
 				{
 					item = g_array_index(track->items, media_timeline  *, q);
-					g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;", item->id, item->start_time, item->duration, item->transition_id);
+					g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;%2.2f;", item->id, item->start_time, item->duration, item->transition_id, item->opacity);
 				}
 				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
 			}
@@ -352,7 +348,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			case 0:
 				media->width 			= g_key_file_get_integer( img_key_file, conf, "width", NULL );
 				media->height 			= g_key_file_get_integer( img_key_file, conf, "height", NULL );
-				media->image_type = g_key_file_get_string( img_key_file, conf, "image_type", NULL );
+				media->image_type 	= g_key_file_get_string( img_key_file, conf, "image_type", NULL );
 				media->angle 			= g_key_file_get_integer( img_key_file, conf, "angle", NULL );
 				media->flipped			= g_key_file_get_boolean( img_key_file, conf, "flipped", NULL );
 				img_add_media(media->full_path, media, img);
@@ -360,15 +356,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			
 			//Media audio
 			case 1:
-				gchar *metadata = NULL;
-				media->audio_type 			= g_key_file_get_string( img_key_file, conf, "audio_type", NULL );
-				media->audio_duration	= g_key_file_get_string( img_key_file, conf, "audio_duration", NULL );
-				media->bitrate 				= g_key_file_get_integer( img_key_file, conf, "bitrate", NULL );
-				media->sample_rate		= g_key_file_get_integer( img_key_file, conf, "sample_rate", NULL );
-				metadata							= g_key_file_get_string(img_key_file, conf, "metadata", NULL);
-				g_stpcpy(media->metadata, metadata);
 				img_add_media(media->full_path, media, img);
-				g_free(metadata);
 			break;
 			
 			// Text
@@ -482,16 +470,16 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				//~ img_message(img, string);
 				//~ g_free(string);
             //~ }
-			g_free(conf);
 		} //End switch media type
+		g_free(conf);
 	}
 	img->next_id = ++number;
+	
 	// If some media were not found display an error dialog
 	if (media_not_found->len > 0)
-	{
 		img_message(img, media_not_found->str);
-		g_string_free(media_not_found, TRUE);
-	}
+
+	g_string_free(media_not_found, TRUE);
 
 	//Add the additional tracks first to avoid messing up the pointers with the track sorting by type
 	if (track_nr > 2)
@@ -523,13 +511,14 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 		values = g_strsplit(value_string, ";", -1);
 		number = g_strv_length(values);
-		for (gint q = 0; q < number -2; q+=4)
+		for (gint q = 0; q < number -2; q+=5)
 		{
 			item = g_new0(media_timeline, 1);
 			item->id 				=	g_ascii_strtoll(values[q+0], NULL, 10);
 			item->start_time 	=	g_ascii_strtod(values[q+1], NULL);
 			item->duration 		=	g_ascii_strtod(values[q+2], NULL);
 			item->transition_id=	g_ascii_strtoll(values[q+3], NULL, 10);
+			item->opacity		=	g_ascii_strtod(values[q+4], NULL);
 
 			// Read the media filename and media type again to create the image in the toggle button
 			conf2 = g_strdup_printf("media %d", item->id);
@@ -543,7 +532,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				gtk_tree_model_get(model, &iter, 2, &render, 0, &pix, -1);
 				item->render = render;
 				item->tree_path = g_strdup(spath);
-			
+				img_create_cached_cairo_surface(img, item->id, media_filename);
+
 				if(gtk_tree_model_iter_parent(model, &parent_iter, &iter))
 				{
 					gtk_tree_model_get(model, &parent_iter, 1, &trans_group, -1);
@@ -552,10 +542,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				}
 			}
 			g_free(conf2);
-				
+
 			img_timeline_create_toggle_button(item, media_type, media_filename, img);
-			if (item->media_type == 0)
-				img_create_cached_cairo_surface(img, item->id, media_filename);
 			g_free(media_filename);
 				
 			//Position the toggle button in the timeline
@@ -569,6 +557,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			g_array_append_val(track->items, item);
 		}
 		g_strfreev(values);
+		g_free(value_string);
 next:
 		posy += TRACK_HEIGHT + TRACK_GAP;
 		g_free(conf);

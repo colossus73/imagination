@@ -58,7 +58,6 @@ static void img_open_paypal_page(GtkMenuItem *, img_window_struct *);
 static gboolean img_media_library_popup(GtkWidget *,  GdkEvent  *, img_window_struct *);       
 static void img_media_model_remove_media(GtkWidget *, img_window_struct *);
 static void img_media_show_properties(GtkWidget *, img_window_struct *);
-static void img_free_cached_preview_surfaces(gpointer );
 
 GtkWidget *button1,  *button2, *toggle_button_slide_motion, *button5, *beginning, *end;
 
@@ -130,6 +129,8 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	GtkWidget *vbox_frames;
 	GtkWidget *transition_label;
 	GtkWidget *duration_label;
+	GtkWidget *opacity_label;
+	GtkWidget *volume_label;
 	GtkWidget *vbox_slide_motion;
 	GtkWidget *viewport;
 	GtkWidget *hbox_motion, *stop_points_label;
@@ -165,7 +166,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->video_size[0] = 1280;
 	img_struct->video_size[1] = 720;
 	img_struct->video_ratio = (gdouble)1280 / 720;
-	img_struct->export_fps = 30;
+	img_struct->export_fps = 25;
     //img_struct->audio_fadeout = 5;
 
 	img_struct->cached_preview_surfaces = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, img_free_cached_preview_surfaces);
@@ -476,35 +477,31 @@ img_window_struct *img_create_window(gboolean dark_theme)
 
 	/* Create the transition widget section */
 	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	g_object_set (vbox, "margin-right", 10, "valign", GTK_ALIGN_START, NULL);
+	g_object_set (vbox, "margin-right", 10, "margin-top", 10, "valign", GTK_ALIGN_START, NULL);
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox);
 	
-	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
+	img_struct->transition_hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), img_struct->transition_hbox, FALSE, FALSE, 10);
 	
-	transition_label = gtk_label_new(_("<span size='large'><b>Transition Type:</b></span>"));
-	gtk_box_pack_start (GTK_BOX (hbox), transition_label, TRUE, TRUE, 5);
-	gtk_label_set_use_markup(GTK_LABEL(transition_label), TRUE);
-	gtk_label_set_xalign(GTK_LABEL(transition_label), 0.0);
-
-	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 10);
+	img_struct->transition_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), img_struct->transition_hbox, TRUE, FALSE, 0);
 
 	img_struct->transition_type = _gtk_combo_box_new_text( TRUE );
-	gtk_box_pack_start(GTK_BOX(hbox),img_struct->transition_type, FALSE, FALSE, 10);
+	gtk_widget_set_tooltip_text(img_struct->transition_type,_("Transition type"));
+	gtk_box_pack_start(GTK_BOX(img_struct->transition_hbox),img_struct->transition_type, FALSE, FALSE, 10);
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))), 1, GTK_SORT_ASCENDING);
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(gtk_combo_box_get_model(GTK_COMBO_BOX(img_struct->transition_type))),1, img_sort_none_before_other,NULL,NULL);
 	g_signal_connect (img_struct->transition_type, "changed",G_CALLBACK (img_combo_box_transition_type_changed),img_struct);
 
 	img_struct->random_button = gtk_button_new_with_mnemonic (_("Random"));
-	gtk_box_pack_start(GTK_BOX(hbox), img_struct->random_button, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(img_struct->transition_hbox), img_struct->random_button, FALSE, FALSE, 10);
 	gtk_widget_set_tooltip_text(img_struct->random_button,_("Press SHIFT+A to select/unselect all picture media items on the timeline"));
 	g_signal_connect (img_struct->random_button,"clicked",G_CALLBACK (img_random_button_clicked),img_struct);
 
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 10);
-	
-	duration_label = gtk_label_new (_("Media duration:"));
+
+	duration_label = gtk_label_new (_("Duration:"));
 	gtk_label_set_xalign(GTK_LABEL(duration_label), 0.0);
 	gtk_box_pack_start(GTK_BOX(hbox), duration_label, FALSE, FALSE, 10);
 
@@ -513,17 +510,41 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	gtk_widget_set_tooltip_text(img_struct->media_duration,_("seconds"));
 	gtk_box_pack_start(GTK_BOX(hbox), img_struct->media_duration, FALSE, FALSE, 10);
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->media_duration),TRUE);
-	g_signal_connect (G_OBJECT (img_struct->media_duration), "value-changed", G_CALLBACK (img_media_duration_value_changed),img_struct);
+	g_signal_connect(G_OBJECT(img_struct->media_duration), "value-changed", G_CALLBACK (img_media_duration_value_changed),img_struct);
+
+	img_struct->opacity_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), img_struct->opacity_hbox, TRUE, FALSE, 5);
+
+	opacity_label = gtk_label_new (_("Opacity:"));
+	gtk_label_set_xalign(GTK_LABEL(opacity_label), 0.0);
+	gtk_label_set_yalign(GTK_LABEL(opacity_label), 0.5);
+	gtk_box_pack_start(GTK_BOX(img_struct->opacity_hbox), opacity_label, FALSE, FALSE, 10);
+
+	img_struct->media_opacity = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+    g_signal_connect(img_struct->media_opacity, "value-changed", G_CALLBACK(img_opacity_value_changed), img_struct);
+    gtk_box_pack_start(GTK_BOX(img_struct->opacity_hbox), img_struct->media_opacity, TRUE, TRUE, 5);
+    
+    img_struct->volume_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), img_struct->volume_hbox, TRUE, FALSE, 5);
+
+	volume_label = gtk_label_new (_("Volume:"));
+	gtk_label_set_xalign(GTK_LABEL(volume_label), 0.0);
+	gtk_label_set_yalign(GTK_LABEL(volume_label), 0.5);
+	gtk_box_pack_start(GTK_BOX(img_struct->volume_hbox),volume_label, FALSE, FALSE, 10);
+
+	img_struct->media_volume = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+    //g_signal_connect(img_struct->media_volume, "value-changed", G_CALLBACK(img_volume_value_changed), img_struct);
+    gtk_box_pack_start(GTK_BOX(img_struct->volume_hbox), img_struct->media_volume, TRUE, TRUE, 5);
 
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
 	g_object_set (G_OBJECT (scrollable_window),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
-	
+
 	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	g_object_set (vbox, "margin-right", 10, NULL);
 	gtk_container_add (GTK_CONTAINER (scrollable_window), vbox);
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), scrollable_window);
-	
+
 	//1st row: font selector and font color widgets
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
@@ -532,7 +553,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
 	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
 	gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 5);
-	
+
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
 
@@ -967,7 +988,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	css_string = g_strdup_printf(
     ".iconview-dragging { background-color: transparent}"
     "popover {border: 1px solid #f4d27b; padding: 0px;}"
-    "button.timeline-button { border-width: 1px; border-style: solid; border-color: #000000; outline-width: 0; background: %s; padding: 0; margin: 0; }"
+    "button.timeline-button {border-radius:0; border-width: 1px; border-style: solid; border-color: #000000; outline-width: 0; background: %s; padding: 0; margin: 0; }"
     "button.timeline-button:focus { outline-width: 0; border-width: 1px; border-style: solid; border-color: %s; padding: 0; margin: 0; }"
     "button.timeline-button:not(:focus) { outline-width: 0; border-width: 1px; border-style: solid; border-color: %s; background: %s; padding: 0; margin: 0; }"
     "button.timeline-button:checked { outline-width: 0; border-width: 1px; border-style: solid; border-color: %s; background: #3584e4; padding: 0; margin: 0; }"
@@ -1676,31 +1697,3 @@ void img_change_media_library_size(GtkPaned *widget, GParamSpec *unused, img_win
     gtk_widget_set_size_request(img->media_iconview, iconview_width, -1);
 }
 
-static void img_free_cached_preview_surfaces(gpointer data)
-{
-	cairo_surface_t *surface = data;
-	cairo_surface_destroy(surface);
-}
-
-void img_create_cached_cairo_surface(img_window_struct *img, gint id, gchar *full_path)
-{
-	GdkPixbuf *pix = NULL;
-	GtkAllocation allocation;
-	gint item_id = 0;
-	cairo_surface_t *surface;
-	cairo_t *cr;
-
-	if (! g_hash_table_contains(img->cached_preview_surfaces, GINT_TO_POINTER(id)))
-	{
-		gtk_widget_get_allocation(img->image_area, &allocation);
-		pix = gdk_pixbuf_new_from_file_at_scale(full_path, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
-		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,  gdk_pixbuf_get_width(pix), gdk_pixbuf_get_height(pix));
-		cr = cairo_create(surface);
-		gdk_cairo_set_source_pixbuf(cr, pix, 0, 0);
-		cairo_paint(cr);
-		cairo_destroy(cr);
-		g_object_unref(pix);
-
-		g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(id), (gpointer) surface);
-	}
-}

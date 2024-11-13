@@ -57,6 +57,7 @@ typedef struct
     int size;               		  		// Size of raw_samples buffer in bytes
     double current_time;
 	volatile gint is_playing;
+	GMutex play_mutex;
 } AudioData;
 
 struct _ImgMediaAudioButton
@@ -81,7 +82,7 @@ G_DECLARE_FINAL_TYPE(ImgMediaAudioButton, img_media_audio_button, IMG, MEDIA_AUD
 GtkWidget *img_media_audio_button_new();
 ImgMediaAudioButtonPrivate *img_media_audio_button_get_private_struct(ImgMediaAudioButton *);
 gboolean img_load_audio_file(ImgMediaAudioButton *, const char *);
-int img_play_audio_alsa(media_timeline *);
+int img_play_audio_alsa(img_window_struct *);
 G_END_DECLS
 
 #endif

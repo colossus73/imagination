@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	intltool-update.in
 
 ACLOCAL_AMFLAGS = -I m4
+AM_CFLAGS = -Wall -Wextra -O0 -g
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir);

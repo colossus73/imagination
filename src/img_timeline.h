@@ -75,13 +75,14 @@ struct _media_timeline
 	gdouble			width;
 	gdouble			start_time;
     gdouble			duration;
-    gboolean 		to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
-    gboolean 		is_playing;			//This is needed during the preview
-	enum 				{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
-	gboolean 		button_pressed;
+    gdouble			opacity;
+    gboolean 			to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
+    gboolean 			is_playing;			//This is needed during the preview
+	enum 					{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
+	gboolean 			button_pressed;
 	GtkWidget 		*button;
-	gchar    			*tree_path; 			/* Transition model path to transition */
-	gint       			transition_id; 		/* Transition id */
+	gchar    				*tree_path; 			/* Transition model path to transition */
+	gint       				transition_id; 		/* Transition id */
 	gchar 				*trans_group; 		/* Transition group */
 	ImgRender  render;        			/* Transition render function */
 };
@@ -130,12 +131,13 @@ gint img_timeline_get_final_time								(img_window_struct *);
 GArray *img_timeline_get_active_picture_media		(GtkWidget *, double );
 GArray *img_timeline_get_active_audio_media		(GtkWidget *, double );
 GArray *img_timeline_get_selected_items				(GtkWidget *);
+GArray *img_timeline_get_active_media_at_given_time(GtkWidget *, gdouble);
 void img_timeline_go_start_time								(GtkWidget *, img_window_struct *);
 void img_timeline_go_final_time(							GtkWidget *, img_window_struct *);
-void img_timeline_play_audio									(media_timeline *, double);
-void img_timeline_stop_audio									(media_timeline *);
+void img_timeline_play_audio									(media_timeline *, img_window_struct *, double);
+void img_timeline_stop_audio									(media_timeline *, img_window_struct *);
 void img_timeline_update_audio_states					(img_window_struct *, double );
-gdouble img_timeline_get_current_preview_time	(GtkWidget *);
+gboolean img_timeline_check_for_media_audio		(GtkWidget *);
 
 //Timeline events
 gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);

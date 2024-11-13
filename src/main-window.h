@@ -31,7 +31,6 @@
 img_window_struct *img_create_window(gboolean);
 void img_change_image_area_size(GtkPaned *, GParamSpec *,  img_window_struct *);
 void img_change_media_library_size(GtkPaned *, GParamSpec *,  img_window_struct *);
-void img_create_cached_cairo_surface(img_window_struct *, gint , gchar *);
 void img_text_font_set( GtkFontChooser  *, img_window_struct *);
 void img_font_color_changed( GtkColorChooser   *, img_window_struct *);
 void img_font_bg_color_changed( GtkColorChooser    *,  img_window_struct *);                   

@@ -21,62 +21,50 @@
 #include "support.h"
 #include "callbacks.h"
 
-static gboolean img_start_export( img_window_struct *img);
+static void img_start_export( img_window_struct *);
 static gint img_initialize_av_parameters(img_window_struct *, gint , gint , enum AVCodecID);
-static gboolean img_export_still( img_window_struct *img );
-static void img_export_pause_unpause( GtkToggleButton   *button, img_window_struct *img );
-static gboolean img_convert_cairo_frame_to_avframe(img_window_struct *img, cairo_surface_t *surface);
+static gboolean img_export_still(img_window_struct *);
+static void img_export_pause_unpause( GtkToggleButton  *, img_window_struct *);
+static gboolean img_convert_cairo_frame_to_avframe(img_window_struct *, cairo_surface_t *);
 static gboolean img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCodecContext *ctx, AVPacket *pkt, AVStream *stream);
+static gboolean img_export_project(img_window_struct *);
+static cairo_surface_t *img_get_next_composed_media(img_window_struct *);
 
-static gboolean img_start_export( img_window_struct *img)
+static void img_start_export( img_window_struct *img)
 {
-	GtkTreeIter   iter;
-	media_struct *entry;
-	GtkTreeModel *model;
-	GtkWidget    *dialog;
-	GtkWidget	 *image;
-	GtkWidget    *vbox, *hbox;
-	GtkWidget    *label;
-	GtkWidget    *progress;
-	AtkObject *atk;
-	gchar        *string;
-	cairo_t      *cr;
+	GtkWidget 	*dialog, *image, *vbox, *label, *hbox,*progress;
+	gchar 			*string;
 
-	/* Set export info */
 	img->export_is_running = 1;
-	
-	/* Create progress window with cancel and pause buttons, calculate
-	 * the total number of frames to display. */
-	dialog = gtk_window_new( GTK_WINDOW_TOPLEVEL );
+
+	dialog = gtk_window_new( GTK_WINDOW_TOPLEVEL);
 	img->export_dialog = dialog;
-	gtk_window_set_title( GTK_WINDOW( img->export_dialog ),
-						  _("Exporting the slideshow") );
+	gtk_window_set_title( GTK_WINDOW( img->export_dialog ), _("Exporting the sequence") );
 	g_signal_connect (G_OBJECT(img->export_dialog), "delete_event", G_CALLBACK (on_close_export_dialog), img);
-	gtk_container_set_border_width( GTK_CONTAINER( dialog ), 10 );
-	gtk_window_set_default_size( GTK_WINDOW( dialog ), 400, -1 );
-	gtk_window_set_type_hint( GTK_WINDOW( dialog ), GDK_WINDOW_TYPE_HINT_DIALOG );
-	gtk_window_set_modal( GTK_WINDOW( dialog ), TRUE );
-	gtk_window_set_transient_for( GTK_WINDOW( dialog ),
-								  GTK_WINDOW( img->imagination_window ) );
+	gtk_container_set_border_width( GTK_CONTAINER(dialog), 10);
+	gtk_window_set_default_size( GTK_WINDOW(dialog), 400, -1);
+	gtk_window_set_type_hint( GTK_WINDOW(dialog ), GDK_WINDOW_TYPE_HINT_DIALOG);
+	gtk_window_set_modal( GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_transient_for( GTK_WINDOW(dialog),  GTK_WINDOW( img->imagination_window));
 
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-	gtk_container_add( GTK_CONTAINER( dialog ), vbox );
+	gtk_container_add( GTK_CONTAINER( dialog ), vbox);
 
-	label = gtk_label_new( _("Preparing for export ...") );
-	gtk_label_set_xalign(GTK_LABEL(label), 0);
-	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
-	atk = gtk_widget_get_accessible(label);
-	atk_object_set_description(atk, _("Status of export"));
-	img->export_label = label;
-	gtk_box_pack_start( GTK_BOX( vbox ), label, FALSE, FALSE, 0 );
+	img->export_label = gtk_label_new(NULL);
+	string = g_strdup_printf( _("Media %d export progress:"), 1 );
+	gtk_label_set_label( GTK_LABEL(img->export_label), string);
+	g_free(string);
+	gtk_label_set_xalign(GTK_LABEL(img->export_label), 0);
+	gtk_label_set_yalign(GTK_LABEL(img->export_label), 0.5);
+	gtk_box_pack_start( GTK_BOX(vbox), img->export_label , FALSE, FALSE, 0);
 
 	progress = gtk_progress_bar_new();
 	img->export_pbar1 = progress;
 	string = g_strdup_printf( "%.2f", .0 );
-	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( progress ), string );
-	gtk_box_pack_start( GTK_BOX( vbox ), progress, FALSE, FALSE, 0 );
+	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( progress ), string);
+	gtk_box_pack_start( GTK_BOX( vbox ), progress, FALSE, FALSE, 0);
 
-	label = gtk_label_new( _("Overall progress:") );
+	label = gtk_label_new( _("Overall progress:"));
 	gtk_label_set_xalign(GTK_LABEL(label), 0);
 	gtk_label_set_yalign(GTK_LABEL(label), 0.5);
 	gtk_box_pack_start( GTK_BOX( vbox ), label, FALSE, FALSE, 0 );
@@ -105,118 +93,201 @@ static gboolean img_start_export( img_window_struct *img)
 
 	image = gtk_image_new_from_icon_name("list-remove", GTK_ICON_SIZE_BUTTON );
 	img->export_cancel_button = gtk_button_new_with_label(_("Cancel"));
-	gtk_button_set_always_show_image (GTK_BUTTON (img->export_cancel_button), TRUE);
-	gtk_button_set_image (GTK_BUTTON (img->export_cancel_button), image);
+	gtk_button_set_always_show_image(GTK_BUTTON (img->export_cancel_button), TRUE);
+	gtk_button_set_image (GTK_BUTTON(img->export_cancel_button), image);
 	
-	g_signal_connect_swapped( G_OBJECT( img->export_cancel_button ), "clicked",
-							  G_CALLBACK( img_close_export_dialog ), img );
-	gtk_box_pack_end( GTK_BOX( hbox ), img->export_cancel_button, FALSE, FALSE, 0 );
+	g_signal_connect_swapped(G_OBJECT(img->export_cancel_button), "clicked",  G_CALLBACK(img_close_export_dialog), img);
+	gtk_box_pack_end( GTK_BOX(hbox), img->export_cancel_button, FALSE, FALSE, 0 );
 
-	image = gtk_image_new_from_icon_name( "media-playback-pause", GTK_ICON_SIZE_BUTTON );
+	image = gtk_image_new_from_icon_name( "media-playback-pause", GTK_ICON_SIZE_BUTTON);
 	img->export_pause_button = gtk_toggle_button_new_with_label(_("Pause"));
-	gtk_button_set_always_show_image (GTK_BUTTON (img->export_pause_button), TRUE);
-	gtk_button_set_image (GTK_BUTTON (img->export_pause_button), image);
+	gtk_button_set_always_show_image(GTK_BUTTON (img->export_pause_button), TRUE);
+	gtk_button_set_image (GTK_BUTTON(img->export_pause_button), image);
+	g_signal_connect( G_OBJECT(img->export_pause_button), "toggled",  G_CALLBACK( img_export_pause_unpause ), img );
+	gtk_box_pack_end( GTK_BOX(hbox), img->export_pause_button, FALSE, FALSE, 0);
+	gtk_widget_show_all(dialog);
 
-	g_signal_connect( G_OBJECT( img->export_pause_button ), "toggled",
-					  G_CALLBACK( img_export_pause_unpause ), img );
-	gtk_box_pack_end( GTK_BOX( hbox ), img->export_pause_button, FALSE, FALSE, 0 );
+	// Create the surface to be passed to the encoder
+	img->exported_image = cairo_image_surface_create(CAIRO_FORMAT_RGB24, img->video_size[0], img->video_size[1]);
+	img->total_nr_frames = img->total_time * img->export_fps;
 
-	gtk_widget_show_all( dialog );
+	img->elapsed_timer = g_timer_new();
+	img->source_id = g_idle_add((GSourceFunc) img_export_project, img);
+}
 
-	/* Create first media */
-	//~ img->image1 = cairo_image_surface_create( CAIRO_FORMAT_RGB24,
-											  //~ img->video_size[0],
-											  //~ img->video_size[1] );
-	//~ cr = cairo_create( img->image1 );
-	//~ cairo_set_source_rgb( cr, img->background_color[0],
-							  //~ img->background_color[1],
-							  //~ img->background_color[2] );
-	//~ cairo_paint( cr );
-	//~ cairo_destroy( cr );
+static gboolean img_export_project(img_window_struct *img)
+{
+	media_timeline *media = NULL, *current_media = NULL;
+	GArray *current_media_array = NULL;
+	GArray *next_media_array = NULL;
+    cairo_surface_t *surface = NULL, *composite_surface = NULL;
+    cairo_surface_t *next_composite = NULL;
+    cairo_t *cr;
+    GdkPixbuf *pix = NULL;
+    gint max_width = 0, max_height = 0;
+    gdouble next_time, current_end_time, transition_duration;
+    gboolean is_transitioning = FALSE;
+    
+    // Get export dimensions
+    gint export_width = cairo_image_surface_get_width(img->exported_image);
+    gint export_height = cairo_image_surface_get_height(img->exported_image);
 
-	//~ /* Load first media item from timeline */
-	//~ model = GTK_TREE_MODEL( img->media_model );
-	//~ gtk_tree_model_get_iter_first( model, &iter );
-	//~ gtk_tree_model_get( model, &iter, 1, &entry, -1 );
-
-	gboolean success = FALSE;
-
-	if( ! entry->full_path )
+	current_media_array = img_timeline_get_active_media_at_given_time(img->timeline, img->current_timeline_index);
+	if (current_media_array->len == 0)
 	{
-		//~ success = img_scale_empty_slide( entry->gradient, entry->countdown, entry->g_start_point,
-							//~ entry->g_stop_point, entry->g_start_color,
-							//~ entry->g_stop_color, 
-							//~ entry->countdown_color, 
-							//~ 0, entry->countdown_angle,
-							//~ img->video_size[0],
-							//~ img->video_size[1], NULL, &img->image2 );
+		img_post_export(img);
+		return G_SOURCE_REMOVE;
+	}
+	current_media = g_array_index(current_media_array, media_timeline *, 0);
+
+	if (current_media->transition_id > -1)
+		is_transitioning = TRUE;
+	else
+		is_transitioning = FALSE;
+  
+	// Find max dimensions for all current media
+	for (gint i = 0; i < current_media_array->len; i++)
+	{
+		media = g_array_index(current_media_array, media_timeline *, i);
+		pix = gdk_pixbuf_new_from_file_at_scale(img_get_media_filename(img, media->id), 1, 1, TRUE, NULL);
+		if (pix)
+		{
+			max_width = MAX(max_width, gdk_pixbuf_get_width(pix));
+			max_height = MAX(max_height, gdk_pixbuf_get_height(pix));
+			g_object_unref(pix);
+		}
+	}
+
+	if (is_transitioning)
+	{
+		current_media = g_array_index(current_media_array, media_timeline *, 0);
+		current_end_time = current_media->start_time + current_media->duration;	
+		transition_duration = 1.5;
+		img->transition_progress = 1.0 - ((current_end_time - img->current_timeline_index) / transition_duration);
+		
+		next_time = current_end_time + 0.01;
+		next_media_array = img_timeline_get_active_picture_media(img->timeline, next_time);
+		
+		if (next_media_array)
+		{
+			for (gint i = 0; i < next_media_array->len; i++)
+			{
+				media = g_array_index(next_media_array, media_timeline *, i);
+				pix = gdk_pixbuf_new_from_file_at_scale(img_get_media_filename(img, media->id), 1, 1, TRUE, NULL);
+				if (pix)
+				{
+					max_width = MAX(max_width, gdk_pixbuf_get_width(pix));
+					max_height = MAX(max_height, gdk_pixbuf_get_height(pix));
+					g_object_unref(pix);
+				}
+			}
+		}
+	}
+
+	// Create main composite surface first - using export dimensions
+	composite_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, export_width, export_height);
+		
+	// Compose current media items
+	cr = cairo_create(composite_surface);
+
+	// Fill the background colour with the user chosen color
+	cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
+	cairo_paint(cr);
+
+	for (gint i = current_media_array->len - 1; i >= 0; i--)
+	{
+		media = g_array_index(current_media_array, media_timeline *, i);
+		pix = gdk_pixbuf_new_from_file(img_get_media_filename(img, media->id), NULL);
+		if (pix)
+		{
+			surface = gdk_cairo_surface_create_from_pixbuf(pix, 0, NULL);
+			if (surface)
+			{
+				// Center the image on the export surface
+				gint x = (export_width - cairo_image_surface_get_width(surface)) / 2;
+				gint y = (export_height - cairo_image_surface_get_height(surface)) / 2;
+				cairo_set_source_surface(cr, surface, x, y);
+				cairo_paint(cr);
+				cairo_surface_destroy(surface);
+			}
+			g_object_unref(pix);
+		}
+	}
+	cairo_destroy(cr);
+
+	if (is_transitioning && next_media_array && next_media_array->len > 0)
+	{
+		next_composite = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, export_width, export_height);
+		cr = cairo_create(next_composite);
+
+		// Fill the background colour with the user chosen color
+		cairo_set_source_rgb(cr, img->background_color[0], img->background_color[1], img->background_color[2]);
+		cairo_paint(cr);
+
+		for (gint i = next_media_array->len - 1; i >= 0; i--)
+		{
+			media = g_array_index(next_media_array, media_timeline *, i);
+			pix = gdk_pixbuf_new_from_file(img_get_media_filename(img, media->id), NULL);
+			if (pix)
+			{
+				surface = gdk_cairo_surface_create_from_pixbuf(pix, 0, NULL);
+				if (surface)
+				{
+					// Center the image on the export surface
+					gint x = (export_width - cairo_image_surface_get_width(surface)) / 2;
+					gint y = (export_height - cairo_image_surface_get_height(surface)) / 2;
+					cairo_set_source_surface(cr, surface, x, y);
+					cairo_paint(cr);
+					cairo_surface_destroy(surface);
+				}
+				g_object_unref(pix);
+			}
+		}
+		cairo_destroy(cr);
+
+		// Apply transition effect
+		cr = cairo_create(composite_surface);
+		current_media->render(cr, composite_surface, next_composite, img->transition_progress);
+		cairo_destroy(cr);
+		cairo_surface_destroy(next_composite);
 	}
 	else
 	{
-		//~ success = img_scale_image( entry->full_path, img->video_ratio,
-						 //~ 0, 0, FALSE,
-						 //~ img->background_color, NULL, &img->image2 );
+		cr = cairo_create(composite_surface);
+		cairo_set_source_surface(cr, composite_surface, 0, 0);
+		cairo_paint(cr);
+		cairo_destroy(cr);
+		img->transition_progress = 0.0;
 	}
-
-	if (!success) {
-	   // img->image2 = NULL;
-	    img_stop_export(img);
-	    return (FALSE);
-	}
-
-	/* Add export idle function and set initial values */
-	img->current_media = entry;
-	img->total_nr_frames = img->total_time * img->export_fps;
-	img->displayed_frame = 0;
-	img->next_slide_off = 0;
-
-	/* Create surfaces to be passed to transition renderer */
-	//~ img->image_from = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0],  img->video_size[1] );
-	//~ img->image_to = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0], img->video_size[1] );
-	img->exported_image = cairo_image_surface_create( CAIRO_FORMAT_RGB24, img->video_size[0], img->video_size[1] );
-
-	/* Fade empty slide */
-	if (entry->gradient == 3)
-	{
-		cairo_t	*cr;
-		//cr = cairo_create(img->image_from);
-		cairo_set_source_rgb(cr,	entry->g_start_color[0],
-									entry->g_start_color[1],
-									entry->g_start_color[2] );
-		cairo_paint( cr );
-			
-		//cr = cairo_create(img->image_to);
-		cairo_set_source_rgb(cr,	entry->g_stop_color[0],
-									entry->g_stop_color[1],
-									entry->g_stop_color[2] );
-		cairo_paint( cr );
-	}	
-
-	/* Set stop points */
-	img->cur_point = NULL;
-	img->point1 = NULL;
-	img->point2 = (ImgStopPoint *)( img->current_media->no_points ?	img->current_media->points->data : NULL );
-
-	/* Set first slide */
-	//gtk_tree_model_get_iter_first( GTK_TREE_MODEL( img->media_model ), &img->cur_ss_iter );
-
-	img->export_slide = 1;
-
-	if (img->current_media->gradient == 4)
-			img->source_id = g_timeout_add( 100, (GSourceFunc)img_empty_slide_countdown_preview, img );
-	//~ else
-		//~ img->source_id = g_idle_add( (GSourceFunc)img_export_transition, img );
 	
-	img->elapsed_timer = g_timer_new();
+	if (next_media_array)
+		g_array_free(next_media_array, FALSE);
 
-	string = g_strdup_printf( _("Slide %d export progress:"), 1 );
-	gtk_label_set_label( GTK_LABEL( img->export_label ), string );
-	g_free( string );
+	g_array_free(current_media_array, FALSE);
+	
+	// Draw to export surface
+	cr = cairo_create(img->exported_image);
+	cairo_set_source_surface(cr, composite_surface, 0, 0); 
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	
+	cairo_surface_destroy(composite_surface);
 
-	/* Update display 
-	gtk_widget_queue_draw( img->image_area );*/
+	//Convert the cairo surface to AVframe and send it to the encoder
+	img->export_slide++;
+	gboolean ok = img_convert_cairo_frame_to_avframe(img, img->exported_image);
+	
+	if (img->current_timeline_index >= img->total_time)
+	{
+		g_source_remove(img->source_id);
+		img->source_id = 0;
+		img_post_export(img);
+		return G_SOURCE_REMOVE;
+	}
 
-	return( FALSE );
+	img->current_timeline_index += 1.0;
+	g_print("\r%d - %d", (int)img->current_timeline_index, (int)img->total_time);
+	return G_SOURCE_CONTINUE;
 }
 
 gboolean on_close_export_dialog(GtkWidget * widget, GdkEvent * event,  img_window_struct *img)
@@ -308,7 +379,7 @@ static gboolean img_export_still( img_window_struct *img )
 			img_calc_next_slide_time_offset( img, img->export_fps );
 			img->export_slide++;
 
-			string = g_strdup_printf( _("Slide %d export progress:"),
+			string = g_strdup_printf( _("Media %d export progress:"),
 										  img->export_slide );
 			gtk_label_set_label( GTK_LABEL( img->export_label ), string );
 			g_free( string );
@@ -337,18 +408,14 @@ static gboolean img_export_still( img_window_struct *img )
 
 	/* CLAMPS are needed here because of the loosy conversion when switching
 	 * from floating point to integer arithmetics. */
-	export_progress = CLAMP( (gdouble)img->slide_cur_frame /
-									  img->slide_nr_frames, 0, 1 );
+	export_progress = CLAMP( (gdouble)img->slide_cur_frame / img->slide_nr_frames, 0, 1 );
 	snprintf( string, 10, "%.2f%%", export_progress * 100 );
-	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar1 ),
-								   export_progress );
+	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar1 ), export_progress );
 	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( img->export_pbar1 ), string );
 
-	export_progress = CLAMP( (gdouble)img->displayed_frame /
-									  img->total_nr_frames, 0, 1 );
+	export_progress = CLAMP( (gdouble)img->displayed_frame /  img->total_nr_frames, 0, 1 );
 	snprintf( string, 10, "%.2f%%", export_progress * 100 );
-	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar2 ),
-								   export_progress );
+	gtk_progress_bar_set_fraction( GTK_PROGRESS_BAR( img->export_pbar2 ),   export_progress );
 	gtk_progress_bar_set_text( GTK_PROGRESS_BAR( img->export_pbar2 ), string );
 
 	/* Update the elapsed time */
@@ -356,20 +423,16 @@ static gboolean img_export_still( img_window_struct *img )
 	dummy = img_convert_seconds_to_time( (gint) img->elapsed_time);
 	gtk_label_set_text(GTK_LABEL(img->elapsed_time_label), dummy);
 	g_free(dummy);
-	
-	/* Draw every 10th frame of animation on screen 
-	if( img->displayed_frame % 10 == 0 )
-		gtk_widget_queue_draw( img->image_area );*/
 
-	return( TRUE );
+	return(TRUE);
 }
 
 static void img_export_pause_unpause( GtkToggleButton *button,  img_window_struct *img )
 {
-	if( gtk_toggle_button_get_active( button ) )
+	if( gtk_toggle_button_get_active(button))
 	{
-		/* Pause export */
-		g_source_remove( img->source_id );
+		// Pause export
+		g_source_remove(img->source_id);
 		g_timer_stop(img->elapsed_timer);
 	}
 	else
@@ -434,7 +497,7 @@ static gboolean img_convert_cairo_frame_to_avframe(img_window_struct *img, cairo
 gboolean img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCodecContext *ctx, AVPacket *pkt, AVStream *stream)
 {
 	 gint ret;
-	
+
     /* send the frame to the encoder */
     ret = avcodec_send_frame(ctx, frame);
     if (ret < 0)
@@ -467,11 +530,11 @@ gboolean img_export_encode_av_frame(AVFrame *frame, AVFormatContext *fmt, AVCode
 
 void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 {
-	gint			codec_id, ret;
+	gint			codec_id, ret, result, crf, slides_selected = 0;
 	GtkIconTheme *theme;
 	const gchar *filename;
 	GtkListStore	*liststore;
-	GtkTreeIter 	iter2;
+	GtkTreeIter 	iter, iter2;
 	GdkPixbuf		*icon_pixbuf;
 	GtkWidget	*dialog;
 	GtkWidget	*iconview;
@@ -481,9 +544,7 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 	GtkTreeModel *model;
 	GtkListStore *store;
 	GtkCellRenderer *cell;
-	GtkTreeIter   iter;
 	GList 		*selected = NULL;
-	gint		result, fr, crf, slides_selected = 0;
 	gchar *container[8];
 	container[0] = "MPEG-1 Video";
 	container[1] = "MPEG-2 Video";
@@ -647,14 +708,9 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 	gtk_widget_set_margin_start(audio_frame, 8);
 	gtk_widget_set_margin_end(audio_frame, 8);
 
-	/* Disable the whole Audio frame if there
-	 * is no music in the project */
-	//~ if (img->music_file_treeview)
-	//~ {
-		//~ model = gtk_tree_view_get_model(GTK_TREE_VIEW(img->music_file_treeview));
-		//~ if(gtk_tree_model_get_iter_first(model, &iter) == FALSE)
-			//~ gtk_widget_set_sensitive(audio_frame, FALSE);
-	//~ }
+	if ( ! img_timeline_check_for_media_audio(img->timeline))
+		gtk_widget_set_sensitive(audio_frame, FALSE);
+
 	label = gtk_label_new (_("<b>Audio Settings</b>"));
 	gtk_frame_set_label_widget (GTK_FRAME (audio_frame), label);
 	gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
@@ -737,7 +793,7 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 		filename = gtk_entry_get_text(GTK_ENTRY(slideshow_title_entry));
 		img->slideshow_filename = g_strdup(filename);
 	}
-	fr = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate));
+	img->export_fps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate));
 	crf = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(img->video_quality));
 
 	model = gtk_combo_box_get_model(GTK_COMBO_BOX(img->vcodec_menu));
@@ -748,7 +804,7 @@ void img_show_export_dialog (GtkWidget *button, img_window_struct *img )
 
 	gtk_widget_destroy( dialog );
 	
-	ret = img_initialize_av_parameters(img, fr, crf, codec_id);
+	ret = img_initialize_av_parameters(img, img->export_fps, crf, codec_id);
 
 	if ( ret < 0)
 	{
@@ -1045,7 +1101,7 @@ static gint img_initialize_av_parameters(	img_window_struct *img,
 	/* Write Imagination header in the metadata */
 	opts =  NULL;
 	av_dict_set(&opts, "movflags", "use_metadata_tags", 0);
-	av_dict_set(&img->video_format_context->metadata, "Made with Imagination:", VERSION, 0);
+	av_dict_set(&img->video_format_context->metadata, "Made with Imagination", VERSION, 0);
 	ret = avformat_write_header(img->video_format_context, &opts);
 	if (ret < 0)
 	{
@@ -1053,4 +1109,8 @@ static gint img_initialize_av_parameters(	img_window_struct *img,
 		return -1;
 	}
 	return TRUE;
+}
+
+static cairo_surface_t *img_get_next_composed_media(img_window_struct *img)
+{
 }

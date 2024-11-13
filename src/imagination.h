@@ -229,6 +229,8 @@ struct _img_window_struct
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*media_duration;
+	GtkWidget	*media_opacity;
+	GtkWidget	*media_volume;
 	GtkWidget	*timeline_scrolled_window;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
@@ -241,6 +243,9 @@ struct _img_window_struct
   	GdkCursor 	*cursor;										/* Cursor to be stored before going fullscreen */
 	GtkWidget   *vpaned;										/* Widget to allow timeline to be shrinked */
 	GtkWidget   *hpaned;										/* Widget to allow media library to be shrinked */
+	GtkWidget	*transition_hbox;
+	GtkWidget	*opacity_hbox;
+	GtkWidget	*volume_hbox;
 
 	/* Ken Burns related controls */
 	GtkWidget *ken_left;     /* Go to left stop point button */
@@ -357,6 +362,8 @@ struct _img_window_struct
 
 	/* Export dialog related stuff */
 	gint        		export_is_running;
+	gint 				current_timeline_index;
+	gint		     	export_fps;        				/* Frame rate for exported video */
 	GtkWidget   *export_pbar1;
 	GtkWidget   *export_pbar2;
 	GtkWidget   *export_label;
@@ -364,11 +371,10 @@ struct _img_window_struct
 	GtkWidget   *export_dialog;
 	GtkWidget   *export_cancel_button;
 	GtkWidget   *export_pause_button;
-	gdouble     	export_fps;        				/* Frame rate for exported video */
 	gdouble      	elapsed_time;      			/* Elapsed time during export */
-	guint        	export_slide;					/* Number of slide being exported */
+	guint        		export_slide;					/* Number of slide being exported */
 	GSourceFunc  export_idle_func;			/* Stored procedure for pause */
-	GTimer		 *elapsed_timer;				/* GTimer for the elapsed time */
+	GTimer			 *elapsed_timer;				/* GTimer for the elapsed time */
 
 	/* AV library stuff */
 	AVFrame 				*video_frame;
@@ -378,12 +384,13 @@ struct _img_window_struct
 	AVPacket					*video_packet;
 	AVPacket					*audio_packet;
 	AVFormatContext	*video_format_context;
-	struct SwsContext *sws_ctx;
+	struct SwsContext	*sws_ctx;
+	struct SwrContext	*swr_ctx;
 	
 	/* Alsa library stuff */
 	snd_pcm_t 	*pcm_handle;
-	gint64			current_pts;
-	
+	GSList		*media_playing;
+
 	/* Application related stuff */
 	gdouble  	image_area_zoom; 	/* Zoom to be applied to image area */
 	gint    		preview_fps;     			/* Preview frame rate */

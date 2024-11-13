@@ -97,6 +97,8 @@ gint img_calc_slide_duration_points( GList *list, gint   length );
 GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
 void img_taint_project(img_window_struct *);
 void img_sync_timings( media_struct  *, img_window_struct * );
+void img_free_cached_preview_surfaces(gpointer );
+void img_create_cached_cairo_surface(img_window_struct *, gint , gchar *);
 
 gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					gdouble          *p_start,

@@ -34,6 +34,7 @@ static void img_free_audio_data(AudioData *data)
         if (data->format_context)
             avformat_close_input(&data->format_context);
         
+        g_mutex_clear(&data->play_mutex);
         g_free(data);
     }
 }
@@ -240,6 +241,7 @@ static AudioData *img_create_audio_data_struct(AVFormatContext *pFormatContext, 
     data->sample_size = (int) av_get_bytes_per_sample(pDecoderContext->sample_fmt);
     data->channels = pDecoderContext->ch_layout.nb_channels;
     data->audio_stream_index = audio_stream_index;
+	g_mutex_init(&data->play_mutex);
 
     switch (pDecoderContext->sample_fmt)
     {
@@ -391,8 +393,9 @@ gboolean img_load_audio_file(ImgMediaAudioButton *button, const char *filename)
     AVCodecContext *codec_ctx = NULL;
     int audio_stream_index = -1;
 
-	const char *base_name = g_path_get_basename(filename);
+	gchar *base_name = g_path_get_basename(filename);
     priv->filename = g_strdup(base_name);
+	g_free(base_name);
 
     if (avformat_open_input(&format_ctx, filename, NULL, NULL) != 0) {
         g_warning("Could not open file %s", filename);
@@ -466,101 +469,114 @@ gboolean img_load_audio_file(ImgMediaAudioButton *button, const char *filename)
 	return TRUE;
 }
 
-
-int img_play_audio_alsa(media_timeline *media)
+int img_play_audio_alsa(img_window_struct *img)
 {
+	media_timeline *media = img->current_item;
 	ImgMediaAudioButtonPrivate *priv = img_media_audio_button_get_private_struct((ImgMediaAudioButton*)media->button);
+	snd_pcm_t *handle = NULL;
+	int16_t *buffer = NULL;
+	int rc = 0;
+	gboolean is_playing;
 	
-    snd_pcm_t *handle = NULL;
-    int16_t *buffer = NULL;
-    int rc = 0;
-
-    // Validate input parameters
-    if (! priv->audio_data || priv->audio_data->num_samples <= 0 || priv->audio_data->channels <= 0)
-    {
-        g_warning("Invalid audio data parameters");
-        return -1;
-    }
-
-    // Open PCM device
-    rc = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
-
-    // Set basic parameters
-    rc = snd_pcm_set_params(handle,
-                           SND_PCM_FORMAT_S16_LE,
-                           SND_PCM_ACCESS_RW_INTERLEAVED,
-                           priv->audio_data->channels,
-                           priv->audio_data->sample_rate,
-                           1,  // allow resampling
-                           100000);  // 0.1s latency
-
-    // Allocate buffer for samples
-    int buffer_size = 256 * priv->audio_data->channels; // Buffer size must account for channels;
-    buffer = g_malloc(buffer_size * sizeof(int16_t));
-    if (!buffer)
+	// Validate input parameters
+	if (!priv->audio_data || priv->audio_data->num_samples <= 0 || priv->audio_data->channels <= 0)
+	{
+		g_warning("Invalid audio data parameters");
+		return -1;
+	}
+	
+	// Open PCM device
+	rc = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	
+	// Set basic parameters
+	rc = snd_pcm_set_params(handle,
+						SND_PCM_FORMAT_S16_LE,
+						SND_PCM_ACCESS_RW_INTERLEAVED,
+						priv->audio_data->channels,
+						priv->audio_data->sample_rate,
+						1,  // allow resampling
+						100000);  // 0.1s latency
+	
+	// Allocate buffer for samples
+	int buffer_size = 256;
+	buffer = g_malloc(buffer_size * sizeof(int16_t));
+	if (!buffer)
     {
         g_warning("Failed to allocate buffer");
         rc = -ENOMEM;
         goto cleanup;
     }
 
-	while (priv->audio_data && g_atomic_int_get(&priv->audio_data->is_playing))
-	{
-		int start_sample = priv->audio_data->current_time * priv->audio_data->sample_rate * priv->audio_data->channels;
-		int remaining_samples = priv->audio_data->num_samples - start_sample;
-		int samples_to_write = MIN(buffer_size, remaining_samples);
-		int frames_to_write = samples_to_write / priv->audio_data->channels;
-	
-		if (samples_to_write <= 0)
-			break;
+    // Convert and write samples in chunks
+	int start_sample = (int)(priv->audio_data->current_time * priv->audio_data->sample_rate * priv->audio_data->channels);
+    int samples_written = 0;
+    int total_frames = (priv->audio_data->num_samples - start_sample) / priv->audio_data->channels;
 
-		// Convert float samples to 16-bit PCM
-		for (int frame = 0; frame < frames_to_write; frame++)
-		{
-			for (int channel = 0; channel < priv->audio_data->channels; channel++)
-			{
-				int sample_index = ((start_sample + frame) * priv->audio_data->channels) + channel;
-				float sample = priv->audio_data->samples[sample_index];
-				sample = CLAMP(sample, -1.0f, 1.0f);
-				buffer[frame * priv->audio_data->channels + channel] = (int16_t)(sample * 32767.0f);
-			}
-		}
-		// Write to ALSA device
-		int written = 0;
-		while (written < frames_to_write)
-		{
-			rc = snd_pcm_writei(handle,  buffer + (written * priv->audio_data->channels),  frames_to_write - written);
-			if (rc == -EAGAIN)
-			{
-				snd_pcm_wait(handle, 50);
-				continue;
-			}
-			else if (rc == -EPIPE)
-			{
-				g_warning("ALSA: Underrun occurred\n");
-				rc = snd_pcm_prepare(handle);
-				if (rc < 0)
-				{
-					g_warning("ALSA: Failed to recover from underrun: %s\n",  snd_strerror(rc));
-					goto cleanup;
-				}
-				continue;
-			} 
-			else if (rc < 0)
-			{
-				g_warning("ALSA: Error from writei: %s\n", snd_strerror(rc));
-				goto cleanup;
-			}
-			priv->audio_data->current_time += (double)samples_to_write / (priv->audio_data->sample_rate * priv->audio_data->channels);
 	
-			if (priv->audio_data->current_time >= media->start_time + media->duration)
-				break;
-			written += rc;
+    while (samples_written < total_frames)
+    {
+		g_mutex_lock(&priv->audio_data->play_mutex);
+        is_playing = g_atomic_int_get(&priv->audio_data->is_playing);
+        g_mutex_unlock(&priv->audio_data->play_mutex);
+
+        if (!is_playing)
+            break;
+  
+        int frames_to_write = MIN(buffer_size / priv->audio_data->channels, total_frames - samples_written);
+        
+        // Convert float samples to 16-bit PCM
+        for (int frame = 0; frame < frames_to_write; frame++)
+        {
+            for (int channel = 0; channel < priv->audio_data->channels; channel++)
+            {
+                int sample_index = (start_sample + (samples_written + frame) * priv->audio_data->channels) + channel;
+                float sample = priv->audio_data->samples[sample_index];
+                sample = CLAMP(sample, -1.0f, 1.0f);
+                buffer[frame * priv->audio_data->channels + channel] = (int16_t)(sample * 32767.0f);
+            }
+        }
+        // Write to ALSA device
+        int written = 0;
+        while (written < frames_to_write)
+        {
+            rc = snd_pcm_writei(handle,  buffer + (written * priv->audio_data->channels),  frames_to_write - written);
+            if (rc == -EAGAIN)
+            {
+                snd_pcm_wait(handle, 50);
+                continue;
+            } else if (rc == -EPIPE)
+            {
+                g_warning("Underrun occurred\n");
+                rc = snd_pcm_prepare(handle);
+                if (rc < 0) {
+                    g_warning("Failed to recover from underrun: %s\n", 
+                             snd_strerror(rc));
+                    goto cleanup;
+                }
+                continue;
+            } else if (rc < 0)
+            {
+                g_warning("Error from writei: %s\n", snd_strerror(rc));
+                goto cleanup;
+            }
+            
+            written += rc;
+        
+			g_mutex_lock(&priv->audio_data->play_mutex);
+			is_playing = g_atomic_int_get(&priv->audio_data->is_playing);
+			g_mutex_unlock(&priv->audio_data->play_mutex);
+				
+			if (!is_playing)
+				goto cleanup;
 		}
+		samples_written += frames_to_write;
 	}
+    // Successful completion
+    rc = 0;
 
 cleanup:
-	img_timeline_stop_audio(media);
+//g_print("Chiamo img_timeline_stop_audio da img_play_audio_alsa per %d\n",media->id); 
+	img_timeline_stop_audio(media, img);
     if (buffer)
         g_free(buffer);
 
@@ -571,3 +587,4 @@ cleanup:
     }
     return rc;
 }
+

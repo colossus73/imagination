@@ -889,13 +889,16 @@ void img_message(img_window_struct *img, gchar *message)
 
 gint img_ask_user_confirmation(img_window_struct *img_struct, gchar *msg)
 {
-	GtkWidget *dialog;
+	GtkWidget *dialog, *action_area;
 	gint response;
-
+	
 	dialog = gtk_message_dialog_new(GTK_WINDOW(img_struct->imagination_window),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL, "%s", msg);
 	gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), msg);
 	gtk_container_set_border_width( GTK_CONTAINER(dialog ), 10 );		
 	gtk_window_set_title(GTK_WINDOW(dialog),"Imagination");
+
+	action_area = gtk_dialog_get_action_area(GTK_DIALOG(dialog));
+    gtk_button_box_set_layout(GTK_BUTTON_BOX(action_area), GTK_BUTTONBOX_SPREAD);
 	response = gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (GTK_WIDGET (dialog));
 	
@@ -1175,3 +1178,31 @@ const gchar *img_get_media_filename(img_window_struct *img, gint id)
 	return NULL; 
 }
 
+void img_free_cached_preview_surfaces(gpointer data)
+{
+	cairo_surface_t *surface = data;
+	cairo_surface_destroy(surface);
+}
+
+void img_create_cached_cairo_surface(img_window_struct *img, gint id, gchar *full_path)
+{
+	GdkPixbuf *pix = NULL;
+	GtkAllocation allocation;
+	gint item_id = 0;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+
+	if (! g_hash_table_contains(img->cached_preview_surfaces, GINT_TO_POINTER(id)))
+	{
+		gtk_widget_get_allocation(img->image_area, &allocation);
+		pix = gdk_pixbuf_new_from_file_at_scale(full_path, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
+		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,  gdk_pixbuf_get_width(pix), gdk_pixbuf_get_height(pix));
+		cr = cairo_create(surface);
+		gdk_cairo_set_source_pixbuf(cr, pix, 0, 0);
+		cairo_paint(cr);
+		cairo_destroy(cr);
+		g_object_unref(pix);
+
+		g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(id), (gpointer) surface);
+	}
+}

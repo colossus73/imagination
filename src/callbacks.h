@@ -39,8 +39,6 @@ void img_detect_media_orientation_from_pixbuf(GdkPixbuf *, gboolean *, ImgAngle 
 void img_swap_preview_button_images( img_window_struct *, gboolean);
 void img_select_all_media(GtkWidget *, img_window_struct *);
 void img_unselect_all_media(GtkWidget *, img_window_struct *);
-void img_rotate_slides_left( GtkWidget  *, img_window_struct * );
-void img_rotate_slides_right( GtkWidget  *,  img_window_struct * );
 void img_show_about_dialog (GtkMenuItem *,img_window_struct *);
 void img_go_fullscreen(GtkMenuItem *, img_window_struct *);
 void img_media_library_drag_begin(GtkWidget *,GdkDragContext *, img_window_struct *);
@@ -52,6 +50,7 @@ void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
 void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
 void img_zoom_fit( GtkWidget *, img_window_struct *);
 void img_media_duration_value_changed (GtkSpinButton *, img_window_struct *);
+void img_opacity_value_changed(GtkRange *, img_window_struct *);
 void img_choose_project_filename(GtkWidget *,img_window_struct *);
 void img_close_project(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
@@ -77,7 +76,6 @@ void img_add_stop_point( GtkButton         *button,
 					img_window_struct *img );
 void img_update_stop_point( GtkSpinButton *button, img_window_struct *img );
 void img_delete_stop_point( GtkButton *button, img_window_struct *img );
-
 void img_goto_prev_point( GtkButton  *button,  img_window_struct *img );
 void img_goto_next_point( GtkButton  *button,  img_window_struct *img );
 void img_goto_point ( GtkEntry          *entry,  img_window_struct *img );
@@ -91,11 +89,7 @@ void img_add_empty_slide( GtkMenuItem  *item, img_window_struct *img );
 gboolean  img_save_window_settings( img_window_struct *img );
 gboolean img_load_window_settings( img_window_struct *img );
 void img_set_window_default_settings( img_window_struct *img );
-void img_rotate_flip_slide( media_struct   *slide, ImgAngle        angle,  gboolean        flipped);
 void img_pattern_clicked(GtkMenuItem *item, img_window_struct *img);
-
 void img_fadeout_duration_changed (GtkSpinButton *spinbutton, img_window_struct *img);
-
-void img_flip_horizontally(GtkMenuItem *item, img_window_struct *img);
 gboolean img_transition_timeout(img_window_struct *);
 #endif
