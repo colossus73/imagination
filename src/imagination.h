@@ -28,18 +28,10 @@
 #include <alsa/asoundlib.h>
 
 #define comment_string \
-	"Imagination 2.0 Slideshow Project - http://imagination.sf.net" //The version number is left to 2.0 to allow compatibility of project files generated with older versions
+	"Imagination 4.0 Slideshow Project - http://imagination.sf.net"
 
 typedef struct _media_timeline media_timeline;
-
-typedef enum
-{
-	ANGLE_0 = 0,
-	ANGLE_90,
-	ANGLE_180,
-	ANGLE_270
-}
-ImgAngle;
+typedef struct _media_text media_text;
 
 /*
  * TextAnimationFunc:
@@ -73,7 +65,7 @@ typedef void (*TextAnimationFunc)( cairo_t     *cr,
 								   gint         posy,
 								   gint         angle,
 								   gdouble  progress,
-								   media_struct * );
+								   media_text * );
 
 /* Prototype of transition renderer */
 typedef void (*ImgRender)( cairo_t *,
@@ -109,8 +101,7 @@ struct _media_struct
 	 * 0 - image
 	 * 1 - audio
 	 * 2 - video
-	 * 3 - text
-	 * 4 - transition */
+	*/
 	
 	gint			media_type;
 	gint			id;						// This is needed to link the same media when placed on the timeline
@@ -126,9 +117,6 @@ struct _media_struct
 	gchar		*video_duration;
 	gchar		*audio_duration;
 	gchar		metadata[1024];
-
-	ImgAngle  angle;      		/* Angle of rotated image */
-    gboolean  flipped;    			/* flag for flipped images */
     gboolean  to_be_deleted;
 	/* Fields that are filled if we create slide in memory */
 	gint  gradient;         			/* Gradient type */
@@ -144,25 +132,6 @@ struct _media_struct
 	GList *points;    /* List with stop points */
 	gint   no_points; /* Number of stop points in list */
 	gint   cur_point; /* Currently active stop point */
-
-	/* Text related variables */
-	guint8				*text;        				/* Media text */
-	gsize				 text_length; 			/* Text length */
-	gchar			 	 *pattern_filename;	/* Pattern image file */
-	TextAnimationFunc     anim;           /* Animation functions */
-	gint                  posX;       	   				/* subtitle X position */
-	gint                  posY;        	   				/* subtitle Y position */
-	gint                  subtitle_angle;  			/* subtitle rotation angle */
-	gint                  anim_id;         				/* Animation id */
-	gint                  anim_duration;   		/* Duration of animation */
-	PangoFontDescription *font_desc;      /* Font description */
-	gdouble           font_color[4];   			/* Font color (RGBA format) */
-	gdouble           font_bg_color[4]; 		/* Font background color (RGBA format) */
-    gdouble           font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
-    gdouble           font_outline_color[4]; 	/* Font outline color (RGBA format) */
-    gint 					bg_border_radious;			/* text background border radious */
-    gint 					bg_padding;				/* text background padding */
-    gint               	alignment;
 };
 
 /* Textbox related variables */
@@ -172,33 +141,6 @@ struct _media_struct
     IS_ROTATING,
     IS_DRAGGING,
     IS_RESIZING
-};
-
-typedef struct _img_textbox img_textbox;
-struct _img_textbox
-{
-    GtkWidget *drawing_area;
-    GString *text;
-    gdouble angle;
-    gdouble x, y, width, height;
-    gdouble orig_x, orig_y, orig_width, orig_height;
-    gdouble dragx, dragy;
-    gint corner, action, lw, lh;
-    guint cursor_source_id;
-    gboolean button_pressed;
-    gboolean cursor_visible;
-    gboolean visible;
-    gboolean draw_horizontal_line;
-    gboolean draw_vertical_line;
-    gint cursor_pos;
-    PangoLayout *layout;
-    PangoFontDescription *font_desc;
-	PangoAttrList *attr_list;
-	PangoAttribute *attr;
-    gint selection_start;
-    gint selection_end;
-    gboolean is_x_snapped;
-    gboolean is_y_snapped;
 };
 
 typedef struct _img_window_struct img_window_struct;
@@ -226,15 +168,19 @@ struct _img_window_struct
 	GtkWidget	*current_time;
 	GtkWidget	*preview_button;
 	GtkWidget	*total_time_label;
+	GtkWidget	*image_hbox;
 	GtkWidget	*transition_type;
 	GtkWidget	*random_button;
 	GtkWidget	*media_duration;
+	GtkWidget 	*effect_combobox;
 	GtkWidget	*media_opacity;
 	GtkWidget	*media_volume;
 	GtkWidget	*timeline_scrolled_window;
   	GtkWidget	*media_option_popover;
   	GtkWidget	*image_area;
   	GtkListStore *media_model;
+  	GtkTreeModelFilter *media_model_filter;
+  	GtkWidget	*media_library_filter;
   	GtkWidget 	*media_iconview_swindow;
   	GtkWidget 	*media_iconview;
   	GtkTreeIter 	popup_iter;
@@ -257,27 +203,27 @@ struct _img_window_struct
 	GtkWidget *ken_remove;   /* Remove stop point button */
 
 	/* Text related controls */
-	GtkWidget *sub_font;        			
-	GtkWidget *sub_font_color;    
-	GtkWidget *sub_font_bg_color;
-	GtkWidget *sub_font_bg_radius;
-	GtkWidget *sub_font_bg_padding;
-	GtkWidget *sub_font_shadow_color; 
-	GtkWidget *sub_font_shadow_distance; 
-	GtkWidget *sub_font_shadow_angle; 
-	GtkWidget *sub_font_outline_color; 
-	GtkWidget *sub_font_outline_size; 
-	GtkWidget *bold_style;
-    GtkWidget *italic_style;
-    GtkWidget *underline_style;
-    GtkWidget *left_justify;
-    GtkWidget *fill_justify;
-    GtkWidget *right_justify;
-    GtkWidget *pattern_image;	  /* Font Pattern */
-	GtkWidget *sub_anim;          /* Animation combo box */
-	GtkWidget *sub_anim_duration; /* Animation duration spin button */
-	//GtkWidget *reset_angle;       /* Button to reset the angle to 0 */
-	//GtkWidget *sub_angle;          /* Text angle hscale range */
+	GtkWidget	*sub_font;
+	GtkWidget	*sub_font_color;
+	GtkWidget	*sub_font_bg_color;
+	GtkWidget	*sub_font_bg_radius;
+	GtkWidget	*sub_font_bg_padding;
+	GtkWidget	*sub_font_shadow_color; 
+	GtkWidget	*sub_font_shadow_distance; 
+	GtkWidget	*sub_font_shadow_angle; 
+	GtkWidget	*sub_font_outline_color; 
+	GtkWidget	*sub_font_outline_size; 
+	GtkWidget	*bold_style;
+    GtkWidget	*italic_style;
+    GtkWidget	*underline_style;
+    GtkWidget	*left_justify;
+    GtkWidget	*fill_justify;
+    GtkWidget	*right_justify;
+    GtkWidget	*pattern_image;	  		/* Font Pattern */
+	GtkWidget	*sub_anim;         		/* Animation combo box */
+	GtkWidget	*sub_anim_duration;	/* Animation duration spin button */
+	//GtkWidget *reset_angle;       		/* Button to reset the angle to 0 */
+	//GtkWidget *sub_angle;          	/* Text angle hscale range */
 	
 	/* Import slides dialog variables */
 	GtkWidget	*dim_label;
@@ -294,7 +240,6 @@ struct _img_window_struct
 	ImgStopPoint  current_point; /* Data for rendering current image */
   	media_struct 		*current_media;
   	media_timeline 	*current_item;
-	img_textbox 		*textbox;
 
 	/* Renderers and module stuff */
   	gint		nr_transitions_loaded;

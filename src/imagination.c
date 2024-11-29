@@ -68,12 +68,6 @@ int main (int argc, char *argv[])
 		img_load_project( img_window, NULL, argv[1]);
 
 	gtk_main ();
-
-	g_object_unref(img_window->textbox->layout);
-	pango_font_description_free(img_window->textbox->font_desc);
-	pango_attr_list_unref(img_window->textbox->attr_list);
-	g_string_free(img_window->textbox->text, TRUE);
-    g_free(img_window->textbox);
     
 	g_free(img_window);
 	return 0;

@@ -21,77 +21,85 @@
 
 gboolean blink_cursor(img_window_struct *img)
 {
-	if ( ! img->textbox->visible)
-		return TRUE;
-
-    img->textbox->cursor_visible = ! img->textbox->cursor_visible;
+	g_print("Prima if %p\n",img->current_item->text);
+	if (img->current_item->text)
+		if ( ! img->current_item->text->visible)
+			return FALSE;
+g_print("Dopo if %p\n",img->current_item->text);
+    img->current_item->text->cursor_visible = ! img->current_item->text->cursor_visible;
     gtk_widget_queue_draw(img->image_area);
     return TRUE;
 }
 
 void img_textbox_button_pressed(GdkEventButton *event, img_window_struct *img)
 {
-	double x, y;
-	int index, trailing;
-	
-    transform_coords(img->textbox, event->x, event->y, &x, &y);
+	media_text *item;
+	gdouble x, y;
+	gint index, trailing;
 
-    if (img->textbox->visible && 
-        x >= img->textbox->x + (img->textbox->width / 2) - 5 && 
-        x <= (img->textbox->x + (img->textbox->width / 2)) + 5 && 
-        y >= img->textbox->y + img->textbox->height + 10 && 
-        y <= img->textbox->y + img->textbox->height + 20)
-    {
-        img->textbox->button_pressed = TRUE;
-        img->textbox->action = IS_ROTATING;
-    }
-    //If the left mouse click occurred inside the img->textbox set to true its boolean value
-    else if (x >= img->textbox->x && x <= img->textbox->x + img->textbox->width &&
-             y >= img->textbox->y && y <= img->textbox->y + img->textbox->height)
-    {
-        img->textbox->button_pressed = TRUE;
-        img->textbox->visible = TRUE;
-        img->textbox->cursor_visible = TRUE;
-        if (!img->textbox->cursor_source_id)
-            img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
-    }
-    else
-    {
-        img->textbox->cursor_visible = FALSE;
-         img->textbox->selection_start = img->textbox->selection_end = 0;
-        if (img->textbox->cursor_source_id)
-        {
-            g_source_remove(img->textbox->cursor_source_id);
-            img->textbox->cursor_source_id = 0;
+	item = img->current_item->text;
+    transform_coords(item, event->x, event->y, &x, &y);
+
+	if (item->visible && 
+		x >= item->x + (item->width / 2) - 5 && 
+		x <= (item->x + (item->width / 2)) + 5 && 
+		y >= item->y + item->height + 10 && 
+		y <= item->y + item->height + 20)
+	{
+		item->button_pressed = TRUE;
+		item->action = IS_ROTATING;
+	}
+	//If the left mouse click occurred inside the item set to true its boolean value
+	else if (x >= item->x && x <= item->x + item->width &&
+			y >= item->y && y <= item->y + item->height)
+	{
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(img->current_item->button), TRUE);
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(img->side_notebook), 2);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(img->toggle_button_text), TRUE);
+		item->button_pressed = TRUE;
+		item->visible = TRUE;
+		item->cursor_visible = TRUE;
+		if (!item->cursor_source_id)
+			item->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
+	}
+	else
+	{
+		item->visible = FALSE;
+		item->cursor_visible = FALSE;
+		item->selection_start = item->selection_end = 0;
+		if (item->cursor_source_id)
+		{
+			g_source_remove(item->cursor_source_id);
+			item->cursor_source_id = 0;
         }
-        if (img->textbox->action != IS_ROTATING)
-            img->textbox->visible = FALSE;
+        //~ if (item->action != IS_ROTATING)
+            //~ item->visible = FALSE;
     }
 
-    img->textbox->orig_x = x;
-    img->textbox->orig_y = y;
-    img->textbox->orig_width = img->textbox->width;
-    img->textbox->orig_height = img->textbox->height;
-    img->textbox->dragx = x - img->textbox->x;
-    img->textbox->dragy = y - img->textbox->y;
+    item->orig_x = x;
+    item->orig_y = y;
+    item->orig_width = item->width;
+    item->orig_height = item->height;
+    item->dragx = x - item->x;
+    item->dragy = y - item->y;
 
-   //transform_coords(img->textbox, event->x, event->y, &x, &y);
-    x -= img->textbox->x;
-    y -= img->textbox->y;
+   //transform_coords(item, event->x, event->y, &x, &y);
+    x -= item->x;
+    y -= item->y;
 
-    pango_layout_xy_to_index(img->textbox->layout, 
+    pango_layout_xy_to_index(item->layout, 
                              (int)(x * PANGO_SCALE), 
                              (int)(y * PANGO_SCALE), 
                              &index, &trailing);
                          
 	// Double-click: select word
 	if (event->type == GDK_2BUTTON_PRESS)
-		select_word_at_position(img->textbox, index); 
+		select_word_at_position(item, index); 
     else
 	{	
-			if (img->textbox->selection_start != -1 && img->textbox->selection_end != -1)
-				img->textbox->selection_start = img->textbox->selection_end = -1;
-		img->textbox->cursor_pos = index + trailing;
+			if (item->selection_start != -1 && item->selection_end != -1)
+				item->selection_start = item->selection_end = -1;
+		item->cursor_pos = index + trailing;
 	 }      
 	gtk_widget_queue_draw(img->image_area);
 }
@@ -104,18 +112,18 @@ void img_text_font_changed(GtkFontButton *button, img_window_struct *img )
 	font_name = gtk_font_chooser_get_font(GTK_FONT_CHOOSER(button));
 	desc = pango_font_description_from_string(font_name);
 	
-	img->textbox->attr = pango_attr_font_desc_new(desc);
-	if (img->textbox->selection_start == -1 && img->textbox->selection_end == -1)
+	img->current_item->text->attr = pango_attr_font_desc_new(desc);
+	if (img->current_item->text->selection_start == -1 && img->current_item->text->selection_end == -1)
 	{
-		img->textbox->attr->start_index = 0;
-		img->textbox->attr->end_index = -1;
+		img->current_item->text->attr->start_index = 0;
+		img->current_item->text->attr->end_index = -1;
 	}
 	else
 	{
-		img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-		img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+		img->current_item->text->attr->start_index = MIN(img->current_item->text->selection_start, img->current_item->text->selection_end);
+		img->current_item->text->attr->end_index 	= MAX(img->current_item->text->selection_start, img->current_item->text->selection_end);
 	}
-	pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+	pango_attr_list_insert(img->current_item->text->attr_list, img->current_item->text->attr);
 	pango_font_description_free(desc);
 	g_free(font_name);
 }
@@ -138,21 +146,21 @@ void img_text_color_clicked(GtkWidget *widget, img_window_struct *img)
 	gtk_widget_destroy (dialog);
 
 	if (GTK_WIDGET(widget) == img->sub_font_color)
-		img->textbox->attr = pango_attr_foreground_new(color.red * 65535, color.green * 65535, color.blue * 65535);
+		img->current_item->text->attr = pango_attr_foreground_new(color.red * 65535, color.green * 65535, color.blue * 65535);
   //~ else if (GTK_WIDGET(button) == img->italic_style)
 		//~ choice = 1;
 
-	if (img->textbox->selection_start == -1 && img->textbox->selection_end == -1)
+	if (img->current_item->text->selection_start == -1 && img->current_item->text->selection_end == -1)
 	{
-		img->textbox->attr->start_index = 0;
-		img->textbox->attr->end_index = -1;
+		img->current_item->text->attr->start_index = 0;
+		img->current_item->text->attr->end_index = -1;
 	}
 	else
 	{
-		img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-		img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+		img->current_item->text->attr->start_index = MIN(img->current_item->text->selection_start, img->current_item->text->selection_end);
+		img->current_item->text->attr->end_index 	= MAX(img->current_item->text->selection_start, img->current_item->text->selection_end);
 	}
-	pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+	pango_attr_list_insert(img->current_item->text->attr_list, img->current_item->text->attr);
 }
 
 void img_text_style_changed(GtkButton *button, img_window_struct *img)
@@ -178,29 +186,29 @@ void img_text_style_changed(GtkButton *button, img_window_struct *img)
 	switch (choice)
 	{
 		case 0:
-		img->textbox->attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+		img->current_item->text->attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
 		break;
 		
 		case 1:
-		img->textbox->attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
+		img->current_item->text->attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
 		break;
 
 		case 2:
-		img->textbox->attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+		img->current_item->text->attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
 		break;
 	}
 	
-	img->textbox->attr->start_index = MIN(img->textbox->selection_start, img->textbox->selection_end);
-	img->textbox->attr->end_index 	= MAX(img->textbox->selection_start, img->textbox->selection_end);
+	img->current_item->text->attr->start_index = MIN(img->current_item->text->selection_start, img->current_item->text->selection_end);
+	img->current_item->text->attr->end_index 	= MAX(img->current_item->text->selection_start, img->current_item->text->selection_end);
 
-    pango_attr_list_insert(img->textbox->attr_list, img->textbox->attr);
+    pango_attr_list_insert(img->current_item->text->attr_list, img->current_item->text->attr);
 }
 
 void img_text_align_changed(GtkButton *button, img_window_struct *img)
 {
 	gint alignment = 0;
 
-	if (img->current_media == NULL)
+	if (img->current_item->text == NULL)
 		return;
 
 	if (GTK_WIDGET(button) == img->left_justify)
@@ -210,7 +218,7 @@ void img_text_align_changed(GtkButton *button, img_window_struct *img)
 	else if (GTK_WIDGET(button) == img->right_justify)
 		alignment = PANGO_ALIGN_RIGHT;
 
-	pango_layout_set_alignment (img->textbox->layout, alignment);
+	pango_layout_set_alignment (img->current_item->text->layout, alignment);
 	
 	img_taint_project(img);
 }
@@ -256,7 +264,7 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media);
+				   media_text *current_media);
 
 static void
 img_text_draw_layout( cairo_t     *cr,
@@ -264,7 +272,7 @@ img_text_draw_layout( cairo_t     *cr,
                       gint			posx,
                       gint 			posy,
                       gint 			angle,
-                      media_struct *);
+                      media_text *);
 
 static void
 img_text_draw_layout_fade( cairo_t     *cr,
@@ -272,7 +280,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_media,
+                      media_text *current_media,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_brdr_color,
 					  gdouble	    *progress_font_bgcolor,
@@ -289,7 +297,7 @@ img_text_from_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
 static void
 img_text_from_right( cairo_t     *cr,
@@ -302,7 +310,7 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble	   progress,
-					media_struct *current_media);
+					media_text *current_media);
 
 static void
 img_text_spin_grow( cairo_t     *cr,
@@ -315,7 +323,7 @@ img_text_spin_grow( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
 
 static void
@@ -329,7 +337,7 @@ img_text_from_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
                 
 static void
@@ -343,7 +351,7 @@ img_text_from_bottom( cairo_t     *cr,
   					  gint         posy,
   					  gint         angle,
   					 gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
 
 static void
@@ -357,7 +365,7 @@ img_text_grow( cairo_t     *cr,
 			   gint         posy,
 			   gint         angle,
 				gdouble	progress,
- 				media_struct *slide);
+ 				media_text *slide);
 
 
 static void
@@ -371,7 +379,7 @@ img_text_bottom_to_top( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
 
 static void
@@ -385,7 +393,7 @@ img_text_right_to_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
 					gdouble	progress,
- 					media_struct *slide);
+ 					media_text *slide);
 
                       
 gint img_get_text_animation_list( TextAnimation **animations )
@@ -486,7 +494,7 @@ void img_render_subtitle( img_window_struct 	  *img,
 	GdkColor 	*color;
 	GtkTextTag	*tag;
 
-	if ( ! img->current_media->text)
+	if ( ! img->current_item->text->text)
 		return;
 
 	/* Save cairo state */
@@ -495,21 +503,21 @@ void img_render_subtitle( img_window_struct 	  *img,
 
 	/* Create pango layout and measure it */
 	layout = pango_cairo_create_layout( cr );
-	pango_layout_set_font_description( layout, img->current_media->font_desc );
+	pango_layout_set_font_description( layout, img->current_item->text->font_desc );
 
-	pango_layout_set_text( layout, (gchar*)img->current_media->text, -1 );
+	pango_layout_set_text( layout, (gchar*)img->current_item->text->text, -1 );
 
 	pango_layout_get_size( layout, &lw, &lh );
 	lw /= PANGO_SCALE;
 	lh /= PANGO_SCALE;
 
 	/* Do animation */
-	if( img->current_media->anim )
-		(*img->current_media->anim)( cr, layout, img->video_size[0], img->video_size[1], lw, lh, posx, posy, angle, progress, img->current_media);
+	if( img->current_item->text->anim )
+		(*img->current_item->text->anim)( cr, layout, img->video_size[0], img->video_size[1], lw, lh, posx, posy, angle, progress, img->current_item->text);
 	else
 	{
 		/* No animation renderer */
-        img_text_draw_layout(cr, layout, posx, posy, angle, img->current_media);
+        img_text_draw_layout(cr, layout, posx, posy, angle, img->current_item->text);
 	}
 
 	/* Destroy layout */
@@ -530,7 +538,7 @@ img_text_ani_fade( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media)
+				   media_text *current_media)
 {
     gdouble  progress_font_color[4], progress_font_bgcolor[4], progress_font_shadow_color[4], progress_font_outline_color[4];
 
@@ -665,7 +673,7 @@ static void img_text_draw_layout( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_media)
+                      media_text *current_media)
 {
 	cairo_pattern_t  *font_pattern = NULL;
     gint x,y,w,h;
@@ -723,7 +731,7 @@ img_text_from_left( cairo_t     *cr,
  					gint         posy,
  					gint         angle,
  					gdouble	progress,
- 					media_struct *current_media)
+ 					media_text*current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress - lw * ( 1 - progress ),
@@ -743,7 +751,7 @@ img_text_from_right( cairo_t     *cr,
  					 gint         posy,
  					 gint         angle,
  					 gdouble      progress,
-                     media_struct *current_media)
+                     media_text *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx * progress + sw * ( 1 - progress ),
@@ -763,7 +771,7 @@ img_text_from_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media)
+				   media_text *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -783,7 +791,7 @@ img_text_from_bottom( cairo_t     *cr,
   					  gint         posy,
   					  gint         angle,
   					  gdouble      progress,
-  					 media_struct *current_media)
+  					 media_text*current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -803,7 +811,7 @@ img_text_grow( cairo_t     *cr,
 			   gint         posy,
 			   gint         angle,
 			   gdouble      progress,
-			  media_struct *current_media)
+			  media_text *current_media)
 {
 	cairo_translate( cr, posx + lw * 0.5, posy + lh * 0.5 );
 	cairo_scale( cr, exp(log(progress)), exp(log(progress)) );
@@ -826,7 +834,7 @@ img_text_bottom_to_top( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media)
+				   media_text *current_media)
 {
     img_text_draw_layout(cr, layout,
                          posx,
@@ -846,7 +854,7 @@ img_text_right_to_left( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media)
+				   media_text *current_media)
 {
     img_text_draw_layout(cr, layout,
                          sw * (1 - progress) - lw * progress,
@@ -865,7 +873,7 @@ img_text_spin_grow( cairo_t     *cr,
 				   gint         posy,
 				   gint         angle,
 				   gdouble      progress,
-				   media_struct *current_media)
+				   media_text *current_media)
 {
 	gint my_angle;
 	my_angle = angle + 360 * exp(log(progress));
@@ -887,7 +895,7 @@ img_text_draw_layout_fade( cairo_t     *cr,
                       gint         posx,
                       gint         posy,
                       gint         angle,
-                      media_struct *current_media,
+                      media_text *current_media,
                       gdouble		*progress_font_color,
                       gdouble		*progress_font_bg_color,
 					  gdouble	    *progress_font_shadow_color,
@@ -935,4 +943,197 @@ img_text_draw_layout_fade( cairo_t     *cr,
 	
 	if (current_media->pattern_filename)
 		cairo_pattern_destroy(font_pattern);
+}
+
+void img_render_textbox(img_window_struct *img, cairo_t *cr, media_timeline *media)
+{
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(img->image_area, &allocation);
+
+	cairo_save(cr);
+	if (media->text->visible)
+	{
+		// Apply rotation for the entire textbox
+		cairo_translate(cr, media->text->x + media->text->width / 2, media->text->y + media->text->height / 2);
+		cairo_rotate(cr, media->text->angle);
+		cairo_translate(cr, -(media->text->x + media->text->width / 2), -(media->text->y + media->text->height / 2));
+		
+		// Draw the angle
+		if (media->text->action == IS_ROTATING && media->text->button_pressed)
+			img_draw_rotation_angle(cr, media->text->x, media->text->width, media->text->y, media->text->height, media->text->angle);
+
+		// Set the color to white for the outline effect
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_set_line_width(cr, 3.5);
+		
+		img_draw_rotating_handle(cr, media->text->x, media->text->width, media->text->y, media->text->height, 1.0, TRUE);
+	
+		// Draw the rectangle
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_rectangle(cr, media->text->x, media->text->y, media->text->width, media->text->height);
+		cairo_stroke(cr);
+		cairo_rectangle(cr, media->text->x , media->text->y , media->text->width , media->text->height );
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_fill(cr);
+
+		if (media->text->draw_horizontal_line || media->text->draw_vertical_line)
+		{
+			cairo_save(cr);
+				cairo_translate(cr, media->text->x + media->text->width / 2, media->text->y + media->text->height / 2);
+				cairo_rotate(cr, -media->text->angle);
+				cairo_translate(cr, -(media->text->x + media->text->width / 2), -(media->text->y + media->text->height / 2));
+				if (media->text->draw_horizontal_line)
+					img_draw_horizontal_line(cr, &allocation);
+				if (media->text->draw_vertical_line)
+					img_draw_vertical_line(cr, &allocation);
+			cairo_restore(cr);
+		}
+		cairo_set_line_width(cr, 2.5);
+			
+		// Draw the bottom right handle
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		cairo_arc(cr, media->text->x + media->text->width, media->text->y + media->text->height, 3, 0.0, 2 * G_PI);
+		cairo_stroke_preserve(cr);
+		cairo_set_source_rgb(cr, 1, 1, 1);
+		cairo_fill(cr);
+		
+		// Draw selection highlight
+		if (media->text->selection_start != media->text->selection_end)
+		{
+			int start_index = MIN(media->text->selection_start, media->text->selection_end);
+			int end_index = MAX(media->text->selection_start, media->text->selection_end);
+				
+			PangoRectangle start_pos, end_pos;
+			pango_layout_get_cursor_pos(media->text->layout, start_index, &start_pos, NULL);
+			pango_layout_get_cursor_pos(media->text->layout, end_index, &end_pos, NULL);
+
+			cairo_set_source_rgba(cr, 0.5, 0.5, 1.0, 0.6);  // Light blue, semi-transparent
+			cairo_rectangle(cr, 
+				media->text->x + 3 + start_pos.x / PANGO_SCALE, 
+				media->text->y + start_pos.y / PANGO_SCALE,
+				(end_pos.x - start_pos.x) / PANGO_SCALE, 
+				(end_pos.y - start_pos.y + end_pos.height) / PANGO_SCALE);
+			cairo_fill(cr);
+		}
+
+		// Draw the cursor
+		if (media->text->cursor_visible && media->text->cursor_source_id)
+		{
+			PangoRectangle strong_pos;
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); 
+			pango_layout_get_cursor_pos(media->text->layout, media->text->cursor_pos, &strong_pos, NULL);
+			cairo_move_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + media->text->x, (double)strong_pos.y / PANGO_SCALE + 5 + media->text->y);
+			cairo_line_to(cr, (double)strong_pos.x / PANGO_SCALE  + 2 + media->text->x, (double)(strong_pos.y + strong_pos.height) / PANGO_SCALE + 5 + media->text->y);
+			cairo_stroke(cr);
+		}
+	}
+		
+	// Draw the text
+	if (media->text)
+	{
+		cairo_set_source_rgb(cr, 0, 0, 0);
+		pango_layout_set_attributes(media->text->layout, media->text->attr_list);
+		cairo_move_to(cr, media->text->x, media->text->y);	
+		pango_layout_context_changed(media->text->layout); //This for having the PangoAttr to work
+		pango_cairo_show_layout(cr, media->text->layout);
+	}
+	cairo_restore(cr);
+}
+
+media_text *img_create_text_item(img_window_struct *img, gint track_nr, gint track_pos_y)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	Track *track = NULL;
+	media_timeline *item;
+	media_text  *text;
+	gint width;
+	gdouble position_x;
+
+	position_x = priv->rubber_band_start_x;
+	track = g_array_index(priv->tracks, Track *, track_nr);
+	
+	// First the media_timeline struct
+	item = g_new0( media_timeline, 1 );
+	item->id = -1;
+	item->media_type = 3; 	//Text type
+	item->duration = (priv->rubber_band_end_x - priv->rubber_band_start_x) / priv->pixels_per_second;//gtk_spin_button_get_value(GTK_SPIN_BUTTON(img->media_duration));
+	item->timeline_y = track_pos_y;
+	item->transition_id = -1;
+	width = item->duration;
+	img_timeline_create_toggle_button(item, item->media_type, NULL, img);
+	width *= priv->pixels_per_second;
+
+	item->old_x = position_x;
+    item->start_time = position_x / (BASE_SCALE * priv->zoom_scale);
+    
+   	gtk_widget_set_size_request(item->button, width, 50);
+	gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, item->start_time * BASE_SCALE * priv->zoom_scale, item->timeline_y);
+	track->last_media_posX += width;
+
+	// Then the media_text struct
+	text = g_new0( media_text, 1 );
+	text->anim_duration = 1;
+	text->posX = 0;
+	text->posY = 1;
+	text->font_desc = pango_font_description_from_string( "Sans 12" );
+	text->font_color[0] = 0;
+	text->font_color[1] = 0;
+	text->font_color[2] = 0;
+	text->font_color[3] = 1;
+
+	text->font_shadow_color[0] = 1;
+	text->font_shadow_color[1] = 1;
+	text->font_shadow_color[2] = 1;
+	text->font_shadow_color[3] = 1;
+
+	text->font_bg_color[0] = 1;
+	text->font_bg_color[1] = 1;
+	text->font_bg_color[2] = 1;
+	text->font_bg_color[3] = 0;
+
+	text->font_outline_color[0] = 1;
+	text->font_outline_color[1] = 1;
+	text->font_outline_color[2] = 1;
+	text->font_outline_color[3] = 1;
+
+	// Textbox stuff
+    text->angle = 0;
+    text->text = g_string_new("Sample Text");
+    text->x = 275;
+    text->y = 162.5;
+    text->width = 250;
+    text->height = 125;
+    text->corner = GDK_LEFT_PTR;
+    text->action = NONE;
+    text->cursor_pos = 0;
+    text->visible = TRUE;
+    text->cursor_visible = FALSE;
+	text->cursor_source_id = 0;
+	text->selection_start = -1;
+	text->selection_end = -1;
+	text->is_x_snapped = FALSE;
+	text->is_y_snapped = FALSE;
+	text->surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+    text->cr = cairo_create(text->surface);
+    text->layout = pango_cairo_create_layout(text->cr);
+	text->attr_list = pango_attr_list_new();
+
+    pango_layout_set_wrap(text->layout, PANGO_WRAP_CHAR);
+    pango_layout_set_ellipsize(text->layout, PANGO_ELLIPSIZE_NONE);
+    pango_layout_set_font_description(text->layout, text->font_desc);
+    pango_layout_get_size(text->layout, &text->lw, &text->lh);
+
+	text->lw /= PANGO_SCALE;
+	text->lh /= PANGO_SCALE;
+
+	// Link the media_text structure to the media_timeline one
+	item->text = text;
+	img->current_item = item;
+	g_array_append_val(track->items, item);
+
+	img_taint_project(img);
+	pango_layout_set_text(text->layout, text->text->str, -1);
+	gtk_widget_queue_draw(img->image_area);
+	return text;
 }

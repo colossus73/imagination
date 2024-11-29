@@ -21,7 +21,6 @@
 
 #include "imagination.h"
 
-
 typedef struct _TextAnimation TextAnimation;
 struct _TextAnimation
 {
@@ -37,6 +36,8 @@ void img_text_font_changed( GtkFontButton *, img_window_struct *);
 void img_text_color_clicked(GtkWidget *, img_window_struct *);
 void img_text_style_changed(GtkButton *button, img_window_struct *);
 void img_text_align_changed(GtkButton *button, img_window_struct *);
+void img_render_textbox(img_window_struct *, cairo_t *cr, media_timeline *);
+media_text *img_create_text_item(img_window_struct *, gint, gint);
 gboolean img_is_style_applied(PangoLayout *, PangoAttrType , int , int );
 gint img_get_text_animation_list( TextAnimation **animations );
 
@@ -57,7 +58,7 @@ void img_render_subtitle( img_window_struct	  *img,
 					 gboolean				centerY,
 					 gdouble               progress );
 
-void img_set_slide_text_info( media_struct      *slide,
+void img_set_slide_text_info( media_text      *slide,
 						 GtkListStore      *store,
 						 GtkTreeIter       *iter,
 						 guint8		       *subtitle,

@@ -28,6 +28,7 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 	gsize len;
 	GtkTreeIter media_iter;
 	GtkTreeModel *media_model;
+	GtkAllocation allocation;
 	Track *track;
 	media_struct *entry;
 	media_timeline *item;
@@ -36,12 +37,15 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 	if (!gtk_tree_model_get_iter_first (media_model, &media_iter))
 		return;
 
+	gtk_widget_get_allocation(img->image_area, &allocation);
 	img_key_file = g_key_file_new();
 
 	/* Slideshow settings */
 	g_key_file_set_comment(img_key_file, NULL, NULL, comment_string, NULL);
 	g_key_file_set_integer(img_key_file, "project settings", "video width", img->video_size[0]);
     g_key_file_set_integer(img_key_file, "project settings", "video height", img->video_size[1]);
+    g_key_file_set_integer(img_key_file, "project settings", "image area width", allocation.width);
+    g_key_file_set_integer(img_key_file, "project settings", "image area height", allocation.height);
 	g_key_file_set_double_list( img_key_file, "project settings", "background color", img->background_color, 3 );
 	g_key_file_set_integer(img_key_file, "project settings", "number of media", img->media_nr);
 	g_key_file_set_integer(img_key_file, "project settings", "number of tracks", priv->tracks->len);
@@ -88,8 +92,6 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				g_key_file_set_integer(img_key_file, conf, "width",	entry->width);
 				g_key_file_set_integer(img_key_file, conf, "height",	entry->height);
 				g_key_file_set_string(img_key_file, conf, "image_type", 	entry->image_type);
-				g_key_file_set_integer(img_key_file, conf, "angle",	entry->angle);
-				g_key_file_set_boolean(img_key_file,conf, "flipped",	entry->flipped);
 				//thumb = gdk_pixbuf_new_from_file_at_size(entry->full_path, 1, 1, NULL);
 				//img_detect_media_orientation_from_pixbuf(thumb, &(entry->flipped), &(entry->angle));
 			break;
@@ -99,36 +101,36 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 			
 			break;
 			
-			// Text
-			case 3:
-				g_key_file_set_string (img_key_file, conf,"text", (gchar*)entry->text);
-				if( entry->pattern_filename )
-				{
-					if (relative)
-					{
-						gchar *dummy;
-						dummy = g_path_get_basename(entry->pattern_filename);
-						g_key_file_set_string (img_key_file, conf,"pattern_filename", dummy);
-						g_free(dummy);
-					}
-					else
-						g_key_file_set_string (img_key_file, conf,"pattern_filename", entry->pattern_filename);
-				}
-				font_desc = pango_font_description_to_string(entry->font_desc);
-				g_key_file_set_string (img_key_file, conf,"font",			font_desc);
-				g_free(font_desc);
-				g_key_file_set_integer(img_key_file,conf, "anim_id",		entry->anim_id);
-				g_key_file_set_integer(img_key_file,conf, "anim_duration",	entry->anim_duration);
-				g_key_file_set_integer(img_key_file,conf, "posX",		entry->posX);
-				g_key_file_set_integer(img_key_file,conf, "posY",		entry->posY);
-				g_key_file_set_integer(img_key_file,conf, "subtitle_angle",		entry->subtitle_angle);
+			//~ // Text
+			//~ case 3:
+				//~ g_key_file_set_string (img_key_file, conf,"text", (gchar*)entry->text);
+				//~ if( entry->pattern_filename )
+				//~ {
+					//~ if (relative)
+					//~ {
+						//~ gchar *dummy;
+						//~ dummy = g_path_get_basename(entry->pattern_filename);
+						//~ g_key_file_set_string (img_key_file, conf,"pattern_filename", dummy);
+						//~ g_free(dummy);
+					//~ }
+					//~ else
+						//~ g_key_file_set_string (img_key_file, conf,"pattern_filename", entry->pattern_filename);
+				//~ }
+				//~ font_desc = pango_font_description_to_string(entry->font_desc);
+				//~ g_key_file_set_string (img_key_file, conf,"font",			font_desc);
+				//~ g_free(font_desc);
+				//~ g_key_file_set_integer(img_key_file,conf, "anim_id",		entry->anim_id);
+				//~ g_key_file_set_integer(img_key_file,conf, "anim_duration",	entry->anim_duration);
+				//~ g_key_file_set_integer(img_key_file,conf, "posX",		entry->posX);
+				//~ g_key_file_set_integer(img_key_file,conf, "posY",		entry->posY);
+				//~ g_key_file_set_integer(img_key_file,conf, "subtitle_angle",		entry->subtitle_angle);
 				
-				g_key_file_set_double_list(img_key_file, conf,"font_color",entry->font_color,4);
-				g_key_file_set_double_list(img_key_file, conf,"font_bg_color",entry->font_bg_color,4);
-				g_key_file_set_double_list(img_key_file, conf,"font_shadow_color",entry->font_shadow_color,4);
-				g_key_file_set_double_list(img_key_file, conf,"font_outline_color",entry->font_outline_color,4);
-				g_key_file_set_integer(img_key_file, conf,"alignment",entry->alignment);
-			break;			
+				//~ g_key_file_set_double_list(img_key_file, conf,"font_color",entry->font_color,4);
+				//~ g_key_file_set_double_list(img_key_file, conf,"font_bg_color",entry->font_bg_color,4);
+				//~ g_key_file_set_double_list(img_key_file, conf,"font_shadow_color",entry->font_shadow_color,4);
+				//~ g_key_file_set_double_list(img_key_file, conf,"font_outline_color",entry->font_outline_color,4);
+				//~ g_key_file_set_integer(img_key_file, conf,"alignment",entry->alignment);
+			//~ break;			
 		} // End swith entry->media type
 	
 		/* Stop points */
@@ -170,7 +172,11 @@ void img_save_project( img_window_struct *img,	const gchar *output,  gboolean re
 				for (gint q = 0; q < track->items->len; q++)
 				{
 					item = g_array_index(track->items, media_timeline  *, q);
-					g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;%2.2f;", item->id, item->start_time, item->duration, item->transition_id, item->opacity);
+					if (item->media_type == 0)
+						g_string_append_printf(string_values, "%d;%2.2f;%2.2f;%d;%2.2f;%2.2f;%2.2f;%d;%d;%d;%d;",
+						item->id, item->start_time, item->duration, item->transition_id, item->opacity, item->x, item->y, item->color_filter, item->nr_rotations,item->flipped_horizontally, item->flipped_vertically);
+					else
+						g_string_append_printf(string_values, "%d;%2.2f;%2.2f;", item->id, item->start_time, item->duration);
 				}
 				g_key_file_set_string(img_key_file, conf, "media_sequence", string_values->str);
 			}
@@ -208,7 +214,8 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	gchar      					*spath, *conf, *conf2, *project_current_dir, *value_string, *trans_group;
 	gchar						**groups, **values;
 	GtkWidget 				*dialog, *menu;
-	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posy, gradient = 0, subtitle_length, subtitle_angle, countdown = 0, media_type, media_id;
+	gint							track_nr, transition_id, no_points, alignment, number,anim_id,anim_duration, posy, gradient = 0, subtitle_length, subtitle_angle;
+	gint							step, countdown = 0, media_type, media_id, image_area_width, image_area_height;
 	GtkTreeModel 		*model;
 	void 						(*render);
 	GHashTable 			*table;
@@ -222,9 +229,9 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	GFileInfo 				*file_info;
 	const gchar  			*icon_filename;
 	const gchar 			*content_type;
-	ImgAngle   			angle = 0;
 	GString 					*media_not_found = NULL;
-
+	GtkAllocation			allocation;
+	
 	if (img->media_nr > 0)
 		img_close_project(NULL, img);
 	
@@ -283,6 +290,11 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 	/* Video Size */
 	img->video_size[0] = g_key_file_get_integer(img_key_file, "project settings", "video width", NULL);
 	img->video_size[1] = g_key_file_get_integer(img_key_file, "project settings", "video height", NULL);
+	image_area_width =  g_key_file_get_integer(img_key_file, "project settings", "image area width", NULL);
+	image_area_height =  g_key_file_get_integer(img_key_file, "project settings", "image area height", NULL);
+	
+	gtk_widget_set_size_request(img->image_area, image_area_width, image_area_height);
+	gtk_widget_get_allocation(img->image_area, &allocation);
 	
 	if (img->video_size[0] == 0)
 		img->video_size[0] = 1280;
@@ -336,7 +348,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			}
 		}
 		/* Create the media structure */
-		media = img_create_new_media();
+		media = g_new0(media_struct, 1);
 		media->id = media_id;
 		media->media_type = media_type;
 		media->full_path = g_strdup(media_filename);
@@ -349,8 +361,6 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				media->width 			= g_key_file_get_integer( img_key_file, conf, "width", NULL );
 				media->height 			= g_key_file_get_integer( img_key_file, conf, "height", NULL );
 				media->image_type 	= g_key_file_get_string( img_key_file, conf, "image_type", NULL );
-				media->angle 			= g_key_file_get_integer( img_key_file, conf, "angle", NULL );
-				media->flipped			= g_key_file_get_boolean( img_key_file, conf, "flipped", NULL );
 				img_add_media(media->full_path, media, img);
 			break;
 			
@@ -359,117 +369,33 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				img_add_media(media->full_path, media, img);
 			break;
 			
-			// Text
-			case 3:
-				media->text						=	g_key_file_get_string (img_key_file, conf, "text",	NULL);
-				media->pattern_filename=	g_key_file_get_string (img_key_file, conf, "pattern filename",	NULL);
-				media->anim_id 	  			= g_key_file_get_integer(img_key_file, conf, "anim id", 		NULL);
-				media->anim_duration 	= g_key_file_get_integer(img_key_file, conf, "anim duration",	NULL);
-				media->posX     	  			= g_key_file_get_integer(img_key_file, conf, "posX",		NULL);
-				media->posY       	  			= g_key_file_get_integer(img_key_file, conf, "posY",		NULL);
-				media->subtitle_angle		= g_key_file_get_integer(img_key_file, conf, "subtitle angle",		NULL);
-				font_desc				     		= g_key_file_get_string (img_key_file, conf, "font", NULL);
-				media->font_desc			= pango_font_description_from_string(font_desc);
-				g_free(font_desc);
-				my_points				 	  		= g_key_file_get_double_list(img_key_file, conf, "font color", NULL, NULL );
-                for( i = 0; i < 3; i++ )
-					media->font_color[i] = my_points[i];
-                my_points				 	  		= g_key_file_get_double_list(img_key_file, conf, "font bgcolor", NULL, NULL );
-                for( i = 0; i < 3; i++ )
-					media->font_bg_color[i] = my_points[i];
-                my_points							= g_key_file_get_double_list(img_key_file, conf, "font shadow color", NULL, NULL );
-                for( i = 0; i < 3; i++ )
-					media->font_shadow_color[i] = my_points[i];
-                my_points						= g_key_file_get_double_list(img_key_file, conf, "font outline color", NULL, NULL );
-                for( i = 0; i < 3; i++ )
-					media->font_outline_color[i] = my_points[i];
-                media->alignment 				= g_key_file_get_integer(img_key_file, conf, "alignment", NULL);
-			break;
-	
-			//~ else
-			//~ {
-				//~ angle = 0;
-				//~ /* We are loading an empty slide */
-				//~ gradient = g_key_file_get_integer(img_key_file, conf, "gradient", NULL);
-				//~ c_start = g_key_file_get_double_list(img_key_file, conf, "start_color", NULL, NULL);
-				//~ c_stop  = g_key_file_get_double_list(img_key_file, conf, "stop_color", NULL, NULL);
-				//~ p_start = g_key_file_get_double_list(img_key_file, conf, "start_point", NULL, NULL);
-				//~ p_stop = g_key_file_get_double_list(img_key_file, conf, "stop_point", NULL, NULL);
-				//~ if (gradient == 4)
-				//~ {
-					//~ countdown_color = g_key_file_get_double_list(img_key_file, conf, "countdown_color", NULL, NULL);
-					//~ if (countdown_color == NULL)
-					//~ {
-						//~ countdown_color = g_new (gdouble, 3);
-						//~ countdown_color[0] = 0.36862745098039218;
-						//~ countdown_color[1] = 0.36078431372549019;
-						//~ countdown_color[2] = 0.39215686274509803;
-					//~ }
-					//~ countdown = g_key_file_get_integer(img_key_file, conf, "countdown", NULL);
-				//~ }
-				//~ /* Create thumbnail */
-				//~ load_ok = img_scale_empty_slide( gradient, countdown, p_start, p_stop,
-											  //~ c_start, c_stop, 
-											  //~ countdown_color, 
-											  //~ 0,
-											  //~ -1,
-											  //~ 88, 49,
-											  //~ &thumb, NULL );
-                //~ /* No image is loaded, so img_load_ok is OK if load_ok is */
-                //~ img_load_ok = load_ok;
-			//~ }
+			//~ // Text
+			//~ case 3:
+				//~ media->text						=	g_key_file_get_string (img_key_file, conf, "text",	NULL);
+				//~ media->pattern_filename	=	g_key_file_get_string (img_key_file, conf, "pattern filename",	NULL);
+				//~ media->anim_id 	  			= g_key_file_get_integer(img_key_file, conf, "anim id", 		NULL);
+				//~ media->anim_duration 		= g_key_file_get_integer(img_key_file, conf, "anim duration",	NULL);
+				//~ media->posX     	  				= g_key_file_get_integer(img_key_file, conf, "posX",		NULL);
+				//~ media->posY       	  			= g_key_file_get_integer(img_key_file, conf, "posY",		NULL);
+				//~ media->subtitle_angle		= g_key_file_get_integer(img_key_file, conf, "subtitle angle",		NULL);
+				//~ font_desc				     		= g_key_file_get_string (img_key_file, conf, "font", NULL);
+				//~ media->font_desc				= pango_font_description_from_string(font_desc);
+				//~ g_free(font_desc);
+				//~ my_points				 	  		= g_key_file_get_double_list(img_key_file, conf, "font color", NULL, NULL );
+                //~ for( i = 0; i < 3; i++ )
+					//~ media->font_color[i] = my_points[i];
+                //~ my_points				 	  		= g_key_file_get_double_list(img_key_file, conf, "font bgcolor", NULL, NULL );
+                //~ for( i = 0; i < 3; i++ )
+					//~ media->font_bg_color[i] = my_points[i];
+                //~ my_points							= g_key_file_get_double_list(img_key_file, conf, "font shadow color", NULL, NULL );
+                //~ for( i = 0; i < 3; i++ )
+					//~ media->font_shadow_color[i] = my_points[i];
+                //~ my_points						= g_key_file_get_double_list(img_key_file, conf, "font outline color", NULL, NULL );
+                //~ for( i = 0; i < 3; i++ )
+					//~ media->font_outline_color[i] = my_points[i];
+                //~ media->alignment 				= g_key_file_get_integer(img_key_file, conf, "alignment", NULL);
+			//~ break;
 
-			/* Try to load image. If this fails, skip this slide */
-			//~ if( load_ok )
-			//~ {
-				
-
-				/* Load the stop points if any */
-				//~ no_points	  =	g_key_file_get_integer(img_key_file, conf, "no_points",	NULL);
-				//~ if (no_points > 0)
-					//~ my_points = g_key_file_get_double_list(img_key_file, conf, "points", &length, NULL);
-
-                  //~ /* If image has been flipped or rotated, do it now too. */
-					//~ if( (flipped || angle) && ! g_strrstr(icon_filename, "image-missing"))
-					//~ {
-						//~ img_rotate_flip_slide( media, angle, flipped);
-						//~ g_object_unref( thumb );
-						//~ img_scale_image( media->full_path, img->video_ratio,
-										 //~ 88, 0, FALSE,
-										 //~ img->background_color, &thumb, NULL );
-					//~ }
-
-		
-
-					/* Set stop points */
-					//~ if( no_points > 0 )
-					//~ {
-						//~ img_set_slide_ken_burns_info( media, 0,
-													  //~ length, my_points );
-						//~ g_free( my_points );
-					//~ }
-
-					/* Set subtitle */
-					//~ if (subtitle)
-					//~ {
-						//~ if ( pattern_name && g_path_is_absolute(pattern_name) == FALSE)
-						//~ {
-							//~ gchar *_pattern_filename;
-							//~ _pattern_filename = g_strconcat(project_current_dir, "/", pattern_name, NULL);
-							//~ g_free(pattern_name);
-							//~ pattern_name = _pattern_filename;
-						//~ }
-
-		
-				//~ g_free( font_desc );
-			//~ }
-			//~ else
-            //~ {
-				//~ gchar *string;
-				//~ string = g_strconcat(_("Can't load image %s\n"), media_filename, NULL);
-				//~ img_message(img, string);
-				//~ g_free(string);
-            //~ }
 		} //End switch media type
 		g_free(conf);
 	}
@@ -481,7 +407,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 	g_string_free(media_not_found, TRUE);
 
-	//Add the additional tracks first to avoid messing up the pointers with the track sorting by type
+	// Add the additional tracks first to avoid messing up the pointers with the track sorting by type
 	if (track_nr > 2)
 	{
 		for (gint i=0; i < track_nr; i++)
@@ -511,15 +437,24 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 
 		values = g_strsplit(value_string, ";", -1);
 		number = g_strv_length(values);
-		for (gint q = 0; q < number -2; q+=5)
+		step = (track->type == 0) ? 11 : 3;
+		for (gint q = 0; q < number -2; q += step)
 		{
 			item = g_new0(media_timeline, 1);
 			item->id 				=	g_ascii_strtoll(values[q+0], NULL, 10);
 			item->start_time 	=	g_ascii_strtod(values[q+1], NULL);
 			item->duration 		=	g_ascii_strtod(values[q+2], NULL);
-			item->transition_id=	g_ascii_strtoll(values[q+3], NULL, 10);
-			item->opacity		=	g_ascii_strtod(values[q+4], NULL);
-
+			if (track->type == 0)
+			{
+				item->transition_id=	g_ascii_strtoll(values[q+3], NULL, 10);
+				item->opacity		=	g_ascii_strtod(values[q+4], NULL);
+				item->x					=	g_ascii_strtod(values[q+5], NULL);
+				item->y					=	g_ascii_strtod(values[q+6], NULL);
+				item->color_filter	=	g_ascii_strtoll(values[q+7], NULL, 10);
+				item->nr_rotations	=	g_ascii_strtoll(values[q+8], NULL, 10);
+				item->flipped_horizontally	=	g_ascii_strtoll(values[q+9], NULL, 10);
+				item->flipped_vertically		=	g_ascii_strtoll(values[q+10], NULL, 10);
+			}
 			// Read the media filename and media type again to create the image in the toggle button
 			conf2 = g_strdup_printf("media %d", item->id);
 			media_filename = g_key_file_get_string(img_key_file, conf2, "filename",  NULL);
@@ -532,7 +467,7 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 				gtk_tree_model_get(model, &iter, 2, &render, 0, &pix, -1);
 				item->render = render;
 				item->tree_path = g_strdup(spath);
-				img_create_cached_cairo_surface(img, item->id, media_filename);
+				img_create_cached_cairo_surface(img, item, media_filename);
 
 				if(gtk_tree_model_iter_parent(model, &parent_iter, &iter))
 				{
@@ -549,12 +484,32 @@ void img_load_project( img_window_struct *img, GtkWidget *menuitem, const gchar 
 			//Position the toggle button in the timeline
 			width = item->duration * BASE_SCALE * priv->zoom_scale;
 			gtk_widget_set_size_request(item->button, width, 50);
-
 			posx = item->start_time * BASE_SCALE *priv->zoom_scale;
 			gtk_layout_move(GTK_LAYOUT(img->timeline), item->button, posx, posy);
 			item->old_x = posx;
-			item->y = posy;
+			item->timeline_y = posy;
+			item->is_positioned = TRUE;
+			item->last_allocation_width = allocation.width;
+			item->last_allocation_height = allocation.height;
+
+			// Apply image filter
+			img_apply_filter_on_surface(img, item, item->color_filter);
+
+			// Apply rotations
+			for (int r =0; r < item->nr_rotations; r++)
+				img_rotate_surface(img, item, FALSE);
+			
+			// Apply flipping
+			if (item->flipped_horizontally)
+				img_flip_surface_horizontally(img, item);				
+			if (item->flipped_vertically)
+				img_flip_surface_vertically(img, item);
+
 			g_array_append_val(track->items, item);
+			
+			// Make the first picture media the current one
+			if (q == 0 && i == 0)
+				img->current_item = item;
 		}
 		g_strfreev(values);
 		g_free(value_string);
@@ -580,7 +535,8 @@ next:
 
 	img->project_current_dir = project_current_dir;
 	img_refresh_window_title(img);
-	img_zoom_fit(NULL, img);
+	
+	gtk_widget_queue_draw(img->image_area);
 
 	gint unused = img_timeline_get_final_time(img);
 }

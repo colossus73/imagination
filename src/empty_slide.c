@@ -233,7 +233,7 @@ void img_add_empty_slide( GtkMenuItem *item, img_window_struct *img )
 		if (GTK_WIDGET(item) == img->edit_empty_slide)
 			slide_info = img->current_media;
 		else
-			slide_info = img_create_new_media();
+			slide_info = g_new0(media_struct, 1);
 
 		if (slide.gradient == 3)
 			path = "10:0";

@@ -33,6 +33,7 @@
 #include <ctype.h>
 #include "imagination.h"
 #include "main-window.h"
+#include "img_timeline.h"
 #include "imgcellrendereranim.h"
 
 #ifdef ENABLE_NLS
@@ -55,11 +56,9 @@ gint img_ask_user_confirmation(img_window_struct *, gchar *);
 void img_message(img_window_struct *, gchar *);
 void img_load_available_transitions(img_window_struct *);
 void img_show_file_chooser(GtkWidget *, GtkEntryIconPosition, int, img_window_struct *);
-void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img);
-void img_update_zoom_variables(img_window_struct *img);
+void img_delete_subtitle_pattern(GtkButton *, img_window_struct *);
+void img_update_zoom_variables(img_window_struct *);
 void img_get_audio_data(media_struct *);
-
-media_struct *img_create_new_media();
 
 void img_set_empty_slide_info( media_struct *slide,
 							 gint          gradient,
@@ -73,32 +72,42 @@ void img_set_empty_slide_info( media_struct *slide,
 GdkPixbuf *img_set_fade_gradient(	img_window_struct *img,
 							gint gradient,
 							media_struct *slide_info);
-void img_set_slide_still_info( media_struct      *slide,
-						  gdouble           duration,
-						  img_window_struct *img );
-
-void img_set_slide_transition_info( media_struct      *slide,
-							   GtkListStore      *store,
-							   GtkTreeIter       *iter,
-							   GdkPixbuf         *pix,
-							   const gchar       *path,
-							   gint               transition_id,
-							   ImgRender          render,
-							   img_window_struct *img );
 
 void img_set_slide_ken_burns_info( media_struct *slide,
 							  gint          cur_point,
 							  gsize         length,
 							  gdouble      *points );
-
+							  
+void img_free_media_text_struct(media_text *);
 void img_free_media_struct( media_struct * );
-void img_save_relative_filenames(GtkCheckButton *togglebutton, img_window_struct *img);
-gint img_calc_slide_duration_points( GList *list, gint   length );
-GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t *surface );
+void img_save_relative_filenames(GtkCheckButton *, img_window_struct *);
+gint img_calc_slide_duration_points( GList *, gint );
+GdkPixbuf *img_convert_surface_to_pixbuf( cairo_surface_t * );
 void img_taint_project(img_window_struct *);
 void img_sync_timings( media_struct  *, img_window_struct * );
 void img_free_cached_preview_surfaces(gpointer );
-void img_create_cached_cairo_surface(img_window_struct *, gint , gchar *);
+void img_create_cached_cairo_surface(img_window_struct *, media_timeline * , gchar *);
+void img_apply_button_styles(GtkWidget *);
+GdkPixbuf *img_create_bordered_pixbuf(gint , gint , gboolean );
+GtkWidget *img_create_flip_button(gboolean);
+GtkWidget *img_create_rotate_button();
+void img_filter_icon_view(GtkEntry *entry, img_window_struct *);
+void img_select_surface_on_click(img_window_struct *, gdouble, gdouble);
+void img_deselect_all_surfaces(img_window_struct *);
+void img_draw_rotation_angle(cairo_t *, gdouble, gdouble, gdouble, gdouble,  gdouble);
+void img_flip_surface_horizontally(img_window_struct *, media_timeline *);
+void img_flip_surface_vertically(img_window_struct *, media_timeline *);
+void img_rotate_surface(img_window_struct *, media_timeline *, gboolean);
+void img_turn_surface_black_and_white(img_window_struct *, media_timeline *);
+void img_turn_surface_sepia(img_window_struct *, media_timeline *);
+void img_turn_surface_infrared(img_window_struct *, media_timeline *);
+void img_turn_surface_pencil_sketch(img_window_struct *, media_timeline *);
+void img_turn_surface_negative(img_window_struct *, media_timeline *);
+void img_turn_surface_emboss(img_window_struct *, media_timeline *);
+void img_apply_filter_on_surface(img_window_struct *, media_timeline *, gint );
+void img_draw_rotating_handle(cairo_t *, gdouble, gdouble, gdouble, gdouble, gdouble, gboolean);
+void img_draw_horizontal_line(cairo_t *, GtkAllocation *);
+void img_draw_vertical_line(cairo_t *, GtkAllocation *);
 
 gboolean img_scale_empty_slide( gint gradient, gint countdown,
 					gdouble          *p_start,
@@ -116,8 +125,8 @@ gboolean img_scale_empty_slide( gint gradient, gint countdown,
 gboolean img_check_for_recent_file(img_window_struct *, const gchar *);
 gboolean img_find_media_in_list(img_window_struct *, gchar *);
 void rotate_point(double , double , double , double , double , double *, double *);
-void transform_coords(img_textbox *, double , double , double *, double *);
-void select_word_at_position(img_textbox *, int );
+void transform_coords(media_text *, double , double , double *, double *);
+void select_word_at_position(media_text *, int );
 void to_upper(gchar **);
 gint img_convert_time_string_to_seconds(gchar *);
 gchar *img_convert_time_to_string(double);

@@ -61,30 +61,108 @@ enum
 	N_PROPERTIES
 };
 
-typedef struct _media_timeline media_timeline;
-struct _media_timeline
+typedef struct _media_text media_text;
+struct _media_text
 {
-	gint					id;							//This has the same id value in the media_struct in imagination.h
-	gint					media_type;
-	gdouble		 	x;
-	gdouble 			y;
-	gdouble 			drag_x;
+	/* Text related variables */
+	GString 			*text;
+	gsize				 text_length; 					/* Text length */
+	gchar			 	 *pattern_filename;		/* Pattern image file */
+	TextAnimationFunc     anim;           	/* Animation functions */
+	gint                  posX;       	   					/* subtitle X position */
+	gint                  posY;        	   					/* subtitle Y position */
+	gint                  subtitle_angle;  				/* subtitle rotation angle */
+	gint                  anim_id;         					/* Animation id */
+	gint                  anim_duration;   			/* Duration of animation */
+	PangoFontDescription *font_desc;     	 /* Font description */
+	gdouble           font_color[4];   				/* Font color (RGBA format) */
+	gdouble           font_bg_color[4]; 			/* Font background color (RGBA format) */
+    gdouble           font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
+    gdouble           font_outline_color[4]; 	/* Font outline color (RGBA format) */
+    gint 					bg_border_radious;			/* text background border radious */
+    gint 					bg_padding;					/* text background padding */
+    gint               	alignment;
+    gdouble 			width, height;
+    gdouble 			orig_x, orig_y, orig_width, orig_height;
+    gdouble 			dragx, dragy;
+    gint 					corner, action, lw, lh;
+    guint				cursor_source_id;
+    gboolean			button_pressed;
+    gboolean			cursor_visible;
+    gboolean			visible;
+    gboolean			draw_horizontal_line;
+    gboolean			draw_vertical_line;
+    gint 					cursor_pos;
+    cairo_t				*cr;
+    cairo_surface_t *surface;
+    PangoLayout 	*layout;
+	PangoAttrList 	*attr_list;
+	PangoAttribute *attr;
+    gint 					selection_start;
+    gint 					selection_end;
+    gboolean 		is_x_snapped;
+    gboolean 		is_y_snapped;
+    
+    gdouble			last_allocation_width;
+	gdouble			last_allocation_height;
+	gdouble		 	x;								// surface x coord in the image area
+	gdouble		 	y;								// surface y coord in the image area
+	gdouble		 	drag_x;					// y coord in the image area
+	gdouble		 	drag_y;					// y coord in the image area
+	gdouble			angle;						// Arbitrary rotation angle in the image area
+	gdouble		 	timeline_x;
+	gdouble 			timeline_y;
+	gdouble 			timeline_drag_x;
 	gdouble			old_x;
 	gdouble			right_edge_pos; 
 	gdouble			initial_width;
-	gdouble			width;
+	gdouble			start_time;
+    gdouble			duration;
+};
+
+typedef struct _media_timeline media_timeline;
+struct _media_timeline
+{
+	gint					id;							// This has the same id value in the media_struct in imagination.h
+	gint					media_type;
+	gint					width;						// Cairo surface width in the image area
+	gint					height;						// Cairo surface height in the image area
+	gint					color_filter;
+	gint					nr_rotations;			// 0 to 3 (0-270 degrees)  when rotated automatically
+	gdouble			last_allocation_width;
+	gdouble			last_allocation_height;
+	gdouble		 	x;								// surface x coord in the image area
+	gdouble		 	y;								// surface y coord in the image area
+	gdouble		 	drag_x;					// y coord in the image area
+	gdouble		 	drag_y;					// y coord in the image area
+	gdouble			angle;						// Arbitrary rotation angle in the image area
+	gdouble		 	timeline_x;
+	gdouble 			timeline_y;
+	gdouble 			timeline_drag_x;
+	gdouble			old_x;
+	gdouble			right_edge_pos; 
+	gdouble			initial_width;
 	gdouble			start_time;
     gdouble			duration;
     gdouble			opacity;
-    gboolean 			to_be_deleted;	//This is for multiple deletion when it occurs multiple times on the timeline
-    gboolean 			is_playing;			//This is needed during the preview
-	enum 					{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
-	gboolean 			button_pressed;
+    gdouble			volume;
+    gboolean 		is_positioned;			// TRUE/FALSE to center it only once when added for the first time to the timeline
+    gboolean 		is_selected;				// TRUE/FALSE when being clicked in the image area for panning and rotation
+    gboolean 		is_resizing;				// TRUE/FALSE if a resizing operation is in progress
+    gboolean 		to_be_deleted;		// This is for multiple deletion when it occurs multiple times on the timeline
+    gboolean 		is_playing;				// Audio flag needed during the preview
+    gboolean 		flipped_horizontally;
+    gboolean 		flipped_vertically;
+    gboolean 		draw_horizontal_line;
+    gboolean 		draw_vertical_line;
+	enum 				{	RESIZE_NONE, RESIZE_LEFT, RESIZE_RIGHT } resizing;
+	gboolean 		button_pressed;
 	GtkWidget 		*button;
-	gchar    				*tree_path; 			/* Transition model path to transition */
-	gint       				transition_id; 		/* Transition id */
+	gchar    			*tree_path; 			/* Transition model path to transition */
+	gint       			transition_id; 		/* Transition id */
 	gchar 				*trans_group; 		/* Transition group */
-	ImgRender  render;        			/* Transition render function */
+	ImgRender  	render;        		/* Transition render function */
+	media_text	*text;					/* Pointer to text structure */
 };
 
 typedef struct _Track
@@ -105,7 +183,7 @@ enum
 };
 
 #define TRACK_HEIGHT 50
-#define TRACK_GAP 5
+#define TRACK_GAP 2
 
 #define IMG_TIMELINE_TYPE img_timeline_get_type()
 G_DECLARE_FINAL_TYPE(ImgTimeline, img_timeline, IMG, TIMELINE, GtkLayout)
@@ -128,8 +206,9 @@ void img_timeline_delete_all_media						(ImgTimeline *);
 void img_timeline_delete_additional_tracks			(ImgTimeline *);
 void img_timeline_center_button_image					(GtkWidget *);
 gint img_timeline_get_final_time								(img_window_struct *);
-GArray *img_timeline_get_active_picture_media		(GtkWidget *, double );
-GArray *img_timeline_get_active_audio_media		(GtkWidget *, double );
+GArray *img_timeline_get_active_picture_media		(GtkWidget *, gdouble);
+GArray *img_timeline_get_active_audio_media		(GtkWidget *, gdouble);
+GArray *img_timeline_get_active_text_media			(GtkWidget *, gdouble);
 GArray *img_timeline_get_selected_items				(GtkWidget *);
 GArray *img_timeline_get_active_media_at_given_time(GtkWidget *, gdouble);
 void img_timeline_go_start_time								(GtkWidget *, img_window_struct *);
@@ -138,6 +217,7 @@ void img_timeline_play_audio									(media_timeline *, img_window_struct *, dou
 void img_timeline_stop_audio									(media_timeline *, img_window_struct *);
 void img_timeline_update_audio_states					(img_window_struct *, double );
 gboolean img_timeline_check_for_media_audio		(GtkWidget *);
+void img_timeline_set_media_properties				(img_window_struct *, media_timeline *);
 
 //Timeline events
 gboolean img_timeline_scroll_event					(GtkWidget *, GdkEventScroll *, GtkWidget *);
@@ -145,7 +225,7 @@ gboolean	img_timeline_drag_motion				(GtkWidget *, GdkDragContext *, gint , gint
 gboolean img_timeline_drag_leave					(GtkWidget *, GdkDragContext *context, guint , img_window_struct *);
 gboolean img_timeline_motion_notify				(GtkWidget *, GdkEventMotion *event, img_window_struct *);
 gboolean img_timeline_mouse_button_press 	(GtkWidget *, GdkEventButton *event, img_window_struct *);
-gboolean img_timeline_mouse_button_release (GtkWidget *, GdkEvent *event, ImgTimeline *);
+gboolean img_timeline_mouse_button_release (GtkWidget *, GdkEvent *event, img_window_struct *);
 gboolean img_timeline_key_press					(GtkWidget *, GdkEventKey *, img_window_struct *);
 void		img_timeline_drag_data_received 	(GtkWidget *, GdkDragContext *, gint , gint , GtkSelectionData *, guint , guint , img_window_struct *);
 void 		img_timeline_drag_data_get				(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint , guint , img_window_struct *);

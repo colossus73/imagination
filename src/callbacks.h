@@ -33,9 +33,6 @@ void img_new_project(GtkMenuItem *,img_window_struct *);
 gboolean img_create_media_struct(gchar *, img_window_struct *);
 void img_add_media(gchar *, media_struct *, img_window_struct *);
 void img_add_media_items(GtkMenuItem *,img_window_struct *);
-//TODO to remove?
-void img_detect_media_orientation_from_pixbuf(GdkPixbuf *, gboolean *, ImgAngle *);
-
 void img_swap_preview_button_images( img_window_struct *, gboolean);
 void img_select_all_media(GtkWidget *, img_window_struct *);
 void img_unselect_all_media(GtkWidget *, img_window_struct *);
@@ -50,7 +47,14 @@ void img_open_recent_slideshow(GtkWidget *, img_window_struct *);
 void img_add_any_media_callback( GtkButton * ,  img_window_struct *);
 void img_zoom_fit( GtkWidget *, img_window_struct *);
 void img_media_duration_value_changed (GtkSpinButton *, img_window_struct *);
+void img_surface_effect_changed(GtkComboBox *, img_window_struct *);
 void img_opacity_value_changed(GtkRange *, img_window_struct *);
+void img_volume_value_changed(GtkRange *, img_window_struct *);
+void img_flip_horizontal_button_clicked(GtkButton *, img_window_struct *);
+void img_flip_vertical_button_clicked(GtkButton *, img_window_struct *);
+void img_rotate_button_clicked(GtkButton *, img_window_struct *);
+void img_move_surfaces_left(img_window_struct *);
+void img_move_surfaces_right(img_window_struct *);
 void img_choose_project_filename(GtkWidget *,img_window_struct *);
 void img_close_project(GtkWidget *,img_window_struct *);
 void img_increase_progressbar(img_window_struct *, gint);
@@ -65,7 +69,8 @@ gboolean img_image_area_scroll( GtkWidget *, GdkEvent *, img_window_struct * );
 gboolean img_image_area_button_press( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_button_release( GtkWidget *, GdkEventButton *, img_window_struct * );
 gboolean img_image_area_motion( GtkWidget *, GdkEventMotion *, img_window_struct * );
-gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *, img_window_struct *);
+gboolean img_image_area_key_press(GtkWidget *, GdkEventKey *, img_window_struct *);
+gboolean img_image_area_leave_event(GtkWidget *, GdkEventCrossing *, img_window_struct *);
 
 void img_draw_image_on_surface( cairo_t           *cr,
 						   gint               width,

@@ -20,6 +20,7 @@
 #include "support.h"
 
 static gboolean img_plugin_is_loaded(img_window_struct *, GModule *);
+static gboolean filter_function(GtkTreeModel *model, GtkTreeIter *iter, img_window_struct *);
 
 GtkWidget *img_load_icon(gchar *filename, GtkIconSize size)
 {
@@ -370,44 +371,6 @@ void img_show_file_chooser(GtkWidget *entry, GtkEntryIconPosition icon_pos,int b
 	gtk_widget_destroy(file_selector);
 }
 
-media_struct *img_create_new_media()
-{
-	media_struct  *slide = NULL;
-
-	slide = g_new0( media_struct, 1 );
-	if(slide)
-	{
-		/* Ken Burns */
-		slide->cur_point = -1;
-
-		/* Subtitles */
-		slide->anim_duration = 1;
-		slide->posX = 0;
-		slide->posY = 1;
-		slide->font_desc = NULL; //pango_font_description_from_string( "Sans 24" );
-		slide->font_color[0] = 0; /* R */
-		slide->font_color[1] = 0; /* G */
-		slide->font_color[2] = 0; /* B */
-		slide->font_color[3] = 1; /* A */
-		/* default: no shadow color border */
-        slide->font_shadow_color[0] = 1; /* R */
-        slide->font_shadow_color[1] = 1; /* G */
-        slide->font_shadow_color[2] = 1; /* B */
-        slide->font_shadow_color[3] = 1; /* A */
-        /* default: no font background color */
-        slide->font_bg_color[0] = 1; /* R */
-        slide->font_bg_color[1] = 1; /* G */
-        slide->font_bg_color[2] = 1; /* B */
-        slide->font_bg_color[3] = 0; /* A */
-        /* default: no font outline color */
-        slide->font_outline_color[0] = 1; /* R */
-        slide->font_outline_color[1] = 1; /* G */
-        slide->font_outline_color[2] = 1; /* B */
-        slide->font_outline_color[3] = 1; /* A */
-	}
-	return slide;
-}
-
 void img_set_empty_slide_info( media_struct *slide,
 							 gint          gradient,
 							 gint          countdown,
@@ -499,8 +462,7 @@ void img_set_empty_slide_info( media_struct *slide,
 
 //~ }
 
-void
-img_set_slide_ken_burns_info( media_struct *slide,
+void img_set_slide_ken_burns_info( media_struct *slide,
 							  gint          cur_point,
 							  gsize         length,
 							  gdouble      *points )
@@ -537,6 +499,17 @@ img_set_slide_ken_burns_info( media_struct *slide,
 		//~ slide->duration = full;
 }
 
+void img_free_media_text_struct(media_text *entry)
+{
+	g_object_unref(entry->layout);
+	cairo_destroy(entry->cr);
+	cairo_surface_destroy(entry->surface);
+	pango_font_description_free(entry->font_desc);
+	pango_attr_list_unref(entry->attr_list);
+	g_string_free(entry->text, TRUE);
+    g_free(entry);
+}
+
 void img_free_media_struct( media_struct *entry )
 {
 	GList *tmp;
@@ -552,15 +525,6 @@ void img_free_media_struct( media_struct *entry )
 
 	if (entry->audio_duration)
 		g_free(entry->audio_duration);
-
-	if (entry->text)
-		g_free(entry->text);
-
-	if (entry->pattern_filename)
-		g_free(entry->pattern_filename);
-	
-	if (entry->font_desc)
-		g_free(entry->font_desc);
 
 	/* Free stop point list */
 	for( tmp = entry->points; tmp; tmp = g_list_next( tmp ) )
@@ -822,15 +786,15 @@ gboolean img_scale_empty_slide( gint gradient,  gint countdown,
 
 void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 {
-	media_struct 	*slide = img->current_media;
+	media_text	*item = NULL;//img->current_text_item;
 	GdkPixbuf 		*pixbuf;
 	GtkWidget		*tmp_image,*fc;
 	GtkIconTheme	*icon_theme;
 
-	if (slide->pattern_filename)
+	if (item->pattern_filename)
 	{
-		g_free(slide->pattern_filename);
-		slide->pattern_filename = NULL;
+		g_free(item->pattern_filename);
+		item->pattern_filename = NULL;
 	}
 	icon_theme = gtk_icon_theme_get_default();
 	pixbuf = gtk_icon_theme_load_icon(icon_theme,"image", 20, 0, NULL);
@@ -840,7 +804,7 @@ void img_delete_subtitle_pattern(GtkButton *button, img_window_struct *img)
 	
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(img->pattern_image), tmp_image);
 	gtk_widget_set_sensitive(img->sub_font_color, TRUE);
-	gtk_widget_set_tooltip_text(img->sub_font_color, _("Click to choose the font color"));
+	gtk_widget_set_tooltip_text(img->sub_font_color, _("Click to choose the font pattern"));
 
 	fc = gtk_widget_get_toplevel(GTK_WIDGET(button));
 	gtk_widget_destroy(fc);
@@ -1041,7 +1005,7 @@ void rotate_point(double x, double y, double cx, double cy, double angle, double
     *ry = (x - cx) * sin_angle + (y - cy) * cos_angle + cy;
 }
 
-void transform_coords(img_textbox *textbox, double x, double y, double *tx, double *ty)
+void transform_coords(media_text *textbox, double x, double y, double *tx, double *ty)
 {
     double cx = textbox->x + textbox->width / 2;
     double cy = textbox->y + textbox->height / 2;
@@ -1059,7 +1023,7 @@ void transform_coords(img_textbox *textbox, double x, double y, double *tx, doub
     *ty = ry + cy;
 }
 
-void select_word_at_position(img_textbox *textbox, int position)
+void select_word_at_position(media_text *textbox, int position)
 {
     if (!textbox->text || position < 0 || position >= textbox->text->len)
         return;
@@ -1184,25 +1148,814 @@ void img_free_cached_preview_surfaces(gpointer data)
 	cairo_surface_destroy(surface);
 }
 
-void img_create_cached_cairo_surface(img_window_struct *img, gint id, gchar *full_path)
+void img_create_cached_cairo_surface(img_window_struct *img, media_timeline *item, gchar *full_path)
 {
 	GdkPixbuf *pix = NULL;
-	GtkAllocation allocation;
-	gint item_id = 0;
+	gint item_id = 0, width, height;
 	cairo_surface_t *surface;
 	cairo_t *cr;
 
-	if (! g_hash_table_contains(img->cached_preview_surfaces, GINT_TO_POINTER(id)))
+	if (! g_hash_table_contains(img->cached_preview_surfaces, GINT_TO_POINTER(item->id)))
 	{
-		gtk_widget_get_allocation(img->image_area, &allocation);
 		pix = gdk_pixbuf_new_from_file_at_scale(full_path, img->video_size[0] * img->image_area_zoom, img->video_size[1] * img->image_area_zoom, TRUE, NULL);
-		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,  gdk_pixbuf_get_width(pix), gdk_pixbuf_get_height(pix));
+		width =  gdk_pixbuf_get_width(pix);
+		height = gdk_pixbuf_get_height(pix);
+		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 		cr = cairo_create(surface);
 		gdk_cairo_set_source_pixbuf(cr, pix, 0, 0);
 		cairo_paint(cr);
 		cairo_destroy(cr);
 		g_object_unref(pix);
+		item->width = width;
+		item->height = height;
 
-		g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(id), (gpointer) surface);
+		g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(item->id), (gpointer) surface);
 	}
+}
+
+void img_apply_button_styles(GtkWidget *button)
+{
+    GtkStyleContext *button_context = gtk_widget_get_style_context(button);
+    GtkCssProvider *provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider,"button{margin:0; padding:0; min-height: 0; min-width: 0}", -1, NULL);
+    gtk_style_context_add_provider(button_context, GTK_STYLE_PROVIDER(provider),  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(provider);
+}
+
+GdkPixbuf* img_create_bordered_pixbuf(int width, int height, gboolean is_fit)
+{
+    GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, width, height);
+    
+    // Start with black background
+    gdk_pixbuf_fill(pixbuf, 0x000000FF);
+    
+    // Get direct access to pixel data
+    guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+    int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+    int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
+    
+    if (is_fit)
+    {
+        // Calculate blue center position
+        int center_x = (width - 8) / 2;
+        
+        // Draw the blue center
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = center_x; x < center_x + 8; x++) {
+                guchar *p = pixels + y * rowstride + x * n_channels;
+                p[0] = 0xA0;    // R
+                p[1] = 0xA0;    // G
+                p[2] = 0xA0;    // B
+                p[3] = 0xFF;    // A
+            }
+        }
+    } 
+    else
+    {
+        // Fill everything except border with blue
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+                guchar *p = pixels + y * rowstride + x * n_channels;
+                p[0] = 0xA0;    // R
+                p[1] = 0xA0;    // G
+                p[2] = 0xA0;    // B
+                p[3] = 0xFF;    // A
+            }
+        }
+    }
+    return pixbuf;
+}
+
+GtkWidget *img_create_flip_button(gboolean horizontal)
+{
+    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 20, 20);
+    cairo_t* cr = cairo_create(surface);
+
+    GdkRGBA color;
+    gdk_rgba_parse( &color, "#A0A0A0");
+
+    cairo_set_source_rgb(cr, 0, 0, 0); 
+    cairo_paint(cr);
+
+    // Draw the arrow
+    cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
+    cairo_set_line_width(cr, 3.0);
+
+    if (horizontal)
+    {
+      cairo_move_to(cr, 3, 20 / 2);
+      cairo_line_to(cr, 20 - 3, 20 / 2);
+      cairo_stroke(cr);
+
+      cairo_move_to(cr, 20 - 6, (20 / 2) - 3);
+      cairo_line_to(cr, 20 - 3, 20 / 2);
+      cairo_line_to(cr, 20 - 6, (20 / 2) + 3);
+      cairo_stroke(cr);
+
+
+      cairo_move_to(cr, 6, (20 / 2) - 3);
+      cairo_line_to(cr, 3, 20 / 2);
+      cairo_line_to(cr, 6, (20 / 2) + 3);
+      cairo_stroke(cr);
+    }
+    else
+    {
+      cairo_move_to(cr, 20 / 2, 3);
+      cairo_line_to(cr, 20 / 2, 20 - 3);
+      cairo_stroke(cr);
+
+      cairo_move_to(cr, (20 / 2) - 3, 6);
+      cairo_line_to(cr, 20 / 2, 3);
+      cairo_line_to(cr, (20 / 2) + 3, 6);
+      cairo_stroke(cr);
+
+      cairo_move_to(cr, (20 / 2) - 3, 20 - 6);
+      cairo_line_to(cr, 20 / 2, 20 - 3);
+      cairo_line_to(cr, (20 / 2) + 3, 20 - 6);
+      cairo_stroke(cr);
+    }
+    cairo_destroy(cr);
+
+    GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, 20, 20);
+	GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
+	GtkWidget *button = gtk_button_new();
+	gtk_button_set_image(GTK_BUTTON(button), image);
+	img_apply_button_styles(button);
+	
+	g_object_unref(pixbuf);
+	cairo_surface_destroy(surface);
+	return button;
+}
+
+GtkWidget *img_create_rotate_button()
+{
+    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 20, 20);
+    cairo_t* cr = cairo_create(surface);
+
+    GdkRGBA color;
+    gdk_rgba_parse( &color, "#A0A0A0");
+
+    cairo_set_source_rgb(cr, 0, 0, 0); 
+    cairo_paint(cr);
+
+    // Draw the arrow
+    cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
+    cairo_set_line_width(cr, 3.0);
+    
+    // Draw the L shape
+	cairo_move_to(cr, (20 / 2) + 6, 4);
+	cairo_rel_line_to(cr, 0, 6);
+	cairo_rel_line_to(cr, -6, 0);
+	cairo_stroke(cr);
+	
+	// Draw the arc
+	cairo_arc(cr, (20 / 2), 10, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+	cairo_stroke(cr);
+	cairo_destroy(cr);
+
+    GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, 20, 20);
+	GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
+	GtkWidget *button = gtk_button_new();
+	gtk_button_set_image(GTK_BUTTON(button), image);
+	img_apply_button_styles(button);
+	
+	g_object_unref(pixbuf);
+	cairo_surface_destroy(surface);
+	return button;
+}
+
+static gboolean filter_function(GtkTreeModel *model, GtkTreeIter *iter, img_window_struct *img)
+{
+    gchar *filename;
+    const gchar *filter_text;
+	gboolean visible = FALSE;
+	
+	filter_text = gtk_entry_get_text(GTK_ENTRY(img->media_library_filter));
+    // Avoid segfault if they're NULL
+     if (!filter_text || !*filter_text)
+        return TRUE;
+
+	gtk_tree_model_get(model, iter, 1, &filename, -1);
+    if (filename)
+    {
+		visible = (strstr(filename, filter_text) != NULL);
+        g_free(filename);
+	}
+    return visible;
+}
+
+void img_filter_icon_view(GtkEntry *entry, img_window_struct *img)
+{
+    GtkTreeModel *current_model;
+    const gchar *filter_text;
+    
+    g_return_if_fail(img != NULL);
+    g_return_if_fail(GTK_IS_ENTRY(entry));
+    
+    filter_text = gtk_entry_get_text(entry);
+    current_model = gtk_icon_view_get_model(GTK_ICON_VIEW(img->media_iconview));
+    
+    if (filter_text && *filter_text)
+    {
+        if (!img->media_model_filter)
+        {
+            // Create a new filter model
+            GtkTreeModel *filter_model = gtk_tree_model_filter_new(GTK_TREE_MODEL(img->media_model), NULL);
+            
+            img->media_model_filter = GTK_TREE_MODEL_FILTER(g_object_ref(filter_model));
+            gtk_tree_model_filter_set_visible_func(img->media_model_filter, (GtkTreeModelFilterVisibleFunc)filter_function, img, NULL);
+            gtk_icon_view_unselect_all(GTK_ICON_VIEW(img->media_iconview));
+            gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), filter_model);
+            g_object_unref(filter_model);
+        }
+        gtk_tree_model_filter_refilter(img->media_model_filter);
+    }
+    else
+    {
+        if (current_model != GTK_TREE_MODEL(img->media_model))
+        {
+            gtk_icon_view_set_model(GTK_ICON_VIEW(img->media_iconview), GTK_TREE_MODEL(img->media_model));
+            if (img->media_model_filter)
+            {
+                g_object_unref(img->media_model_filter);
+                img->media_model_filter = NULL;
+            }
+        }
+    }
+}
+
+void img_select_surface_on_click(img_window_struct *img, gdouble x, gdouble y)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	GArray *active_media;
+	Track *track;
+	media_timeline *item;
+	cairo_surface_t *surface = NULL;
+	gdouble scale, w, h, current_time;
+	GtkAllocation allocation;
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(img->toggle_button_text)))
+		return;
+
+	gtk_widget_get_allocation(img->image_area, &allocation);
+	g_object_get(G_OBJECT(img->timeline), "time_marker_pos", &current_time, NULL);
+	
+	img_deselect_all_surfaces(img);
+
+	active_media = img_timeline_get_active_picture_media(img->timeline, current_time);
+	for (gint i = 0; i < active_media->len; i++)
+	{
+		item = g_array_index(active_media, media_timeline *,i);
+		surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+		if (surface)
+		{
+			w = cairo_image_surface_get_width(surface);
+			h = cairo_image_surface_get_height(surface);
+			scale = MIN((double)allocation.width / w, (double)allocation.height / h);
+			if (x >= item->x && x <= item->x + w * scale && y >= item->y && y <= item->y + h * scale)
+			{
+				item->is_selected = TRUE;
+				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), TRUE);
+				gtk_notebook_set_current_page (GTK_NOTEBOOK(img->side_notebook), 1);
+				item->drag_x = x - item->x;
+				item->drag_y = y - item->y;
+				img->current_item = item;
+				img_timeline_set_media_properties(img,  item);
+				goto end;
+			}
+		}
+	}
+end:
+	g_array_free(active_media, FALSE);
+}
+
+void img_deselect_all_surfaces(img_window_struct *img)
+{
+	ImgTimelinePrivate *priv = img_timeline_get_private_struct(img->timeline);
+	Track *track;
+	media_timeline *item;
+
+	for (gint i = 0; i < priv->tracks->len; i++)
+	{
+		track = g_array_index(priv->tracks, Track *, i);
+		for (gint j = 0; j < track->items->len; j++)
+		{
+			item = g_array_index(track->items, media_timeline *, j);
+			item->is_selected = FALSE;
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(item->button), FALSE);
+		}
+	}	
+}
+
+void img_draw_rotation_angle(cairo_t *cr, gdouble x, gdouble width, gdouble y, gdouble height,  gdouble angle)
+{
+	cairo_save(cr);
+	cairo_translate(cr, x + width / 2, y + height / 2);
+	cairo_rotate(cr, -angle);
+	cairo_translate(cr, -(x + width / 2), -(y + height / 2));
+	
+	gchar buf[8];
+	cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
+	cairo_rectangle(cr, 5, 5, 45, 25);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+	cairo_set_font_size(cr, 16.0);
+	g_snprintf(buf, sizeof(buf), "%2.0f%s", round(angle * (180.0 / G_PI)), "\xC2\xB0");
+	cairo_move_to(cr, 15, 24);
+	cairo_show_text(cr, buf);
+	cairo_restore(cr);
+}
+
+void img_draw_rotating_handle(cairo_t *cr, gdouble x, gdouble width, gdouble y, gdouble height, gdouble scale, gboolean textbox)
+{
+	gdouble l_shape_offset, arc_offset, vertical_line_offset;
+
+	if (textbox)
+	{
+		l_shape_offset = -8;
+		arc_offset = -15;
+		vertical_line_offset = -10;
+	}
+	else
+	{
+		l_shape_offset = 24;
+		arc_offset = 17;
+		vertical_line_offset = 13;
+	}	
+	// Draw the rotating handle
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_set_line_width(cr, 3.5);
+	
+	// Draw the L shape
+	cairo_move_to(cr, x + (width * scale / 2) + 6, y + height * scale - l_shape_offset);
+	cairo_rel_line_to(cr, 0, 6);
+	cairo_rel_line_to(cr, -6, 0);
+	cairo_stroke(cr);
+	
+	// Draw the arc
+	cairo_arc(cr, x + (width * scale/ 2), y + height * scale - arc_offset, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+	cairo_stroke(cr);
+	
+	// Draw the vertical line under the rotate circle
+	cairo_move_to(cr, x + (width * scale/ 2), y + height * scale - vertical_line_offset);
+	cairo_line_to(cr, x + (width * scale/ 2), y + height * scale);
+	cairo_stroke(cr);
+	
+	// Now draw the black lines on top
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_set_line_width(cr, 1.5);  // Original line width
+	
+	// Draw the L shape again
+	cairo_move_to(cr, x + (width * scale/ 2) + 6, y + height * scale- l_shape_offset);
+	cairo_rel_line_to(cr, 0, 6);
+	cairo_rel_line_to(cr, -6, 0);
+	cairo_stroke(cr);
+	
+	// Draw the arc again
+	cairo_arc(cr, x + (width * scale/ 2), y + height * scale - arc_offset, 5, 30.0 * (G_PI / 180.0), 340.0 * (G_PI / 180.0));
+	cairo_stroke(cr);
+	
+	// Draw the vertical line under the rotate circle again
+	cairo_set_line_width(cr, 1);
+	cairo_move_to(cr, x + (width * scale/ 2), y + height * scale - vertical_line_offset);
+	cairo_line_to(cr, x + (width * scale/ 2), y + height * scale);
+	cairo_stroke(cr);
+}
+
+void img_flip_surface_horizontally(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface, *flipped_surface;
+	cairo_t *cr;
+	gint width, height;
+
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	width = cairo_image_surface_get_width(surface);
+	height = cairo_image_surface_get_height(surface);
+	flipped_surface = cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+	cr = cairo_create(flipped_surface);
+
+	// Flip horizontally around the center of the image
+	cairo_translate(cr, width / 2.0, 0);
+	cairo_scale(cr, -1, 1);
+	cairo_translate(cr, -width / 2.0, 0);
+	cairo_set_source_surface(cr, surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	g_hash_table_remove(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(item->id), (gpointer) flipped_surface);
+}
+
+void img_flip_surface_vertically(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface, *flipped_surface;
+	cairo_t *cr;
+	gint width, height;
+
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	width = cairo_image_surface_get_width(surface);
+	height = cairo_image_surface_get_height(surface);
+	flipped_surface = cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+	cr = cairo_create(flipped_surface);
+
+	// Flip vertically around the center of the image
+	cairo_translate(cr, 0, height / 2.0);
+	cairo_scale(cr, 1, -1);
+	cairo_translate(cr, 0, -height / 2.0);
+	cairo_set_source_surface(cr, surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	g_hash_table_remove(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(item->id), (gpointer) flipped_surface);
+}
+
+void img_rotate_surface(img_window_struct *img, media_timeline *item, gboolean update_angle)
+{
+	cairo_surface_t *surface, *rotated_surface;
+	cairo_t *cr;
+	gint width, height;
+	gdouble old_cx, old_cy;
+    gdouble new_cx, new_cy;
+    
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	width = cairo_image_surface_get_width(surface);
+	height = cairo_image_surface_get_height(surface);
+	
+	rotated_surface = cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, height, width);
+	
+	old_cx = item->x + width / 2.0;
+    old_cy = item->y + height / 2.0;
+    
+    // Rotate the surface
+	cr = cairo_create(rotated_surface);
+	cairo_translate(cr, height / 2.0, width / 2.0);
+	cairo_rotate(cr, G_PI / 2.0);
+	cairo_translate(cr, -width / 2.0, -height / 2.0);
+	cairo_set_source_surface(cr, surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+
+	// Update the hash table
+	g_hash_table_remove(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	g_hash_table_insert(img->cached_preview_surfaces, GINT_TO_POINTER(item->id), (gpointer)rotated_surface);
+	
+	new_cx = old_cx;
+    new_cy = old_cy;
+    
+    // Update position to maintain center point after rotation
+    item->x = new_cx - height  / 2.0;
+    item->y = new_cy - width  / 2.0;
+    
+    if (update_angle)
+	{
+		item->nr_rotations ++;
+		if (item->nr_rotations >= 4)
+			item->nr_rotations = 0;
+	}
+}
+
+void img_turn_surface_black_and_white(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+    cairo_surface_flush(surface);
+
+    for (int y = 0; y < height; y++)
+    {
+        row = data + y * stride;
+        for (int x = 0; x < width; x++)
+        {
+            pixel = row + x * 4;
+            
+            // Calculate grayscale value using luminosity method
+            unsigned char r = pixel[2];
+            unsigned char g = pixel[1];
+            unsigned char b = pixel[0];
+            
+            unsigned char gray = (unsigned char)(0.299 * r + 0.587 * g + 0.114 * b);
+            
+            pixel[0] = gray;  // Blue
+            pixel[1] = gray;  // Green
+            pixel[2] = gray;  // Red
+        }
+    }
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_turn_surface_sepia(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+    cairo_surface_flush(surface);
+	
+	for (int y = 0; y < height; y++)
+	{
+		row = data + y * stride;
+		for (int x = 0; x < width; x++)
+		{
+			pixel = row + x * 4;
+			
+			// Original RGB values
+			unsigned char r = pixel[2];
+			unsigned char g = pixel[1];
+			unsigned char b = pixel[0];
+			
+			// Sepia tone calculation
+			unsigned char new_r = (unsigned char)fmin(255, 0.393 * r + 0.769 * g + 0.189 * b);
+			unsigned char new_g = (unsigned char)fmin(255, 0.349 * r + 0.686 * g + 0.168 * b);
+			unsigned char new_b = (unsigned char)fmin(255, 0.272 * r + 0.534 * g + 0.131 * b);
+			
+			pixel[0] = new_b;  // Blue
+			pixel[1] = new_g;  // Green
+			pixel[2] = new_r;  // Red
+		}
+	}
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_turn_surface_infrared(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+    cairo_surface_flush(surface);
+
+	for (int y = 0; y < height; y++)
+	{
+		row = data + y * stride;
+		for (int x = 0; x < width; x++)
+		{
+			pixel = row + x * 4;
+			
+			unsigned char r = pixel[2];
+			unsigned char g = pixel[1];
+			unsigned char b = pixel[0];
+			
+			// Infrared simulation: swap channels, emphasize red
+			unsigned char infrared_r = fmax(g, b);
+			unsigned char infrared_g = fmin(r, 128);
+			unsigned char infrared_b = fmin(b, 64);
+			
+			pixel[0] = infrared_b;  // Blue
+			pixel[1] = infrared_g;  // Green
+			pixel[2] = infrared_r;  // Red
+		}
+	}
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_turn_surface_pencil_sketch(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+    cairo_surface_flush(surface);
+	// First pass: edge detection
+    for (int y = 1; y < height - 1; y++)
+    {
+        row = data + y * stride;
+        for (int x = 1; x < width - 1; x++)
+        {
+            unsigned char *pixel = row + x * 4;
+            unsigned char *pixel_left = row + (x-1) * 4;
+            unsigned char *pixel_right = row + (x+1) * 4;
+            unsigned char *row_above = data + (y-1) * stride;
+            unsigned char *row_below = data + (y+1) * stride;
+            
+            // Simplified edge detection
+            int edge_x = abs(
+                (pixel_left[2] + pixel_left[1] + pixel_left[0]) - 
+                (pixel_right[2] + pixel_right[1] + pixel_right[0])
+            );
+            int edge_y = abs(
+                (row_above[x*4+2] + row_above[x*4+1] + row_above[x*4]) - 
+                (row_below[x*4+2] + row_below[x*4+1] + row_below[x*4])
+            );
+            
+            // Invert and scale edges
+            unsigned char edge_intensity = 255 - fmin(255, (edge_x + edge_y) / 2);
+            
+            pixel[0] = edge_intensity;  // Blue
+            pixel[1] = edge_intensity;  // Green
+            pixel[2] = edge_intensity;  // Red
+        }
+    }
+
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_turn_surface_negative(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+    cairo_surface_flush(surface);
+	for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            unsigned char *pixel = data + y * stride + x * 4;
+
+            // Invert RGB channels (leave alpha unchanged)
+            pixel[0] = 255 - pixel[0];  // Blue
+            pixel[1] = 255 - pixel[1];  // Green
+            pixel[2] = 255 - pixel[2];  // Red
+        }
+    }
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_turn_surface_emboss(img_window_struct *img, media_timeline *item)
+{
+	cairo_surface_t *surface;
+	gint width, height, stride;
+	unsigned char *data, *row, *pixel;
+	
+	surface = g_hash_table_lookup(img->cached_preview_surfaces, GINT_TO_POINTER(item->id));
+	
+    width = cairo_image_surface_get_width(surface);
+    height = cairo_image_surface_get_height(surface);
+    stride = cairo_image_surface_get_stride(surface);
+    data = cairo_image_surface_get_data(surface);
+
+	unsigned char *buffer = malloc(width * height * 4);
+    memcpy(buffer, data, width * height * 4);
+
+    cairo_surface_flush(surface);
+	for (int y = 1; y < height - 1; y++)
+	{
+        for (int x = 1; x < width - 1; x++)
+        {
+            // Different sampling directions for more robust embossing
+            int emboss_kernels[4][6] = {
+                // Horizontal kernel (left to right)
+                {-1, -1, 0, 0, 1, 1},
+                // Vertical kernel (top to bottom)
+                {-1, 0, 1, -1, 0, 1},
+                // Diagonal (top-left to bottom-right)
+                {-1, 0, 0, 0, 1, 0},
+                // Diagonal (top-right to bottom-left)
+                {0, 1, 0, -1, 0, 0}
+            };
+
+            int total_emboss_r = 0;
+            int total_emboss_g = 0;
+            int total_emboss_b = 0;
+
+            // Apply multiple emboss kernels
+            for (int k = 0; k < 4; k++) {
+                // Sample pixels based on kernel
+                unsigned char *pixel1 = buffer + (y + emboss_kernels[k][1]) * stride + (x + emboss_kernels[k][0]) * 4;
+                unsigned char *pixel2 = buffer + (y + emboss_kernels[k][3]) * stride + (x + emboss_kernels[k][2]) * 4;
+                unsigned char *pixel3 = buffer + (y + emboss_kernels[k][5]) * stride + (x + emboss_kernels[k][4]) * 4;
+
+                // Calculate difference
+                total_emboss_r += 
+                    (pixel1[2] * emboss_kernels[k][0]) + 
+                    (pixel2[2] * emboss_kernels[k][2]) + 
+                    (pixel3[2] * emboss_kernels[k][4]);
+                
+                total_emboss_g += 
+                    (pixel1[1] * emboss_kernels[k][0]) + 
+                    (pixel2[1] * emboss_kernels[k][2]) + 
+                    (pixel3[1] * emboss_kernels[k][4]);
+                
+                total_emboss_b += 
+                    (pixel1[0] * emboss_kernels[k][0]) + 
+                    (pixel2[0] * emboss_kernels[k][2]) + 
+                    (pixel3[0] * emboss_kernels[k][4]);
+            }
+
+            // Current pixel
+            unsigned char *pixel = data + y * stride + x * 4;
+
+            // Combine emboss effect with original pixel
+            int emboss_r = 128 + total_emboss_r / 4;
+            int emboss_g = 128 + total_emboss_g / 4;
+            int emboss_b = 128 + total_emboss_b / 4;
+
+            // Clamp values
+            pixel[0] = fmin(255, fmax(0, emboss_b));  // Blue
+            pixel[1] = fmin(255, fmax(0, emboss_g));  // Green
+            pixel[2] = fmin(255, fmax(0, emboss_r));  // Red
+
+            // Optional: Enhance contrast slightly
+            pixel[0] = fmin(255, pixel[0] * 1.2);
+            pixel[1] = fmin(255, pixel[1] * 1.2);
+            pixel[2] = fmin(255, pixel[2] * 1.2);
+        }
+    }
+
+    free(buffer);
+    cairo_surface_mark_dirty(surface);
+}
+
+void img_apply_filter_on_surface(img_window_struct *img, media_timeline *item, gint filter_nr)
+{
+	switch (filter_nr)
+	{
+		case 0:
+		// The original surface is restored above
+		break;
+		
+		case 1:
+			img_turn_surface_black_and_white(img, item);
+		break;
+		
+		case 2:
+			img_turn_surface_sepia(img, item);
+		break;
+
+		case 3:
+			img_turn_surface_infrared(img, item);
+		break;
+		
+		case 4:
+			img_turn_surface_pencil_sketch(img, item);
+		break;
+		
+		case 5:
+			img_turn_surface_negative(img, item);
+		break;
+
+		case 6:
+			img_turn_surface_emboss(img, item);
+		break;
+	}
+}
+
+void img_draw_horizontal_line(cairo_t *cr, GtkAllocation *allocation)
+{
+	gint center_y = allocation->height / 2;
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, 0, center_y);
+	cairo_line_to(cr, allocation->width, center_y - 2);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+	cairo_move_to(cr, 0, center_y);
+	cairo_line_to(cr, allocation->width, center_y);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_move_to(cr, 0, center_y + 2);
+	cairo_line_to(cr, allocation->width, center_y + 2);
+	cairo_stroke(cr);
+}
+
+void img_draw_vertical_line(cairo_t *cr, GtkAllocation *allocation)
+{
+	gint center_x = allocation->width / 2;
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_set_line_width(cr, 1.0);
+	cairo_move_to(cr, center_x - 2, 0);
+	cairo_line_to(cr, center_x - 2, allocation->height);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.8, 0.7, 0.3);
+	cairo_move_to(cr, center_x, 0);
+	cairo_line_to(cr, center_x, allocation->height);
+	cairo_stroke(cr);
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_move_to(cr, center_x + 2, 0);
+	cairo_line_to(cr, center_x + 2, allocation->height );
+	cairo_stroke(cr);
 }

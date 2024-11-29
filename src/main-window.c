@@ -61,24 +61,6 @@ static void img_media_show_properties(GtkWidget *, img_window_struct *);
 
 GtkWidget *button1,  *button2, *toggle_button_slide_motion, *button5, *beginning, *end;
 
-static gboolean img_leave_notify_event(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
-{
-	if (img->textbox->cursor_source_id > 0)
-	{
-		g_source_remove(img->textbox->cursor_source_id);
-		img->textbox->cursor_source_id = 0;
-	}
-	return FALSE;
-}
-
-static gboolean img_enter_notify_event(GtkWidget *widget,  GdkEvent  *event, img_window_struct *img)
-{
-	 if (!img->textbox->cursor_source_id)
-		img->textbox->cursor_source_id = g_timeout_add(750, (GSourceFunc) blink_cursor, img);
-
-	return FALSE;
-}
-
 static void img_toggle_button_callback(GtkToggleButton *button, img_window_struct *img)
 {
     GtkWidget *buttons[] = {button2, img->toggle_button_image_options, img->toggle_button_text, toggle_button_slide_motion};
@@ -127,10 +109,6 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	GtkWidget *side_notebook;
 	GtkWidget *scrollable_window;
 	GtkWidget *vbox_frames;
-	GtkWidget *transition_label;
-	GtkWidget *duration_label;
-	GtkWidget *opacity_label;
-	GtkWidget *volume_label;
 	GtkWidget *vbox_slide_motion;
 	GtkWidget *viewport;
 	GtkWidget *hbox_motion, *stop_points_label;
@@ -146,9 +124,6 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	GtkWidget *properties_menu;
 	GtkWidget *export_menu;
 	GdkPixbuf *pixbuf;
-	GtkWidget *flip_horizontally_menu;
-	GtkWidget *flip_vertically_menu;
-	GtkWidget *rotate_menu;
 
 	img_struct = g_new0(img_window_struct, 1);
 	/* Set some default values */
@@ -168,51 +143,18 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->video_ratio = (gdouble)1280 / 720;
 	img_struct->export_fps = 25;
     //img_struct->audio_fadeout = 5;
-
 	img_struct->cached_preview_surfaces = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, img_free_cached_preview_surfaces);
-	img_struct->textbox = g_new0(img_textbox, 1);
-    img_struct->textbox->angle = 0;
-    img_struct->textbox->text = g_string_new("");
-    img_struct->textbox->x = 275;
-    img_struct->textbox->y = 162.5;
-    img_struct->textbox->width = 250;
-    img_struct->textbox->height = 125;
-    img_struct->textbox->corner = GDK_LEFT_PTR;
-    img_struct->textbox->action = NONE;
-    img_struct->textbox->visible = FALSE;
-    img_struct->textbox->cursor_visible = FALSE;
-    img_struct->textbox->cursor_pos = 0;
-	img_struct->textbox->cursor_source_id = 0;
-	img_struct->textbox->selection_start = -1;
-	img_struct->textbox->selection_end = -1;
-	img_struct->textbox->is_x_snapped = FALSE;
-	img_struct->textbox->is_y_snapped = FALSE;
-	img_struct->textbox->layout = pango_cairo_create_layout(cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1)));
-	//TODO: remove font_desc
-    img_struct->textbox->font_desc = pango_font_description_from_string("Noto 15");
-    img_struct->textbox->attr_list = pango_attr_list_new();
-    
-    pango_layout_set_wrap(img_struct->textbox->layout, PANGO_WRAP_CHAR);
-    pango_layout_set_ellipsize(img_struct->textbox->layout, PANGO_ELLIPSIZE_NONE);
-    pango_layout_set_font_description(img_struct->textbox->layout, img_struct->textbox->font_desc);
-    pango_layout_get_size(img_struct->textbox->layout, &img_struct->textbox->lw, &img_struct->textbox->lh);
-	
-	img_struct->textbox->lw /= PANGO_SCALE;
-	img_struct->textbox->lh /= PANGO_SCALE;
-	
-	/* GUI STUFF */
+
 	img_struct->icon_theme = gtk_icon_theme_get_default();
 	icon = gtk_icon_theme_load_icon(img_struct->icon_theme, "imagination", 24, 0, NULL);
-
 	img_struct->imagination_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_icon (GTK_WINDOW(img_struct->imagination_window),icon);
 	gtk_window_set_position (GTK_WINDOW(img_struct->imagination_window),GTK_WIN_POS_CENTER);
 	img_refresh_window_title(img_struct);
+	
 	g_signal_connect (img_struct->imagination_window, "delete-event",			G_CALLBACK (img_quit_application),img_struct);
 	g_signal_connect (img_struct->imagination_window, "destroy", 					G_CALLBACK (gtk_main_quit), NULL );
 	g_signal_connect (img_struct->imagination_window, "key-press-event", 		G_CALLBACK(img_window_key_pressed), img_struct);
-	g_signal_connect(img_struct->imagination_window, "leave-notify-event", 	G_CALLBACK(img_leave_notify_event), img_struct);
-    g_signal_connect(img_struct->imagination_window, "enter-notify-event", 	G_CALLBACK(img_enter_notify_event), img_struct);
 	
 	img_struct->accel_group = gtk_accel_group_new();
 	
@@ -314,21 +256,6 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->remove_menu = gtk_menu_item_new_with_mnemonic (_("Dele_te"));
 	gtk_container_add (GTK_CONTAINER (slide_menu), img_struct->remove_menu);
 	g_signal_connect (img_struct->remove_menu,"activate",G_CALLBACK (img_media_model_remove_media), img_struct);
-
-	flip_horizontally_menu = gtk_menu_item_new_with_mnemonic (_("_Flip horizontally"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),flip_horizontally_menu);
-	gtk_widget_add_accelerator (flip_horizontally_menu,"activate",img_struct->accel_group, GDK_KEY_f,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	//g_signal_connect(flip_horizontally_menu, "activate", G_CALLBACK( img_flip_horizontally), img_struct );
-
-	flip_vertically_menu = gtk_menu_item_new_with_mnemonic (_("_Flip vertically"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),flip_vertically_menu);
-	//gtk_widget_add_accelerator (flip_vertically_menu,"activate",img_struct->accel_group, GDK_KEY_f,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	//g_signal_connect(flip_vertically_menu, "activate", G_CALLBACK( img_flip_vertically_menu), img_struct );
-
-	rotate_menu = gtk_menu_item_new_with_mnemonic (_("_Rotate clockwise"));
-	gtk_container_add (GTK_CONTAINER (slide_menu),rotate_menu);
-	gtk_widget_add_accelerator (rotate_menu,"activate",img_struct->accel_group, GDK_KEY_r,GDK_CONTROL_MASK,GTK_ACCEL_VISIBLE);
-	//g_signal_connect(rotate_menu, "activate", G_CALLBACK ( img_rotate_media ), img_struct );
 
 	select_all_menu = gtk_menu_item_new_with_mnemonic(_("Select All"));
 	gtk_container_add (GTK_CONTAINER (slide_menu), select_all_menu);
@@ -443,7 +370,17 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	g_signal_connect(img_struct->toggle_button_text, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 	g_signal_connect(toggle_button_slide_motion, "toggled", G_CALLBACK(img_toggle_button_callback), img_struct);
 
-	//Create the Media Library
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox);
+	g_object_set (vbox, "margin-top", 10,  "margin-right", 5, NULL);
+
+	//Create the filter and the media Library iconview and treeview
+	img_struct->media_library_filter = gtk_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(img_struct->media_library_filter), _("Filter"));
+	g_object_set(G_OBJECT(img_struct->media_library_filter), "hexpand", TRUE,NULL);
+	g_signal_connect(img_struct->media_library_filter, "changed", G_CALLBACK(img_filter_icon_view), img_struct);
+	gtk_box_pack_start (GTK_BOX(vbox), img_struct->media_library_filter, FALSE, TRUE, 0);
+	
 	img_struct->media_model = gtk_list_store_new (3, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
 	img_struct->media_iconview = gtk_icon_view_new_with_model(GTK_TREE_MODEL(img_struct->media_model));
 	gtk_widget_set_can_focus(img_struct->media_iconview, FALSE);
@@ -452,12 +389,12 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->media_iconview_swindow = gtk_scrolled_window_new(NULL, NULL);
 	g_object_set (G_OBJECT (	img_struct->media_iconview_swindow),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
 	gtk_container_add (GTK_CONTAINER (	img_struct->media_iconview_swindow), img_struct->media_iconview);
+	gtk_box_pack_start (GTK_BOX(vbox), img_struct->media_iconview_swindow , TRUE, TRUE, 0);
 
 	gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (img_struct->media_iconview), GTK_ORIENTATION_VERTICAL);
 	gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (img_struct->media_iconview), 0);
 	gtk_icon_view_set_column_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
 	gtk_icon_view_set_row_spacing (GTK_ICON_VIEW (img_struct->media_iconview),0);
-	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), 	img_struct->media_iconview_swindow);
 	gtk_icon_view_set_selection_mode (GTK_ICON_VIEW (img_struct->media_iconview), GTK_SELECTION_MULTIPLE);
 
 	// Enable Dnd functionality
@@ -477,11 +414,34 @@ img_window_struct *img_create_window(gboolean dark_theme)
 
 	/* Create the transition widget section */
 	vbox =  gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	g_object_set (vbox, "margin-right", 10, "margin-top", 10, "valign", GTK_ALIGN_START, NULL);
+	g_object_set (vbox, "margin-right", 10, "margin-top", 4, "valign", GTK_ALIGN_START, NULL);
 	gtk_container_add (GTK_CONTAINER (img_struct->side_notebook), vbox);
 	
+	img_struct->image_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	gtk_box_pack_start (GTK_BOX (vbox), img_struct->image_hbox, FALSE, FALSE, 8);
+	g_object_set (img_struct->image_hbox, "margin-left", 10, NULL);
+    
+	// Horizontal flip button
+	GtkWidget *h_button = img_create_flip_button(TRUE);
+	gtk_widget_set_tooltip_text(h_button, _("Flip horizontally"));
+	gtk_box_pack_start(GTK_BOX(img_struct->image_hbox), h_button, FALSE, FALSE, 0);
+	g_signal_connect(G_OBJECT(h_button), "clicked", G_CALLBACK(img_flip_horizontal_button_clicked), img_struct);
+
+	// Vertical flip button
+	GtkWidget *v_button = img_create_flip_button(FALSE);
+	gtk_widget_set_tooltip_text(v_button, _("Flip vertically"));
+	gtk_box_pack_start(GTK_BOX(img_struct->image_hbox), v_button, FALSE, FALSE, 0);
+	g_signal_connect(G_OBJECT(v_button), "clicked", G_CALLBACK(img_flip_vertical_button_clicked), img_struct);
+	
+	// Rotation button
+	GtkWidget *r_button = img_create_rotate_button(FALSE);
+	gtk_widget_set_tooltip_text(r_button, _("Rotate"));
+	gtk_box_pack_start(GTK_BOX(img_struct->image_hbox), r_button, FALSE, FALSE, 0);
+	g_signal_connect(G_OBJECT(r_button), "clicked", G_CALLBACK(img_rotate_button_clicked), img_struct);
+	
+	// Transition widget
 	img_struct->transition_hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), img_struct->transition_hbox, FALSE, FALSE, 10);
+	gtk_box_pack_start (GTK_BOX (vbox), img_struct->transition_hbox, FALSE, FALSE, 0);
 	
 	img_struct->transition_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->transition_hbox, TRUE, FALSE, 0);
@@ -500,42 +460,43 @@ img_window_struct *img_create_window(gboolean dark_theme)
 
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 10);
-
-	duration_label = gtk_label_new (_("Duration:"));
-	gtk_label_set_xalign(GTK_LABEL(duration_label), 0.0);
-	gtk_box_pack_start(GTK_BOX(hbox), duration_label, FALSE, FALSE, 10);
-
+	
 	GtkAdjustment *adj = (GtkAdjustment *) gtk_adjustment_new (2.0, 1.0, 9999.0, 1.0, 1.0, 0.0);
 	img_struct->media_duration = gtk_spin_button_new (adj, 2.0, 2);
-	gtk_widget_set_tooltip_text(img_struct->media_duration,_("seconds"));
+	gtk_widget_set_tooltip_text(img_struct->media_duration,_("Duration in seconds"));
 	gtk_box_pack_start(GTK_BOX(hbox), img_struct->media_duration, FALSE, FALSE, 10);
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON (img_struct->media_duration),TRUE);
 	g_signal_connect(G_OBJECT(img_struct->media_duration), "value-changed", G_CALLBACK (img_media_duration_value_changed),img_struct);
 
+	img_struct->effect_combobox = gtk_combo_box_text_new();
+	gtk_widget_set_tooltip_text(img_struct->effect_combobox,_("Media filters"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("None"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Black and White"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Sepia"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Infrared"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Pencil Sketch"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Negative"));
+	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(img_struct->effect_combobox), _("Emboss"));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(img_struct->effect_combobox), 0);
+	g_signal_connect(G_OBJECT(img_struct->effect_combobox), "changed",  G_CALLBACK(img_surface_effect_changed), img_struct);
+	gtk_box_pack_start(GTK_BOX(hbox), img_struct->effect_combobox, FALSE, FALSE, 10);
+
 	img_struct->opacity_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->opacity_hbox, TRUE, FALSE, 5);
 
-	opacity_label = gtk_label_new (_("Opacity:"));
-	gtk_label_set_xalign(GTK_LABEL(opacity_label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(opacity_label), 0.5);
-	gtk_box_pack_start(GTK_BOX(img_struct->opacity_hbox), opacity_label, FALSE, FALSE, 10);
-
 	img_struct->media_opacity = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
-    g_signal_connect(img_struct->media_opacity, "value-changed", G_CALLBACK(img_opacity_value_changed), img_struct);
-    gtk_box_pack_start(GTK_BOX(img_struct->opacity_hbox), img_struct->media_opacity, TRUE, TRUE, 5);
-    
-    img_struct->volume_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_tooltip_text(img_struct->media_opacity,_("Opacity"));
+	g_signal_connect(img_struct->media_opacity, "value-changed", G_CALLBACK(img_opacity_value_changed), img_struct);
+	gtk_box_pack_start(GTK_BOX(img_struct->opacity_hbox), img_struct->media_opacity, TRUE, TRUE, 5);
+	
+	img_struct->volume_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), img_struct->volume_hbox, TRUE, FALSE, 5);
-
-	volume_label = gtk_label_new (_("Volume:"));
-	gtk_label_set_xalign(GTK_LABEL(volume_label), 0.0);
-	gtk_label_set_yalign(GTK_LABEL(volume_label), 0.5);
-	gtk_box_pack_start(GTK_BOX(img_struct->volume_hbox),volume_label, FALSE, FALSE, 10);
-
+	
 	img_struct->media_volume = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
-    //g_signal_connect(img_struct->media_volume, "value-changed", G_CALLBACK(img_volume_value_changed), img_struct);
-    gtk_box_pack_start(GTK_BOX(img_struct->volume_hbox), img_struct->media_volume, TRUE, TRUE, 5);
-
+	gtk_widget_set_tooltip_text(img_struct->media_volume,_("Volume"));
+	g_signal_connect(img_struct->media_volume, "value-changed", G_CALLBACK(img_volume_value_changed), img_struct);
+	gtk_box_pack_start(GTK_BOX(img_struct->volume_hbox), img_struct->media_volume, TRUE, TRUE, 5);
+	
 	/*Create the text widget section */
 	scrollable_window = gtk_scrolled_window_new(NULL, NULL);
 	g_object_set (G_OBJECT (scrollable_window),"hscrollbar-policy",GTK_POLICY_NEVER,"vscrollbar-policy",GTK_POLICY_AUTOMATIC,NULL);
@@ -548,11 +509,6 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	//1st row: font selector and font color widgets
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
-
-	label = gtk_label_new(_("<span size='large'><b>Text:</b></span>"));
-	gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-	gtk_label_set_xalign(GTK_LABEL(label), 0.0);
-	gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 5);
 
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 8);
@@ -888,7 +844,8 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	gtk_widget_set_halign(img_struct->image_area, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(img_struct->image_area, GTK_ALIGN_CENTER);
 	gtk_widget_set_events(img_struct->image_area, 
-										  GDK_KEY_PRESS_MASK
+										  GDK_LEAVE_NOTIFY_MASK
+										| GDK_KEY_PRESS_MASK
 										| GDK_BUTTON_PRESS_MASK
 										| GDK_BUTTON_RELEASE_MASK
 										| GDK_POINTER_MOTION_MASK);
@@ -898,7 +855,8 @@ img_window_struct *img_create_window(gboolean dark_theme)
     
 	g_signal_connect(img_struct->image_area , "draw",	  						G_CALLBACK( img_on_draw_event ), img_struct );
 	g_signal_connect(img_struct->image_area , "button-press-event",	G_CALLBACK( img_image_area_button_press ), img_struct );
-	g_signal_connect(img_struct->image_area , "button-release-event",G_CALLBACK( img_image_area_button_release ), img_struct );
+	g_signal_connect(img_struct->image_area , "button-release-event",	G_CALLBACK( img_image_area_button_release ), img_struct );
+	g_signal_connect(img_struct->image_area, "leave-notify-event", 		G_CALLBACK(img_image_area_leave_event), img_struct);
 	g_signal_connect(img_struct->image_area , "motion-notify-event",  G_CALLBACK( img_image_area_motion ), img_struct );
 	g_signal_connect(img_struct->image_area , "key-press-event", 		G_CALLBACK(img_image_area_key_press), img_struct);
 	//g_signal_connect(img_struct->image_area ), "scroll-event",				G_CALLBACK( img_image_area_scroll ), img_struct);
@@ -934,6 +892,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->total_time_label = gtk_label_new("00:00:00");
 	gtk_widget_override_font(img_struct->total_time_label, new_size);
 	gtk_box_pack_start(GTK_BOX(img_struct->preview_hbox), img_struct->total_time_label, FALSE, FALSE, 10);
+	pango_font_description_free(new_size);
 
 	/* FINALLY the Imagination timeline widget: Yuppieeeeeeeeeeeeee */
 	img_struct->timeline = img_timeline_new();
@@ -964,7 +923,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	g_signal_connect(img_struct->timeline, 	"drag-leave", 					G_CALLBACK(img_timeline_drag_leave), img_struct);
 	//g_signal_connect(img_struct->timeline,	"drag-data-get",				G_CALLBACK(img_timeline_drag_data_get), img_struct->timeline); //
 	g_signal_connect(img_struct->timeline, 	"button-press-event",		G_CALLBACK(img_timeline_mouse_button_press), img_struct);
-	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct->timeline);
+	g_signal_connect(img_struct->timeline, 	"button-release-event",	G_CALLBACK(img_timeline_mouse_button_release), img_struct);
 	g_signal_connect(img_struct->timeline,	"motion-notify-event",	G_CALLBACK(img_timeline_motion_notify), img_struct);
 	g_signal_connect(img_struct->timeline,	"key-press-event",			G_CALLBACK(img_timeline_key_press), img_struct);
 	g_signal_connect(img_struct->timeline,	"scroll-event",					G_CALLBACK(img_timeline_scroll_event), viewport);
@@ -986,6 +945,8 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	}
 	
 	css_string = g_strdup_printf(
+	"entry{border-radius:1px;min-height:25px}"
+	"scale{padding:8px;margin:0}"
     ".iconview-dragging { background-color: transparent}"
     "popover {border: 1px solid #f4d27b; padding: 0px;}"
     "button.timeline-button {border-radius:0; border-width: 1px; border-style: solid; border-color: #000000; outline-width: 0; background: %s; padding: 0; margin: 0; }"
@@ -1696,4 +1657,3 @@ void img_change_media_library_size(GtkPaned *widget, GParamSpec *unused, img_win
     gtk_icon_view_set_columns(GTK_ICON_VIEW(img->media_iconview), num_columns);
     gtk_widget_set_size_request(img->media_iconview, iconview_width, -1);
 }
-
