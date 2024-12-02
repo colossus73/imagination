@@ -242,26 +242,25 @@ struct _img_window_struct
   	media_timeline 	*current_item;
 
 	/* Renderers and module stuff */
-  	gint		nr_transitions_loaded;
-  	gint		next_id;						// This is the id counter when new media are added
-  	GSList		*plugin_list;
+  	gint				nr_transitions_loaded;
+  	gint				next_id;						// This is the id counter when new media are added
+  	GSList			*plugin_list;
 
 	/* Project related variables */
-	gchar       *project_filename;		// project name for saving
-	gchar       *slideshow_filename;	// exported slideshow movie
-	gchar       *project_current_dir;
-	gboolean	project_is_modified;
-	gboolean	relative_filenames;
-	gboolean	flip_aspect_ratio;
-    gint        	video_size[2];
-	gint        	frame_rate;
-	gint			total_time;
-	//gint        video_quality;
-	gint        	sample_rate;
-	gint        	bitrate;
-	gdouble   video_ratio;
-    gdouble   background_color[3];
-  	gint			media_nr;
+	gchar       	*project_filename;		// project name for saving
+	gchar       	*slideshow_filename;	// exported slideshow movie
+	gchar       	*project_current_dir;
+	gboolean		project_is_modified;
+	gboolean		relative_filenames;
+	gboolean		flip_aspect_ratio;
+    gint        		video_size[2];
+	gint        		frame_rate;
+	gint				total_time;
+	gint        		sample_rate;
+	gint        		bitrate;
+	gdouble   	video_ratio;
+    gdouble   	background_color[3];
+  	gint				media_nr;
 
 	/* Variables common to export and preview functions */
 	GtkWidget		*container_menu;	/* Container combo box in the export dialog */

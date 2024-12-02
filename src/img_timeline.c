@@ -911,6 +911,7 @@ gboolean img_timeline_key_press(GtkWidget *widget, GdkEventKey *event, img_windo
 			break;
 	}
 	gtk_widget_queue_draw(img->timeline);
+	gtk_widget_queue_draw(img->image_area);
 	gint unused =	img_timeline_get_final_time(img);
 	return TRUE;
 }
@@ -1010,6 +1011,7 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 	item->button_pressed = TRUE;
 	gtk_notebook_set_current_page (GTK_NOTEBOOK(img->side_notebook), 1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(img->toggle_button_image_options), TRUE);
+
 	// Store the initial mouse position and button width
 	item->timeline_drag_x = event->x;
 	item->initial_width = gtk_widget_get_allocated_width(button);
@@ -1023,6 +1025,9 @@ gboolean img_timeline_media_button_press_event(GtkWidget *button, GdkEventButton
 
 	img_timeline_set_media_properties(img, item);
 	img->current_item = item;
+	
+	if (img->current_item->text)
+		img->current_item->text->visible = TRUE;
 	return FALSE;
 }
 

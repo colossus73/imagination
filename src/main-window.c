@@ -650,10 +650,10 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
-	img_struct->sub_font_bg_padding = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+	img_struct->sub_font_bg_padding = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 50, 1);
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_bg_padding), GTK_POS_LEFT);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_bg_padding, TRUE, TRUE, 0);
-	//g_signal_connect( G_OBJECT( img_struct->sub_font_bg_padding ), "value-changed", G_CALLBACK( img_spin_test ), img_struct );
+	g_signal_connect( G_OBJECT( img_struct->sub_font_bg_padding ), "value-changed", G_CALLBACK( img_text_slider_changed ), img_struct );
 	
 	//7th row: background radius
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -665,8 +665,9 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
-	img_struct->sub_font_bg_radius = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+	img_struct->sub_font_bg_radius = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 50, 1);
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_bg_radius), GTK_POS_LEFT);
+	g_signal_connect(img_struct->sub_font_bg_radius, "value_changed", G_CALLBACK(img_text_slider_changed), img_struct);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_bg_radius, TRUE, TRUE, 0);
 	
 	//8th row: Shadow
@@ -698,7 +699,8 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
-	img_struct->sub_font_shadow_distance = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+	img_struct->sub_font_shadow_distance = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 20, 1);
+	g_signal_connect(img_struct->sub_font_shadow_distance, "value_changed", G_CALLBACK(img_text_slider_changed), img_struct);
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_shadow_distance), GTK_POS_LEFT);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_shadow_distance, TRUE, TRUE, 0);
 	
@@ -712,6 +714,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
 	img_struct->sub_font_shadow_angle = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 360, 1);
+	g_signal_connect(img_struct->sub_font_shadow_angle, "value_changed", G_CALLBACK(img_text_slider_changed), img_struct);
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_shadow_angle), GTK_POS_LEFT);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_shadow_angle, TRUE, TRUE, 0);
 	
@@ -733,7 +736,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	img_struct->sub_font_outline_color = gtk_button_new();
 	gtk_widget_set_name(img_struct->sub_font_outline_color , "font_color_button");
 	gtk_widget_set_valign(img_struct->sub_font_outline_color, GTK_ALIGN_CENTER);
-	g_signal_connect(img_struct->sub_font_outline_color, "clicked", G_CALLBACK( img_text_color_clicked ), img_struct );
+	g_signal_connect(img_struct->sub_font_outline_color, "clicked", G_CALLBACK(img_text_color_clicked), img_struct);
 	gtk_box_pack_start( GTK_BOX(hbox), img_struct->sub_font_outline_color, FALSE, FALSE, 5);
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -745,8 +748,9 @@ img_window_struct *img_create_window(gboolean dark_theme)
 	
 	hbox =  gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 5);
-	img_struct->sub_font_outline_size = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+	img_struct->sub_font_outline_size = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 10, 0.1);
 	gtk_scale_set_value_pos (GTK_SCALE(img_struct->sub_font_outline_size), GTK_POS_LEFT);
+	g_signal_connect(img_struct->sub_font_outline_size, "value_changed", G_CALLBACK(img_text_slider_changed), img_struct);
 	gtk_box_pack_start (GTK_BOX (hbox), img_struct->sub_font_outline_size, TRUE, TRUE, 0);
 	
 	/* Slide motion widgets (Ken Burns) */
@@ -955,7 +959,7 @@ img_window_struct *img_create_window(gboolean dark_theme)
     "button.timeline-button:checked { outline-width: 0; border-width: 1px; border-style: solid; border-color: %s; background: #3584e4; padding: 0; margin: 0; }"
     "tooltip  { all: unset; background-color: #FAECC6;  font-weight: normal; border-radius: 5px; border: 1px solid #f4d27b; }"
     "tooltip * {  color: #000000;  padding: 0; margin: 0 }"
-    "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: white;} "
+    "#font_color_button {min-width:12px;min-height:12px;border-radius: 50%;background: black;} "
     "#nav_button {padding:0px;margin:0px} "
     "#font_button {padding: 0px;} button {padding: 5px}", background_color, border_color, border_color, background_color, border_color);
     

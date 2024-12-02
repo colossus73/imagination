@@ -360,7 +360,6 @@ gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_win
 
 	shift_pressed = (event->state & GDK_SHIFT_MASK) != 0;
 	ctrl_pressed = (event->state & GDK_CONTROL_MASK) != 0;
-
 	
 	switch (event->keyval)
 	{
@@ -465,11 +464,6 @@ gboolean img_image_area_key_press(GtkWidget *widget, GdkEventKey *event, img_win
 				if(img->current_item->text->selection_start == 0 && img->current_item->text->selection_end == img->current_item->text->text->len)
 				{
 					pango_layout_set_attributes(img->current_item->text->layout, NULL);
-					img->current_item->text->attr_list = pango_attr_list_new();
-					pango_layout_set_attributes(img->current_item->text->layout, img->current_item->text->attr_list);
-					pango_attr_list_unref(img->current_item->text->attr_list);
-					
-					
 					g_string_erase(img->current_item->text->text,  0, img->current_item->text->selection_end);
 				}
 				else
@@ -872,7 +866,7 @@ gboolean img_on_draw_event( GtkWidget *widget, cairo_t *cr, img_window_struct *i
 				cairo_paint_with_alpha(cr, media->opacity);	
 			cairo_restore(cr);
 text:
-			// Render textbox and text
+			// Render textbox, text effects and text
 			if (media->text)
 				img_render_textbox(img, cr, media);
 

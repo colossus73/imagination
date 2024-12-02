@@ -71,16 +71,19 @@ struct _media_text
 	TextAnimationFunc     anim;           	/* Animation functions */
 	gint                  posX;       	   					/* subtitle X position */
 	gint                  posY;        	   					/* subtitle Y position */
-	gint                  subtitle_angle;  				/* subtitle rotation angle */
+	gdouble           subtitle_angle;  				/* subtitle rotation angle */
 	gint                  anim_id;         					/* Animation id */
 	gint                  anim_duration;   			/* Duration of animation */
 	PangoFontDescription *font_desc;     	 /* Font description */
-	gdouble           font_color[4];   				/* Font color (RGBA format) */
-	gdouble           font_bg_color[4]; 			/* Font background color (RGBA format) */
-    gdouble           font_shadow_color[4]; 	/* Font shadow color (RGBA format) */
-    gdouble           font_outline_color[4]; 	/* Font outline color (RGBA format) */
-    gint 					bg_border_radious;			/* text background border radious */
-    gint 					bg_padding;					/* text background padding */
+	GdkRGBA        font_color;   					/* Font color (RGBA format) */
+	GdkRGBA        font_bg_color; 				/* Font background color (RGBA format) */
+    GdkRGBA        font_shadow_color; 		/* Font shadow color (RGBA format) */
+    GdkRGBA        font_outline_color; 			/* Font outline color (RGBA format) */
+    gdouble			bg_radius;						/* text background border radious */
+    gdouble			bg_padding;					/* text background padding */
+    gdouble			shadow_distance;			/* text background shadow distance */
+    gdouble			shadow_angle;				/* text background shadow angle */
+    gdouble			outline_size;					/* text background outline size */
     gint               	alignment;
     gdouble 			width, height;
     gdouble 			orig_x, orig_y, orig_width, orig_height;
@@ -107,8 +110,8 @@ struct _media_text
 	gdouble			last_allocation_height;
 	gdouble		 	x;								// surface x coord in the image area
 	gdouble		 	y;								// surface y coord in the image area
-	gdouble		 	drag_x;					// y coord in the image area
-	gdouble		 	drag_y;					// y coord in the image area
+	gdouble		 	drag_x;					// drag x coord in the image area
+	gdouble		 	drag_y;					// drag y coord in the image area
 	gdouble			angle;						// Arbitrary rotation angle in the image area
 	gdouble		 	timeline_x;
 	gdouble 			timeline_y;

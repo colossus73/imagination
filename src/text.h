@@ -36,28 +36,15 @@ void img_text_font_changed( GtkFontButton *, img_window_struct *);
 void img_text_color_clicked(GtkWidget *, img_window_struct *);
 void img_text_style_changed(GtkButton *button, img_window_struct *);
 void img_text_align_changed(GtkButton *button, img_window_struct *);
+void img_text_slider_changed(GtkRange *, img_window_struct *);
 void img_render_textbox(img_window_struct *, cairo_t *cr, media_timeline *);
+void img_text_item_set_widget_settings(img_window_struct *);
 media_text *img_create_text_item(img_window_struct *, gint, gint);
 gboolean img_is_style_applied(PangoLayout *, PangoAttrType , int , int );
 gint img_get_text_animation_list( TextAnimation **animations );
 
 void img_free_text_animation_list( gint no_animations,
 							  TextAnimation *animations );
-
-void img_render_subtitle( img_window_struct	  *img,
-					 cairo_t              *cr,
-					 gdouble               zoom,
-					 gint					posx,
-					 gint					posy,
-					 gint					angle,
-					 gint					layout,
-					 gdouble               factor,
-					 gdouble               offx,
-					 gdouble               offy,
-					 gboolean				centerX,
-					 gboolean				centerY,
-					 gdouble               progress );
-
 void img_set_slide_text_info( media_text      *slide,
 						 GtkListStore      *store,
 						 GtkTreeIter       *iter,
