@@ -1,0 +1,932 @@
+# Georgian translation for imagination.
+# Copyright (C) 2026 imagination's authors.
+# This file is distributed under the same license as the imagination package.
+# Ekaterine Papava <papava.e@gtu.ge>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: imagination\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-02 13:16+0200\n"
+"PO-Revision-Date: 2026-08-19 12:40+0200\n"
+"Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
+"Language-Team: Georgian <(nothing)>\n"
+"Language: ka\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: ../src/audio.c:43
+#, c-format
+msgid "Can't open music file %s\n"
+msgstr "მუსიკის ფაილის %s გახსნა შეუძლებელია\n"
+
+#: ../src/audio.c:100
+#, c-format
+msgid "Playing %s..."
+msgstr "%s-ის დაკვრა..."
+
+#: ../src/audio.c:128 ../src/main-window.c:1253
+msgid "Play the selected file"
+msgstr "მონიშნული ფაილის დაკვრა"
+
+#: ../src/audio.c:136
+msgid "Stop the playback"
+msgstr "დაკვრის გაჩერება"
+
+#: ../src/main-window.c:215
+msgid "_Slideshow"
+msgstr "_სლაიდშოუ"
+
+#: ../src/main-window.c:221
+msgid "_New"
+msgstr "_ახალი"
+
+#: ../src/main-window.c:226
+msgid "_Open"
+msgstr "_გახსნა"
+
+#: ../src/main-window.c:231
+msgid "Open recent"
+msgstr "ბოლოს გახსნილი ფაილების გახსნა"
+
+#: ../src/main-window.c:237
+msgid "Import slideshow"
+msgstr "სლაიდშოუს შემოტანა"
+
+#: ../src/main-window.c:241
+msgid "_Save"
+msgstr "_შენახვა"
+
+#: ../src/main-window.c:246
+msgid "Save _As"
+msgstr "_შენახვა, როგორც"
+
+#: ../src/main-window.c:250
+msgid "_Close"
+msgstr "და_ხურვა"
+
+#: ../src/main-window.c:258
+msgid "Import p_ictures"
+msgstr "სურათებ_ის შემოტანა"
+
+#: ../src/main-window.c:263
+msgid "Import _music"
+msgstr "_მუსიკის შემოტანა"
+
+#: ../src/main-window.c:268
+msgid "_Properties"
+msgstr "_თვისებები"
+
+#: ../src/main-window.c:276
+msgid "Preview"
+msgstr "მინიატურა"
+
+#: ../src/main-window.c:282
+msgid "With music"
+msgstr "მუსიკით"
+
+#: ../src/main-window.c:287
+msgid "Without music"
+msgstr "მუსიკის გარეშე"
+
+#: ../src/main-window.c:292
+msgid "Continuos"
+msgstr "უწყვეტი"
+
+#: ../src/main-window.c:297
+msgid "Ex_port"
+msgstr "გა_ტანა"
+
+#: ../src/main-window.c:305
+msgid "_Quit"
+msgstr "გასვ_ლა"
+
+#. Slide menu
+#: ../src/main-window.c:311
+msgid "_Slide"
+msgstr "_სლაიდი"
+
+#: ../src/main-window.c:317
+msgid "Cu_t"
+msgstr "ა_მოჭრა"
+
+#: ../src/main-window.c:322
+msgid "Copy"
+msgstr "კოპირება"
+
+#: ../src/main-window.c:327
+msgid "Paste"
+msgstr "ჩასმა"
+
+#. Zoom controls
+#: ../src/main-window.c:333
+msgid "_Zoom"
+msgstr "_გადიდება"
+
+#: ../src/main-window.c:339 ../src/main-window.c:547
+msgid "Zoom In"
+msgstr "გადიდება"
+
+#: ../src/main-window.c:344 ../src/main-window.c:553
+msgid "Zoom Out"
+msgstr "დაპატარავება"
+
+#: ../src/main-window.c:349 ../src/main-window.c:559
+msgid "Normal Size"
+msgstr "ნორმალური ზომა"
+
+#: ../src/main-window.c:355
+msgid "Add empt_y slide"
+msgstr "_ცარიელი სლაიდის დამატება"
+
+#: ../src/main-window.c:360
+msgid "Edit _empty slide"
+msgstr "ცარიელი სლაიდის ჩასწორ_ება"
+
+#: ../src/main-window.c:366
+msgid "Dele_te"
+msgstr "_წაშლა"
+
+#: ../src/main-window.c:371
+msgid "Repor_t"
+msgstr "ანგარი_ში"
+
+#: ../src/main-window.c:376
+msgid "_Flip horizontally"
+msgstr "ჰორიზონტალურად გადაბრუნე_ბა"
+
+#: ../src/main-window.c:381
+msgid "Rotate co_unter-clockwise"
+msgstr "მობრ_უნება საათის საწინააღმდეგო მიმართულებით"
+
+#: ../src/main-window.c:386
+msgid "_Rotate clockwise"
+msgstr "მობ_რუნება საათის მიმართულებით"
+
+#: ../src/main-window.c:391
+msgid "Select All"
+msgstr "ყველაფრის მონიშვნა"
+
+#: ../src/main-window.c:396
+msgid "Un_select all"
+msgstr "_ყველა მონიშვნის მოხსნა"
+
+#. View menu
+#: ../src/main-window.c:402
+msgid "_View"
+msgstr "_ხედი"
+
+#: ../src/main-window.c:408
+msgid "Preview mode"
+msgstr "მინიატურის რეჟიმი"
+
+#: ../src/main-window.c:413
+msgid "Overview mode"
+msgstr "გადახედვის რეჟიმი"
+
+#: ../src/main-window.c:416
+msgid "Preview _frame rate"
+msgstr "მინიატურის _კადრების სიხშირე"
+
+#: ../src/main-window.c:419
+msgid "Fullscreen"
+msgstr "სრულ ეკრანზე"
+
+#: ../src/main-window.c:438
+#, c-format
+msgid "%d frame per second"
+msgid_plural "%d frames per second"
+msgstr[0] "%d კადრი წამში"
+msgstr[1] "%d კადრი წამში"
+
+#. Help menu
+#: ../src/main-window.c:455
+msgid "_Help"
+msgstr "_დახმარება"
+
+#: ../src/main-window.c:460
+msgid "Contents"
+msgstr "შემცველობა"
+
+#: ../src/main-window.c:465
+msgid "About"
+msgstr "შესახებ"
+
+#: ../src/main-window.c:478
+msgid "Create a new slideshow"
+msgstr "ახალი სლაიდშოუს შექმნა"
+
+#: ../src/main-window.c:484
+msgid "Open a slideshow"
+msgstr "სლაიდშოუს გახსნა"
+
+#: ../src/main-window.c:490
+msgid "Save the slideshow"
+msgstr "სლაიდშოუს შენახვა"
+
+#: ../src/main-window.c:503
+msgid "Import pictures"
+msgstr "სურათების შემოტანა"
+
+#: ../src/main-window.c:512
+msgid "Import music"
+msgstr "მუსიკის შემოტანა"
+
+#: ../src/main-window.c:518
+msgid "Delete the selected slides"
+msgstr "მონიშნული სლაიდების წაშლა"
+
+#: ../src/main-window.c:524
+msgid "Flip horizontally the selected slides"
+msgstr "მონიშნული სლაიდების ჰორიზონტალური გადაბრუნება"
+
+#: ../src/main-window.c:531
+msgid "Rotate the slide 90 degrees to the left"
+msgstr "სლაიდის მობრუნება 90 გრადუსით მარცხნივ"
+
+#: ../src/main-window.c:539
+msgid "Rotate the slide 90 degrees to the right"
+msgstr "სლაიდის მობრუნება 90 გრადუსით მარჯვნივ"
+
+#: ../src/main-window.c:566
+msgid "Fit Zoom in Window"
+msgstr "ფანჯარაში ჩატევამდე გადიდება"
+
+#: ../src/main-window.c:575 ../src/callbacks.c:1645
+msgid "Starts the preview without music"
+msgstr "დაუკრავს მინიატურას მუსიკის გარეშე"
+
+#: ../src/main-window.c:584
+msgid "Go to the first slide of the slideshow"
+msgstr "სლაიდშოუს პირველ სლაიდზე გადართვა"
+
+#: ../src/main-window.c:590
+msgid "Go to the previous slide of the slideshow"
+msgstr "სლაიდშოუს წინა სლაიდზე გადართვა"
+
+#: ../src/main-window.c:598
+msgid "Current slide number"
+msgstr "მიმდინარე სლაიდის ნომერი"
+
+#: ../src/main-window.c:608 ../src/main-window.c:820
+msgid " of "
+msgstr " / "
+
+#: ../src/main-window.c:616
+msgid "Total number of slides"
+msgstr "სლაიდების ჯამური რაოდენობა"
+
+#: ../src/main-window.c:622
+msgid "Go to the next slide of the slideshow"
+msgstr "სლაიდშოუს შემდეგ სლაიდზე გადართვა"
+
+#: ../src/main-window.c:628
+msgid "Go to the last slide of the slideshow"
+msgstr "სლაიდშოუს ბოლო სლაიდზე გადართვა"
+
+#: ../src/main-window.c:683
+msgid "Video"
+msgstr "ვიდეო"
+
+#: ../src/main-window.c:697
+msgid "<b>Slide Settings</b>"
+msgstr "<b>სლაიდის მორგება</b>"
+
+#. Transition types label
+#: ../src/main-window.c:710
+msgid "Transition Type:"
+msgstr "გარდასვლის ტიპი:"
+
+#: ../src/main-window.c:725
+msgid "Transition type"
+msgstr "გარდასვლის ტიპი"
+
+#: ../src/main-window.c:734
+msgid "Random"
+msgstr "შემთხვევითი"
+
+#: ../src/main-window.c:735
+msgid "Imagination randomly decides which transition to apply"
+msgstr "Imagination შემთხვევით წყვეტს, რომელი გადაყვანა გამოიყენოს"
+
+#. Transition duration
+#: ../src/main-window.c:741
+msgid "Transition speed in sec:"
+msgstr "გადაყვანის სიჩქარე წამებში:"
+
+#. Slide duration
+#: ../src/main-window.c:753
+msgid "Still slide duration in sec:"
+msgstr "არამოძრავი სლაიდის ხანგრძლივობა წამებში:"
+
+#. Slide Total Duration
+#: ../src/main-window.c:765
+msgid "Slideshow length:"
+msgstr "სლაიდშოუს ხანგრძლივობა:"
+
+#: ../src/main-window.c:780
+msgid "<b>Slide Motion</b>"
+msgstr "<b>სლაიდის მოძრაობა</b>"
+
+#: ../src/main-window.c:796
+msgid "Stop Point:"
+msgstr "გაჩერების წერტილი:"
+
+#: ../src/main-window.c:838
+msgid "Add Stop point"
+msgstr "გაჩერების წერტილის დამატება"
+
+#: ../src/main-window.c:842
+msgid "Motion duration in sec:"
+msgstr "მოძრაობის ხანგრძლივობა წმ-ში:"
+
+#: ../src/main-window.c:859
+msgid "Remove Stop point"
+msgstr "გაჩერების წერტილის წაშლა"
+
+#: ../src/main-window.c:864
+msgid "Zoom: "
+msgstr "გადიდება: "
+
+#: ../src/main-window.c:882
+msgid "<b>Slide Text</b>"
+msgstr "<b>სლაიდის ტექსტი</b>"
+
+#: ../src/main-window.c:904
+msgid "Font color"
+msgstr "ფონტის ფერი"
+
+#: ../src/main-window.c:911
+msgid ""
+"Font border color. If the opacity value is set to 0, Imagination will not "
+"render any border"
+msgstr ""
+"ფონტის საზღვრის ფერი. თუ გაუმჭვირვალობის მნიშვნელობა დაყენებულია 0-ზე, "
+"Imagination საზღვარს არ დაარენდერებს"
+
+#: ../src/main-window.c:918
+msgid "Font background color"
+msgstr "ფონტის ფონის ფერი"
+
+#: ../src/main-window.c:947
+msgid "Remove formatting"
+msgstr "ფორმატირების მოცილება"
+
+#: ../src/main-window.c:955
+msgid "Align left"
+msgstr "მარცხნვ სწორება"
+
+#: ../src/main-window.c:963
+msgid "Align center"
+msgstr "ცენტრზე სწორება"
+
+#: ../src/main-window.c:971
+msgid "Align right"
+msgstr "მარჯვნივ სწორება"
+
+#: ../src/main-window.c:1000
+msgid "Click to choose the font"
+msgstr "დააწკაპუნეთ ფონტის ასარჩევად"
+
+#: ../src/main-window.c:1008
+msgid "Click to choose the text pattern"
+msgstr "დააწკაპუნეთ ტექსტის ნიმუშის ასარჩევად"
+
+#: ../src/main-window.c:1018
+msgid "Top Border"
+msgstr "ზედა საზღვარი"
+
+#: ../src/main-window.c:1022
+msgid "Bottom Border"
+msgstr "ქვედა საზღვარი"
+
+#: ../src/main-window.c:1031
+msgid "Border width"
+msgstr "საზღვრის სიგანე"
+
+#: ../src/main-window.c:1037
+msgid "Border color"
+msgstr "საზღვრის ფერი"
+
+#: ../src/main-window.c:1042
+msgid "Animation:"
+msgstr "ანიმაცია:"
+
+#: ../src/main-window.c:1055
+msgid "Animation Speed:"
+msgstr "ანიმაციის სიჩქარე:"
+
+#: ../src/main-window.c:1083
+msgid "<b>Slide Text Position</b>"
+msgstr "<b>სლაიდის ტექსტის მდებარეობა</b>"
+
+#: ../src/main-window.c:1094
+msgid "Horizontal Position: "
+msgstr "ჰორიზონტალური მდებარეობა: "
+
+#: ../src/main-window.c:1113
+msgid "Center the text horizontally"
+msgstr "ტექსტის დაცენტრება ჰორიზონტალურად"
+
+#: ../src/main-window.c:1116
+msgid "Vertical Position: "
+msgstr "ვერტიკალური მდებარეობა: "
+
+#: ../src/main-window.c:1136
+msgid "Center the text vertically"
+msgstr "ტექსტის დაცენტრება ვერტიკალურად"
+
+#: ../src/main-window.c:1138
+msgid "Angle: "
+msgstr "კუთხე: "
+
+#: ../src/main-window.c:1156
+msgid "Reset the angle"
+msgstr "კუთხის ჩამოყრა"
+
+#. Background music frame
+#: ../src/main-window.c:1159
+msgid "Audio"
+msgstr "აუდიო"
+
+#: ../src/main-window.c:1168
+msgid "<b>Background Music</b>"
+msgstr "<b>ფონური მუსიკა</b>"
+
+#: ../src/main-window.c:1220
+msgid "Music Duration:"
+msgstr "მუსიკის ხანგრძლივობა:"
+
+#: ../src/main-window.c:1234
+msgid "Final fade-out duration:"
+msgstr "საბოლოო მინავლების ხანგრძლივობა:"
+
+#: ../src/main-window.c:1261
+msgid "Delete the selected file"
+msgstr "მონიშნული ფაილის წაშლა"
+
+#: ../src/main-window.c:1268
+msgid "Move the selected file up"
+msgstr "მონიშნული ფაილის აწევა"
+
+#: ../src/main-window.c:1275
+msgid "Move the selected file down"
+msgstr "მონიშნული ფაილის ჩამოწევა"
+
+#: ../src/main-window.c:1282
+msgid "Clear all files"
+msgstr "ყველა ფაილის გასუფთავება"
+
+#. End of Background music frame
+#. Begin of Message tab
+#: ../src/main-window.c:1287
+msgid "Messages"
+msgstr "შეტყობინებები"
+
+#: ../src/main-window.c:1720 ../src/callbacks.c:1425
+msgid "Sorry, I could not perform the operation!"
+msgstr "უკაცრავად, ოპერაცია ვერ შევასრულე!"
+
+#: ../src/main-window.c:1886
+#, c-format
+msgid "File '%s' not found"
+msgstr "ფაილი \"%s\" ვერ მოიძებნა"
+
+#: ../src/main-window.c:1895
+msgid "Resolution"
+msgstr "გარჩევადობა"
+
+#: ../src/main-window.c:1895
+msgid "Type"
+msgstr "ტიპი"
+
+#. No animation function (id = 0)
+#: ../src/main-window.c:2180 ../src/main-window.c:2182 ../src/support.c:184
+#: ../src/subtitles.c:203
+msgid "None"
+msgstr "არცერთი"
+
+#: ../src/main-window.c:2647
+msgid "Please delete the pattern to choose the color"
+msgstr "ფერის ასარჩევად წაშალეთ ნიმუში"
+
+#: ../src/main-window.c:2818
+msgid "Slides Transitions Report Dialog"
+msgstr "სლაიდების გადასვლის ანგარისის დიალოგი"
+
+#: ../src/main-window.c:2896
+msgid ""
+"\n"
+"<span weight='bold'>Note:</span>\n"
+"\n"
+"Slides whose transition is applied only once are not shown here.\n"
+"Click on the slide to have Imagination automatically select it."
+msgstr ""
+"\n"
+"<span weight='bold'>შენიშვნა:</span>\n"
+"\n"
+"სლაიდები, რომლების გადასვლაც ერთხელ ხდება, აქ ნაჩვენები არაა.\n"
+"დააწკაპუნეთ სლაიდზე, რომ Imagination-მა ის ავტომატურად მონიშნოს."
+
+#: ../src/callbacks.c:117
+msgid ""
+"You didn't save your slideshow yet.\n"
+"Are you sure you want to close it?"
+msgstr ""
+"ჯერ თქვენი სლაიდშოუ არ შეგინახავთ.\n"
+"მართლა გნებავთ, დახუროთ ის?"
+
+#: ../src/callbacks.c:261
+#, c-format
+msgid "Cannot open new slide %s: %s"
+msgstr "ახალი სლაიდის %s გახსნა შეუძლებელია: %s"
+
+#: ../src/callbacks.c:280
+#, c-format
+msgid "Cannot open the thumbnail %s of the new slide %s"
+msgstr "ახალი სლაიდის %2$s მინიატურის %1$s გახსნა შეუძლებელია"
+
+#: ../src/callbacks.c:329
+#, c-format
+msgid "Please wait, importing image %d out of %d"
+msgstr "მოითმინეთ. მიმდინარეობს #%d გამოსახულების შემოტანა %d-დან"
+
+#: ../src/callbacks.c:402
+msgid "Import audio files, use CTRL key for multiple select"
+msgstr ""
+"აუდიოფაილების შემოტანა. ერთზე მეტის მოსანიშნად გამოიყენეთ ღილაკი Ctrl"
+
+#: ../src/callbacks.c:414
+msgid "All audio files"
+msgstr "ყველა აუდიოფაილი"
+
+#: ../src/callbacks.c:423 ../src/callbacks.c:501 ../src/callbacks.c:1742
+#: ../src/support.c:402
+msgid "All files"
+msgstr "ყველა ფაილი"
+
+#: ../src/callbacks.c:482
+msgid "Import images, use SHIFT key for multiple select"
+msgstr ""
+"გამოსახულებების შემოტანა. ერთზე მეტის მოსანიშნად გამოიყენეთ ღილაკი Shift"
+
+#: ../src/callbacks.c:495
+msgid "All image files"
+msgstr "ყველა გამოსახულების ფაილი"
+
+#: ../src/callbacks.c:705
+#, c-format
+msgid "%d x %d pixels"
+msgid_plural "%d x %d pixels"
+msgstr[0] "%d x %d პიქსელი"
+msgstr[1] "%d x %d პიქსელი"
+
+#: ../src/callbacks.c:1021
+msgid "translator-credits"
+msgstr "ეკატერინე პაპავა"
+
+#: ../src/callbacks.c:1652
+msgid "Stops the preview"
+msgstr "გააჩერებს მინიატურას"
+
+#: ../src/callbacks.c:1707
+msgid "I do not know what to do with this slideshow filename."
+msgstr "მე არ ვიცი, რა ვუყო სლაიდშოუს ფაილის სახელს."
+
+#: ../src/callbacks.c:1725
+msgid "Load an Imagination slideshow project"
+msgstr "Imagination-ის სლაიდშოუ პროექტის ჩატვირთვა"
+
+#: ../src/callbacks.c:1726
+msgid "Save an Imagination slideshow project"
+msgstr "Imagination-ის სლაიდშოუ პროექტის შენახვა"
+
+#: ../src/callbacks.c:1736
+msgid "Imagination projects (*.img)"
+msgstr "Imagination-ის პროექტები (*.img)"
+
+#: ../src/callbacks.c:1753
+msgid "Don't include folder names in the filenames"
+msgstr "ფაილის სახელებში საქაღალდის სახელს ნუ ჩასვამთ"
+
+#: ../src/callbacks.c:1754
+msgid ""
+"If you check this button, be sure to include ALL the project files in the "
+"SAME folder before attempting to open it again."
+msgstr ""
+"თუ ამ ღილაკს დააჭერთ. სანამ მის გახსნას კიდევ ერთხელ ცდით შეამოწმეთ, რომ "
+"ყველა პროექტის ფაილი **იგივე** საქაღალდეშია."
+
+#: ../src/callbacks.c:2693
+msgid "Edit empty slide"
+msgstr "ცარიელი სლაიდის ჩასწორება"
+
+#: ../src/callbacks.c:2693
+msgid "Create empty slide"
+msgstr "ცარიელი სლაიდის შექმნა"
+
+#: ../src/callbacks.c:2702
+msgid "Empty slide options:"
+msgstr "ცარიელი სლაიდის მორგება:"
+
+#: ../src/callbacks.c:2714
+msgid "_Solid color"
+msgstr "_მუქი ფერი"
+
+#: ../src/callbacks.c:2719
+msgid "_Linear gradient"
+msgstr "_ხაზოვანი გრადიენტი"
+
+#: ../src/callbacks.c:2724
+msgid "_Radial gradient"
+msgstr "_რადიალური გრადიენტი"
+
+#: ../src/callbacks.c:2729
+msgid "_Fade gradient"
+msgstr "_მინავლების გრადიენტი"
+
+#: ../src/callbacks.c:3307
+msgid "No recent items found"
+msgstr "უახლესი ელემენტების აღმოჩენილი არაა"
+
+#: ../src/callbacks.c:3515
+msgid "Please choose a PNG file"
+msgstr "აირჩიეთ PNG ფაილი"
+
+#: ../src/callbacks.c:3529
+msgid "PNG files"
+msgstr "PNG ფაილები"
+
+#: ../src/callbacks.c:3537
+msgid "Delete current pattern"
+msgstr "მიმდინარე ნიმუშის წაშლა"
+
+#: ../src/new_slideshow.c:51
+msgid "<b><span font='13'>Edit the slideshow</span></b>"
+msgstr "<b><span font='13'>სლაიდშოუს ჩასწორება</span></b>"
+
+#: ../src/new_slideshow.c:53
+msgid "<b><span font='13'>Create a new slideshow</span></b>"
+msgstr "<b><span font='13'>ახალი სლაიდშოუს შექმნა</span></b>"
+
+#: ../src/new_slideshow.c:55
+msgid "Slideshow settings"
+msgstr "სლაიდშოუს მორგება"
+
+#: ../src/new_slideshow.c:95
+msgid "Width:"
+msgstr "სიგანე:"
+
+#: ../src/new_slideshow.c:110
+msgid "Height:"
+msgstr "სიმაღლე:"
+
+#: ../src/new_slideshow.c:130
+msgid "Distort images to fill the whole screen"
+msgstr "გამოსახულებების დამახინჯება მთელი ეკრანის შესავსებად"
+
+#: ../src/new_slideshow.c:138
+msgid "End slideshow with blank slide"
+msgstr "სლაიდშოუს ცარიელი სლაიდით დასრულება"
+
+#: ../src/slideshow_project.c:248
+msgid ""
+"The file doesn't exist anymore on the disk.\n"
+"Do you want to remove it from the list?"
+msgstr ""
+"ფაილი დისკზე აღარ არსებობს.\n"
+"გნებავთ მისი სიიდან ამოღება?"
+
+#: ../src/slideshow_project.c:256
+msgid "Error: file not found!"
+msgstr "შეცდომა: ფაილი აღმოჩენილი არაა!"
+
+#: ../src/slideshow_project.c:275
+msgid "This is not an Imagination project file!"
+msgstr "ეს Imagination-პროექტის ფაილი არაა!"
+
+#: ../src/slideshow_project.c:389
+#, c-format
+msgid "Slide %i: can't load image %s\n"
+msgstr "სლაიდი %i: ჩატვირთვის შეცდომა გამოსახულებისთვის %s\n"
+
+#: ../src/slideshow_project.c:553
+#, c-format
+msgid "Can't load image %s\n"
+msgstr "გამოსახულების %s ჩატვირთვა შეუძლებელია\n"
+
+#: ../src/support.c:137
+#, c-format
+msgid "Welcome to Imagination - %d transition loaded."
+msgid_plural "Welcome to Imagination - %d transitions loaded."
+msgstr[0] ""
+"კეთილი იყოს თქვენი მობრძანება Imagination-ში - ჩატვირთულია %d გადასვლა."
+msgstr[1] ""
+"კეთილი იყოს თქვენი მობრძანება Imagination-ში - ჩატვირთულია %d გადასვლა."
+
+#: ../src/support.c:152
+#, c-format
+msgid "%d slide selected"
+msgid_plural "%d slides selected"
+msgstr[0] "მონიშნულია %d სლაიდი"
+msgstr[1] "მონიშნულია %d სლაიდი"
+
+#: ../src/support.c:156
+#, c-format
+msgid "%d slide loaded %s"
+msgid_plural "%d slides loaded %s"
+msgstr[0] "ჩატვირთულია %d სლაიდი %s"
+msgstr[1] "ჩატვირთულია %d სლაიდი %s"
+
+#: ../src/support.c:160
+msgid " - Use the CTRL key to select/unselect or SHIFT for multiple select"
+msgstr ""
+" - გამოიყენეთ Ctrl ღილაკი მოსანიშნად/მონიშვნის მოსახსნელად, ან Shift "
+"ბევრის მოსანიშნად"
+
+#: ../src/support.c:329
+msgid "Please type the video filename"
+msgstr "შეიყვანეთ ვიდეოს ფაილის სახელი"
+
+#: ../src/support.c:1169
+msgid "Click to choose the font color"
+msgstr "დააწკაპუნეთ ფონტის ფერის ასარჩევად"
+
+#: ../src/subtitles.c:207
+msgid "Fade"
+msgstr "მინავლება"
+
+#: ../src/subtitles.c:211
+msgid "Slide from left"
+msgstr "სლაიდი მარცხნივ"
+
+#: ../src/subtitles.c:215
+msgid "Slide from right"
+msgstr "სლაიდი მარჯვნივ"
+
+#: ../src/subtitles.c:219
+msgid "Slide from top"
+msgstr "სლაიდი ზემოდან"
+
+#: ../src/subtitles.c:223
+msgid "Slide from bottom"
+msgstr "სლაიდი ქვემოდან"
+
+#: ../src/subtitles.c:227
+msgid "Grow"
+msgstr "გაზრდა"
+
+#: ../src/subtitles.c:231
+msgid "Spin & Grow"
+msgstr "დატრიალება & გაზრდა"
+
+#: ../src/subtitles.c:235
+msgid "Slide bottom to top"
+msgstr "სლაიდი ქვემოდან ზემოთ"
+
+#: ../src/subtitles.c:239
+msgid "Slide right to left"
+msgstr "სლაიდი მარჯვნიდან მარცხნივ"
+
+#: ../src/export.c:51
+#, c-format
+msgid "Failed while exporting slide %d :"
+msgstr "გატანის შეცდომა სლაიდისთვის %d :"
+
+#: ../src/export.c:98
+msgid "Exporting the slideshow"
+msgstr "სლაიდშოუს გატანა"
+
+#: ../src/export.c:110
+msgid "Preparing for export ..."
+msgstr "გატანისთვის მომზადება ..."
+
+#: ../src/export.c:114
+msgid "Status of export"
+msgstr "გატანის სტატუსი"
+
+#: ../src/export.c:124
+msgid "Overall progress:"
+msgstr "სრული მიდინარეობა:"
+
+#: ../src/export.c:137
+msgid "Elapsed time:"
+msgstr "გასული დრო:"
+
+#: ../src/export.c:152
+msgid "Cancel"
+msgstr "გაუქმება"
+
+#: ../src/export.c:161
+msgid "Pause"
+msgstr "შეჩერება"
+
+#: ../src/export.c:261 ../src/export.c:693
+#, c-format
+msgid "Slide %d export progress:"
+msgstr "%d-ე სლაიდის გატანის მიმდინარეობა:"
+
+#: ../src/export.c:292
+msgid "Close"
+msgstr "დახურვა"
+
+#: ../src/export.c:296
+#, c-format
+msgid ""
+"Elapsed time: %s\n"
+"\n"
+msgstr ""
+"გასული დრო: %s\n"
+"\n"
+
+#: ../src/export.c:691
+#, c-format
+msgid "Final transition export progress:"
+msgstr "ბოლო გადასვლის გატანის მიმდინარეობა:"
+
+#. Create dialog
+#: ../src/export.c:1140
+msgid "Export settings"
+msgstr "გატანის მორგება"
+
+#: ../src/export.c:1154
+msgid "<b><span font='13'>Export the slideshow</span></b>"
+msgstr "<b><span font='13'>სლაიდშოუს გატანა</span></b>"
+
+#: ../src/export.c:1180
+msgid "<b>Video Settings</b>"
+msgstr "<b>ვიდეოს მორგება</b>"
+
+#: ../src/export.c:1198
+msgid "Container:"
+msgstr "შემადგენლობა:"
+
+#: ../src/export.c:1205 ../src/export.c:1306
+msgid "Codec:"
+msgstr "კოდეკი:"
+
+#: ../src/export.c:1223
+msgid "Range:"
+msgstr "დიაპაზონი:"
+
+#: ../src/export.c:1230
+msgid "Frame Rate:"
+msgstr "კადრების სიხშირე:"
+
+#: ../src/export.c:1238 ../src/export.c:1526
+msgid "Quality (CRF):"
+msgstr "ხარისხი (CRF):"
+
+#: ../src/export.c:1245
+msgid "Filename:"
+msgstr "ფაილის სახელი:"
+
+#: ../src/export.c:1256
+msgid ""
+"\n"
+" Please fill this field \n"
+msgstr ""
+"\n"
+"შეავსეთ ეს ველი \n"
+
+#. Fill range combo box
+#: ../src/export.c:1261
+msgid "All slides"
+msgstr "ყველა სლაიდი"
+
+#: ../src/export.c:1271
+msgid "<no slides selected>"
+msgstr "<სლაიდები არჩეული არაა>"
+
+#: ../src/export.c:1288
+msgid "<b>Audio Settings</b>"
+msgstr "<b>ხმის მორგება</b>"
+
+#: ../src/export.c:1330
+msgid "Sample Rate:"
+msgstr "სემპლის კოეფიციენტი:"
+
+#: ../src/export.c:1338
+msgid "Bitrate (Kbps/CBR):"
+msgstr "ბიტური სიჩქარე (კბწმ/CBR):"
+
+#: ../src/export.c:1518
+msgid "Bitrate (Mbps):"
+msgstr "ბიტური სიჩქარე (მბ/წმ)"
+
+#: ../src/export.c:1528
+msgid ""
+"The range of the CRF scale is 0–51:\n"
+"0 = lossless\n"
+"17-28 = visually lossless (still compressed but unnoticeable)\n"
+"23 = high quality\n"
+"51 = worst quality possible"
+msgstr ""
+"CRF-ის შუალედი დიაპაზონიდან 0-51:\n"
+"0 = კარგვების გარეშე\n"
+"17-28 = ვიზუალურად კარგვის გარეშე (შეკუმშული, მაგრამ შეუმჩნევლად)\n"
+"23 = მაღალი ხარისხი\n"
+"51 = ყველაზე ცუდი ხარისხი"
